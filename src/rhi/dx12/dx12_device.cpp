@@ -56,7 +56,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 	return chosenAdapter;
 }
 
-std::unique_ptr<HAL_OBJECT> dx12_create_device(const HAL_DEVICE_DESC& desc) {
+std::unique_ptr<RHI_OBJECT> dx12_create_device(const RHI_DEVICE_DESC& desc) {
 	
 	// Pick the best hardware adapter that supports D3D12
 	IDXGIAdapter1* chosenAdapter = nullptr;
@@ -93,6 +93,6 @@ std::unique_ptr<HAL_OBJECT> dx12_create_device(const HAL_DEVICE_DESC& desc) {
 	if (check_features == true && dx12_device_check_device_features(device5, desc.features) == false)
 		throw std::exception("D3D12 device does not support required features");
 
-	return std::make_unique<HAL_OBJECT>(new DX_DEVICE_HANDLE(device5));
+	return std::make_unique<RHI_OBJECT>(new DX_DEVICE_HANDLE(device5));
 }
 

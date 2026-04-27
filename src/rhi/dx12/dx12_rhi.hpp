@@ -1,7 +1,7 @@
-#ifndef __dx12_hal_hpp__
-#define __dx12_hal_hpp__
+#ifndef __dx12_rhi_hpp__
+#define __dx12_rhi_hpp__
 
-#include "hal.hpp"
+#include "rhi.hpp"
 
 #define USE_DX12
 #include "platform.hpp"
@@ -14,9 +14,9 @@ template<typename T, typename U>
 using rf_unique_ptr = std::unique_ptr<T, U>;
 
 template<typename IDX12, typename DELETER>
-struct DX_HAL_HANDLE : public HAL_HANDLE {
-	DX_HAL_HANDLE(IDX12* ptr) : native_ptr(ptr) {}
-	virtual ~DX_HAL_HANDLE() { 
+struct DX_RHI_HANDLE : public RHI_HANDLE {
+	DX_RHI_HANDLE(IDX12* ptr) : native_ptr(ptr) {}
+	virtual ~DX_RHI_HANDLE() { 
 		native_ptr.reset(); 
 	}
 	operator IDX12*() {
@@ -28,7 +28,7 @@ struct DX_HAL_HANDLE : public HAL_HANDLE {
 private:
 	rf_unique_ptr<IDX12, DELETER> native_ptr;
 };
-struct DX_WINDOW_HANDLE : public HAL_HANDLE {
+struct DX_WINDOW_HANDLE : public RHI_HANDLE {
 	DX_WINDOW_HANDLE(HWND h) : hwnd(h) {}
 	operator HWND() { return hwnd; }
 	void* get_native_handle() override {
@@ -38,35 +38,35 @@ private:
 	HWND hwnd;
 };
 
-struct DX_HAL_RESOURCE : public HAL_RESOURCE {
-	DX_HAL_RESOURCE(HAL_HANDLE* ptr) : HAL_RESOURCE(ptr) {}
+struct DX_RHI_RESOURCE : public RHI_RESOURCE {
+	DX_RHI_RESOURCE(RHI_HANDLE* ptr) : RHI_RESOURCE(ptr) {}
 	virtual void change_state(resource_state new_state) override;	
 };
 
-using DX_DEVICE_HANDLE = DX_HAL_HANDLE<ID3D12Device5, ReleaseDeleter>;
-using DX_COMMAND_QUEUE_HANDLE = DX_HAL_HANDLE<ID3D12CommandQueue, EmptyDeleter>;
-using DX_SWAP_CHAIN_HANDLE = DX_HAL_HANDLE<IDXGISwapChain1, ReleaseDeleter>;
-using DX_BUFFER_HANDLE = DX_HAL_HANDLE<ID3D12Resource, ReleaseDeleter>;
-using DX_COMMAND_BUFFER_HANDLE = DX_HAL_HANDLE<ID3D12GraphicsCommandList, ReleaseDeleter>;
-using DX_PIPELINE_HANDLE = DX_HAL_HANDLE<ID3D12PipelineState, ReleaseDeleter>;
-using DX_FENCE_HANDLE = DX_HAL_HANDLE<ID3D12Fence, ReleaseDeleter>;
+using DX_DEVICE_HANDLE = DX_RHI_HANDLE<ID3D12Device5, ReleaseDeleter>;
+using DX_COMMAND_QUEUE_HANDLE = DX_RHI_HANDLE<ID3D12CommandQueue, EmptyDeleter>;
+using DX_SWAP_CHAIN_HANDLE = DX_RHI_HANDLE<IDXGISwapChain1, ReleaseDeleter>;
+using DX_BUFFER_HANDLE = DX_RHI_HANDLE<ID3D12Resource, ReleaseDeleter>;
+using DX_COMMAND_BUFFER_HANDLE = DX_RHI_HANDLE<ID3D12GraphicsCommandList, ReleaseDeleter>;
+using DX_PIPELINE_HANDLE = DX_RHI_HANDLE<ID3D12PipelineState, ReleaseDeleter>;
+using DX_FENCE_HANDLE = DX_RHI_HANDLE<ID3D12Fence, ReleaseDeleter>;
 
 template<typename I>
-inline I* dx_hal_get_interface(HAL_OBJECT& resource) {
+inline I* dx_rhi_get_interface(RHI_OBJECT& resource) {
 	I* id3dres = nullptr;
 	IUnknown* iunk = static_cast<IUnknown*>(resource.get_native_impl()->get_native_handle());
 	HRESULT hr = iunk->QueryInterface(__uuidof(ID3D12Resource), (void**)&resource);
 	if (FAILED(hr)) {
-		throw std::exception("Failed to get interface from HAL_OBJECT");
+		throw std::exception("Failed to get interface from RHI_OBJECT");
 	}
 	return id3dres;
 }
 
 template<typename I, typename U>
-inline I* dx_hal_get_interface_from_hal_object(HAL_OBJECT& resource) {
+inline I* dx_rhi_get_interface_from_rhi_object(RHI_OBJECT& resource) {
 	return static_cast<I*>(reinterpret_cast<U&>(*(resource.get_native_impl()).get()));
 }
-HWND dx_hal_get_window(HAL_HANDLE& window);
+HWND dx_rhi_get_window(RHI_HANDLE& window);
 
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
@@ -101,7 +101,7 @@ constexpr D3D12_RESOURCE_STATES dx12_resource_state_type[] = {
 	D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE // resource_state_rt_bvh
 };
 
-void dx12_hal_init();
-void dx12_hal_end();
+void dx12_rhi_init();
+void dx12_rhi_end();
 
 #endif

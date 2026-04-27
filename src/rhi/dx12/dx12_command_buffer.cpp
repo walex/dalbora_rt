@@ -1,9 +1,9 @@
 #include "dx12_command_buffer.hpp"
 
-std::unique_ptr<HAL_OBJECT> dx12_create_command_buffer(const HAL_COMMAND_BUFFER_DESC& cb_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_create_command_buffer(const RHI_COMMAND_BUFFER_DESC& cb_desc) {
 
 	// For simplicity, we will create a command allocator and a command list
-	ID3D12Device5* device5 = dx_hal_get_interface<ID3D12Device5>(*cb_desc.device);
+	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*cb_desc.device);
 	if (!device5) {
 		throw std::exception("Invalid device for command buffer creation");
 	}
@@ -22,6 +22,6 @@ std::unique_ptr<HAL_OBJECT> dx12_create_command_buffer(const HAL_COMMAND_BUFFER_
 	}
 	// Close the command list as it is created in an open state
 	commandList->Close();
-	// Wrap the command list in a HAL_OBJECT
-	return std::make_unique<HAL_OBJECT>(new DX_COMMAND_BUFFER_HANDLE(commandList));
+	// Wrap the command list in a RHI_OBJECT
+	return std::make_unique<RHI_OBJECT>(new DX_COMMAND_BUFFER_HANDLE(commandList));
 }

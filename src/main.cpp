@@ -10,29 +10,29 @@
 #include "SurfaceRadiance.hpp"
 #include "Sampler.hpp"
 #include "AreaLight_Circular.hpp"
-#include "hal.hpp"
+#include "rhi.hpp"
 
 void test_graphics_api() {
 
-	hal_init(device_type_dx12);
+	rhi_init(device_type_dx12);
 
-	HAL_WINDOW_DESC window_desc;
+	RHI_WINDOW_DESC window_desc;
 	window_desc.full_screen = false;
 	window_desc.width = 800;
 	window_desc.height = 600;
-	strcpy(window_desc.title, "pbr test");
-	auto window = hal_create_window(window_desc);
+	strcpy_s(window_desc.title, "pbr test");
+	auto window = rhi_create_window(window_desc);
 
-	HAL_DEVICE_DESC device_desc;
+	RHI_DEVICE_DESC device_desc;
 	device_desc.adapter_id = 0;
 	device_desc.features = device_features_raytracing;
-	auto dev = hal_create_device(device_desc);
+	auto dev = rhi_create_device(device_desc);
 
-	HAL_COMMAND_QUEUE_DESC queue_desc;
+	RHI_COMMAND_QUEUE_DESC queue_desc;
 	queue_desc.device = dev.get();
-	auto queue = hal_create_graphics_command_queue(queue_desc);
+	auto queue = rhi_create_graphics_command_queue(queue_desc);
 
-	HAL_SWAP_CHAIN_DESC swap_chain_desc;
+	RHI_SWAP_CHAIN_DESC swap_chain_desc;
 	swap_chain_desc.width = 800;
 	swap_chain_desc.height = 600;
 	swap_chain_desc.allow_tearing = false;
@@ -41,9 +41,9 @@ void test_graphics_api() {
 	swap_chain_desc.device = dev.get();
 	swap_chain_desc.command_queue = queue.get();
 	swap_chain_desc.window = window.get();
-	auto swap_chain = hal_create_swap_chain(swap_chain_desc);
+	auto swap_chain = rhi_create_swap_chain(swap_chain_desc);
 
-	hal_end();
+	rhi_end();
 }
 
 void test_rt() {

@@ -1,5 +1,5 @@
-#ifndef __hal_hpp__
-#define __hal_hpp__
+#ifndef __rhi_hpp__
+#define __rhi_hpp__
 
 #include <memory>
 #include <vector>
@@ -65,35 +65,35 @@ constexpr __int64 device_features_raytracing = 0x1;
 constexpr __int64 device_features_variable_rate_shading = 0x2;
 constexpr __int64 device_features_mesh_shaders = 0x4;
 
-struct HAL_HANDLE {
-	virtual ~HAL_HANDLE() = default;
+struct RHI_HANDLE {
+	virtual ~RHI_HANDLE() = default;
 	virtual void* get_native_handle() = 0;
 };
 
-struct HAL_OBJECT {
-	virtual ~HAL_OBJECT() = default;
-	HAL_OBJECT(HAL_HANDLE* ptr) {
+struct RHI_OBJECT {
+	virtual ~RHI_OBJECT() = default;
+	RHI_OBJECT(RHI_HANDLE* ptr) {
 		native_impl.reset(ptr);
 	}
-	std::unique_ptr<HAL_HANDLE>& get_native_impl() {
+	std::unique_ptr<RHI_HANDLE>& get_native_impl() {
 		return native_impl;
 	}
 	
 private:
-	std::unique_ptr<HAL_HANDLE> native_impl;
+	std::unique_ptr<RHI_HANDLE> native_impl;
 };
 
-struct HAL_RESOURCE : public HAL_OBJECT {
-	HAL_RESOURCE(HAL_HANDLE* ptr)
-		: HAL_OBJECT(ptr)
+struct RHI_RESOURCE : public RHI_OBJECT {
+	RHI_RESOURCE(RHI_HANDLE* ptr)
+		: RHI_OBJECT(ptr)
 		, command_buffer(nullptr) {}
 	resource_state get_current_state() const {
 		return current_state;
 	}
-	void set_command_buffer(HAL_OBJECT* cmd_buffer) {
+	void set_command_buffer(RHI_OBJECT* cmd_buffer) {
 		command_buffer = cmd_buffer;
 	}
-	HAL_OBJECT* get_command_buffer() {
+	RHI_OBJECT* get_command_buffer() {
 		return command_buffer;
 	}
 	virtual void change_state(resource_state new_state) = 0;
@@ -103,27 +103,27 @@ protected:
 	}	
 private:
 	resource_state current_state = resource_state_none;
-	HAL_OBJECT* command_buffer;
+	RHI_OBJECT* command_buffer;
 };
 
-struct HAL_COMMAND_QUEUE: public HAL_OBJECT {
-	HAL_COMMAND_QUEUE(HAL_HANDLE* ptr, std::unique_ptr<HAL_OBJECT>&& queue_fence)
-		: HAL_OBJECT(ptr)
+struct RHI_COMMAND_QUEUE: public RHI_OBJECT {
+	RHI_COMMAND_QUEUE(RHI_HANDLE* ptr, std::unique_ptr<RHI_OBJECT>&& queue_fence)
+		: RHI_OBJECT(ptr)
 		, fence(std::move(queue_fence)) {}
-	HAL_OBJECT& get_fence() {
+	RHI_OBJECT& get_fence() {
 		return *fence;
 	}
 protected:
-	std::unique_ptr<HAL_OBJECT> fence;
+	std::unique_ptr<RHI_OBJECT> fence;
 };
 
-struct HAL_COMMAND_BUUFER_LIST {
-	HAL_COMMAND_BUUFER_LIST(HAL_COMMAND_QUEUE& cmd_queue,
-		std::vector<std::unique_ptr<HAL_OBJECT>>&& cmd_buffers)
+struct RHI_COMMAND_BUUFER_LIST {
+	RHI_COMMAND_BUUFER_LIST(RHI_COMMAND_QUEUE& cmd_queue,
+		std::vector<std::unique_ptr<RHI_OBJECT>>&& cmd_buffers)
 	: command_queue(&cmd_queue)
 	, command_buffers(std::move(cmd_buffers))
 	, counter(1) {}
-	std::vector<std::unique_ptr<HAL_OBJECT>>& get_list() {
+	std::vector<std::unique_ptr<RHI_OBJECT>>& get_list() {
 		return command_buffers;
 	}
 	void increment_counter() {
@@ -132,98 +132,98 @@ struct HAL_COMMAND_BUUFER_LIST {
 	unsigned __int64 get_counter() const {
 		return counter;
 	}
-	HAL_COMMAND_QUEUE& get_queue() {
+	RHI_COMMAND_QUEUE& get_queue() {
 		return *command_queue;
 	}
 private:
-	std::vector<std::unique_ptr<HAL_OBJECT>>&& command_buffers;
+	std::vector<std::unique_ptr<RHI_OBJECT>>&& command_buffers;
 	unsigned __int64 counter;
-	HAL_COMMAND_QUEUE* command_queue;
+	RHI_COMMAND_QUEUE* command_queue;
 };
 
-struct HAL_DEVICE_DESC {
+struct RHI_DEVICE_DESC {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
 };
 
-struct HAL_BUFFER_DESC {
+struct RHI_BUFFER_DESC {
 	size_t size;
 };
 
-struct HAL_VERTEX_BUFFER_DESC : public HAL_BUFFER_DESC {
-	HAL_OBJECT* device;
+struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {
+	RHI_OBJECT* device;
 	char name[_MAX_FNAME];
 	vertex_format format;
 	size_t stride;
 	size_t count;
 };
 
-struct HAL_INDEX_BUFFER_DESC : public HAL_BUFFER_DESC {
-	HAL_OBJECT* device;
+struct RHI_INDEX_BUFFER_DESC : public RHI_BUFFER_DESC {
+	RHI_OBJECT* device;
 	index_format format;
 	size_t count;
 };
 
-struct HAL_WINDOW_DESC {
+struct RHI_WINDOW_DESC {
 	char title[_MAX_FNAME];
 	size_t width;
 	size_t height;
 	bool full_screen;
 };
 
-struct HAL_COMMAND_QUEUE_DESC {
-	HAL_OBJECT* device;
+struct RHI_COMMAND_QUEUE_DESC {
+	RHI_OBJECT* device;
 };
 
-struct HAL_SWAP_CHAIN_DESC {
+struct RHI_SWAP_CHAIN_DESC {
 	size_t width;
 	size_t height;
 	color_format color_format;
 	bool allow_tearing;
-	HAL_HANDLE* window;
-	HAL_OBJECT* device;
-	HAL_OBJECT* command_queue;
+	RHI_HANDLE* window;
+	RHI_OBJECT* device;
+	RHI_OBJECT* command_queue;
 	size_t buffer_count;
 };
 
-struct HAL_COMMAND_BUFFER_DESC {
-	HAL_OBJECT* device;
-	HAL_OBJECT* command_queue;
+struct RHI_COMMAND_BUFFER_DESC {
+	RHI_OBJECT* device;
+	RHI_OBJECT* command_queue;
 	queue_type type;
 };
 
-struct HAL_PIPELINE_DESC {
-	HAL_OBJECT* device;
+struct RHI_PIPELINE_DESC {
+	RHI_OBJECT* device;
 	primitive_topology topology = primitive_topology_none;
 };
 
-struct HAL_TEXTURE_2D_DESC {
-	HAL_OBJECT* device;
+struct RHI_TEXTURE_2D_DESC {
+	RHI_OBJECT* device;
 	size_t width;
 	size_t height;
 	color_format format;
 };
 
-struct HAL_FENCE_DESC {
-	HAL_OBJECT* device;
+struct RHI_FENCE_DESC {
+	RHI_OBJECT* device;
 	fence_flags flags = fence_flags_none;
 	int initial_value = 0;
 };
 
-void hal_init(device_type dt);
-void hal_end();
+void rhi_init(device_type dt);
+void rhi_end();
 
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_device)(const HAL_DEVICE_DESC& desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_swap_chain)(const HAL_SWAP_CHAIN_DESC& swpc_desc);
-inline std::unique_ptr<HAL_HANDLE>(*hal_create_window)(const HAL_WINDOW_DESC& desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_graphics_command_queue)(const HAL_COMMAND_QUEUE_DESC& queue_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_compute_command_queue)(const HAL_COMMAND_QUEUE_DESC& queue_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_transfer_command_queue)(const HAL_COMMAND_QUEUE_DESC& queue_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_command_buffer)(const HAL_COMMAND_BUFFER_DESC& cb_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_pipeline)(const HAL_PIPELINE_DESC& pipeline_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_vertex_buffer)(const HAL_VERTEX_BUFFER_DESC& vb_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_index_buffer)(const HAL_INDEX_BUFFER_DESC& ib_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_texture_2d)(const HAL_TEXTURE_2D_DESC& tex_desc);
-inline std::unique_ptr<HAL_OBJECT>(*hal_create_fence)(const HAL_FENCE_DESC& desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_device)(const RHI_DEVICE_DESC& desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_swap_chain)(const RHI_SWAP_CHAIN_DESC& swpc_desc);
+inline std::unique_ptr<RHI_HANDLE>(*rhi_create_window)(const RHI_WINDOW_DESC& desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_graphics_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_compute_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_transfer_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_command_buffer)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_pipeline)(const RHI_PIPELINE_DESC& pipeline_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_vertex_buffer)(const RHI_VERTEX_BUFFER_DESC& vb_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_index_buffer)(const RHI_INDEX_BUFFER_DESC& ib_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_texture_2d)(const RHI_TEXTURE_2D_DESC& tex_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_fence)(const RHI_FENCE_DESC& desc);
 
 #endif

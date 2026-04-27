@@ -1,16 +1,16 @@
-#include "hal.hpp"
+#include "rhi.hpp"
 #include <exception>
 
-#include "dx12_hal.hpp"
+#include "dx12_rhi.hpp"
 
 static device_type g_device_type = device_type_none;
 
-void hal_init(device_type dt) {
+void rhi_init(device_type dt) {
 
-	hal_end();
+	rhi_end();
 
 	if (dt == device_type_dx12) {
-		dx12_hal_init();
+		dx12_rhi_init();
 	}
 	else {
 		throw std::exception("Unsupported device type");
@@ -18,8 +18,8 @@ void hal_init(device_type dt) {
 	g_device_type = dt;
 }
 
-void hal_end() {
+void rhi_end() {
 
-	dx12_hal_end();
+	dx12_rhi_end();
 	g_device_type = device_type_none;
 }

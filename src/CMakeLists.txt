@@ -43,25 +43,19 @@ file(GLOB RT_RENDER_SOURCES "*.inc" "*.h" "*.hpp")
 
 add_subdirectory(./core)
 add_subdirectory(./os)
-add_subdirectory(./hal)
+add_subdirectory(./rhi)
 
 # eigen
 set(Eigen3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eigen-5.0.1/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED NO_MODULE)
 
 #slang
-set(slang_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/slang-2026.7-windows-x86_64/cmake)
+set(slang_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../slang-2026.7-windows-x86_64/cmake)
 find_package(slang REQUIRED)
 
-set(RT_RENDER_HEADERS ${RT_RENDER_HEADERS} ${CORE_HEADERS} ${OS_HEADERS} ${HAL_HEADERS})
-set(RT_RENDER_SOURCES ${RT_RENDER_SOURCES} ${CORE_SOURCES} ${OS_SOURCES} ${HAL_SOURCES})
-
-# set rhi
-set(RHI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/DiligentEngine/include ${HAL_INCLUDE_DIRS})
-set(RHI_LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/DiligentEngine/lib/DiligentCore/Release)
-set(RHI_LIBS ${RHI_LIB_DIRS}/DiligentCore.lib ${RHI_LIB_DIRS}/GraphicsEngineD3D12_64r.lib)
-
-set(RT_RENDER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} ${CORE_INCLUDE_DIRS} ${OS_INCLUDE_DIRS} ${RHI_INCLUDE_DIRS} )
+set(RT_RENDER_HEADERS ${RT_RENDER_HEADERS} ${CORE_HEADERS} ${OS_HEADERS} ${RHI_HEADERS})
+set(RT_RENDER_SOURCES ${RT_RENDER_SOURCES} ${CORE_SOURCES} ${OS_SOURCES} ${RHI_SOURCES})
+set(RT_RENDER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} ${CORE_INCLUDE_DIRS} ${OS_INCLUDE_DIRS} ${RHI_INCLUDE_DIRS})
 
 set(CG_LIBS "")
 # DX12 system libraries (Windows)
@@ -74,6 +68,6 @@ endif()
 
 add_executable(rtrender ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS})
 target_include_directories(rtrender PRIVATE ${RT_RENDER_INCLUDE_DIRS} slang::slang)
-target_link_libraries(rtrender PRIVATE Eigen3::Eigen slang::slang ${RHI_LIBS} ${CG_LIBS})
+target_link_libraries(rtrender PRIVATE Eigen3::Eigen slang::slang ${CG_LIBS})
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS})

@@ -1,6 +1,6 @@
 #include "dx12_index_buffer.hpp"
 
-std::unique_ptr<HAL_OBJECT> dx12_create_index_buffer(const HAL_INDEX_BUFFER_DESC& ib_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_create_index_buffer(const RHI_INDEX_BUFFER_DESC& ib_desc) {
 
     D3D12_HEAP_PROPERTIES heapProps = {};
     heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -23,7 +23,7 @@ std::unique_ptr<HAL_OBJECT> dx12_create_index_buffer(const HAL_INDEX_BUFFER_DESC
     bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     ID3D12Resource* ib;
-    HRESULT hr = dx_hal_get_interface<ID3D12Device5>(*ib_desc.device)->CreateCommittedResource(
+    HRESULT hr = dx_rhi_get_interface<ID3D12Device5>(*ib_desc.device)->CreateCommittedResource(
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
@@ -34,5 +34,5 @@ std::unique_ptr<HAL_OBJECT> dx12_create_index_buffer(const HAL_INDEX_BUFFER_DESC
     if (FAILED(hr) || !ib) {
         throw std::exception("Failed to create D3D12 vertex buffer");
     }
-    return std::make_unique<DX_HAL_RESOURCE>(new DX_BUFFER_HANDLE(ib));
+    return std::make_unique<DX_RHI_RESOURCE>(new DX_BUFFER_HANDLE(ib));
 }

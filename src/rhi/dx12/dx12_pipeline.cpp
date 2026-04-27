@@ -1,8 +1,8 @@
 #include "dx12_pipeline.hpp"
 
-std::unique_ptr<HAL_OBJECT> dx12_create_pipeline(const HAL_PIPELINE_DESC& pipeline_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_create_pipeline(const RHI_PIPELINE_DESC& pipeline_desc) {
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
-	ID3D12Device5* device5 = dx_hal_get_interface<ID3D12Device5>(*pipeline_desc.device);
+	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*pipeline_desc.device);
 	if (!device5) {
 		throw std::exception("Invalid device for pipeline creation");
 	}
@@ -55,5 +55,5 @@ std::unique_ptr<HAL_OBJECT> dx12_create_pipeline(const HAL_PIPELINE_DESC& pipeli
 	if (FAILED(hr) || !pipelineState) {
 		throw std::exception("Failed to create D3D12 graphics pipeline state");
 	}
-	return std::make_unique<HAL_OBJECT>(new DX_PIPELINE_HANDLE(pipelineState));
+	return std::make_unique<RHI_OBJECT>(new DX_PIPELINE_HANDLE(pipelineState));
 }

@@ -6,6 +6,6 @@
 #include "queue.hpp"
 #include "worker.hpp"
 #include "task_pool.hpp"
-#include "hal.hpp"
+#include "rhi.hpp"
 
 #endif

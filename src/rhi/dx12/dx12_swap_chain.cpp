@@ -1,12 +1,12 @@
 #include "dx12_swap_chain.hpp"
 #include "dx12_factory.hpp"
 
-std::unique_ptr<HAL_OBJECT> dx12_create_swap_chain(const HAL_SWAP_CHAIN_DESC& swpc_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& swpc_desc) {
 
-	ID3D12Device5* device5 = dx_hal_get_interface<ID3D12Device5>(*swpc_desc.device);
-	ID3D12CommandQueue* commandQueue = dx_hal_get_interface<ID3D12CommandQueue>(*swpc_desc.command_queue);
+	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*swpc_desc.device);
+	ID3D12CommandQueue* commandQueue = dx_rhi_get_interface<ID3D12CommandQueue>(*swpc_desc.command_queue);
 	IDXGIFactory5* factory = dx12_get_factory();
-	HWND hwnd = dx_hal_get_window(*swpc_desc.window);
+	HWND hwnd = dx_rhi_get_window(*swpc_desc.window);
 
 	if (!device5 || !commandQueue || !factory) {
 		throw std::exception("Invalid device/queue/factory for swapchain creation");
@@ -68,5 +68,5 @@ std::unique_ptr<HAL_OBJECT> dx12_create_swap_chain(const HAL_SWAP_CHAIN_DESC& sw
 		throw std::exception("Failed to acquire IDXGISwapChain3");
 	}
 
-	return std::make_unique<HAL_OBJECT>(new DX_SWAP_CHAIN_HANDLE(swapChain3));
+	return std::make_unique<RHI_OBJECT>(new DX_SWAP_CHAIN_HANDLE(swapChain3));
 }
