@@ -3,12 +3,12 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& swpc_desc) {
 
-	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*swpc_desc.device);
+	ID3D12Device* device = dx_rhi_get_interface<ID3D12Device>(*swpc_desc.device);
 	ID3D12CommandQueue* commandQueue = dx_rhi_get_interface<ID3D12CommandQueue>(*swpc_desc.command_queue);
 	IDXGIFactory5* factory = dx12_get_factory();
 	HWND hwnd = dx_rhi_get_window(*swpc_desc.window);
 
-	if (!device5 || !commandQueue || !factory) {
+	if (!device || !commandQueue || !factory) {
 		throw std::exception("Invalid device/queue/factory for swapchain creation");
 	}
 

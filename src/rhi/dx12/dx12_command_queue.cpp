@@ -3,7 +3,7 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_create_command_queue(const RHI_COMMAND_QUEUE_DESC& queue_desc, queue_type type) {
 	
-	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*queue_desc.device);
+	ID3D12Device* device = dx_rhi_get_interface<ID3D12Device>(*queue_desc.device);
 	// Create a direct command queue
 	ID3D12CommandQueue* commandQueue = nullptr;
 	{
@@ -12,7 +12,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_command_queue(const RHI_COMMAND_QUEUE_DE
 		qdesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 		qdesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		qdesc.NodeMask = 0;
-		HRESULT hr = device5->CreateCommandQueue(&qdesc, IID_PPV_ARGS(&commandQueue));
+		HRESULT hr = device->CreateCommandQueue(&qdesc, IID_PPV_ARGS(&commandQueue));
 		if (FAILED(hr) || !commandQueue) {
 			throw std::exception("Failed to create D3D12 command queue");
 		}}

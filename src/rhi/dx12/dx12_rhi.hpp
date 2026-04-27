@@ -7,7 +7,7 @@
 #include "platform.hpp"
 #undef USE_DX12
 
-struct ID3D12Device5;
+struct ID3D12Device;
 struct EmptyDeleter { void operator()(IUnknown*) const {} };
 struct ReleaseDeleter { void operator()(IUnknown* p) const { SAFE_RELEASE2(p); } };
 template<typename T, typename U>
@@ -43,7 +43,7 @@ struct DX_RHI_RESOURCE : public RHI_RESOURCE {
 	virtual void change_state(resource_state new_state) override;	
 };
 
-using DX_DEVICE_HANDLE = DX_RHI_HANDLE<ID3D12Device5, ReleaseDeleter>;
+using DX_DEVICE_HANDLE = DX_RHI_HANDLE<ID3D12Device, ReleaseDeleter>;
 using DX_COMMAND_QUEUE_HANDLE = DX_RHI_HANDLE<ID3D12CommandQueue, EmptyDeleter>;
 using DX_SWAP_CHAIN_HANDLE = DX_RHI_HANDLE<IDXGISwapChain1, ReleaseDeleter>;
 using DX_BUFFER_HANDLE = DX_RHI_HANDLE<ID3D12Resource, ReleaseDeleter>;
@@ -55,7 +55,7 @@ template<typename I>
 inline I* dx_rhi_get_interface(RHI_OBJECT& resource) {
 	I* id3dres = nullptr;
 	IUnknown* iunk = static_cast<IUnknown*>(resource.get_native_impl()->get_native_handle());
-	HRESULT hr = iunk->QueryInterface(__uuidof(ID3D12Resource), (void**)&resource);
+	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
 	if (FAILED(hr)) {
 		throw std::exception("Failed to get interface from RHI_OBJECT");
 	}

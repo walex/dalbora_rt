@@ -20,7 +20,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_texture_2d(const RHI_TEXTURE_2D_DESC& te
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	HRESULT hr = dx_rhi_get_interface<ID3D12Device5>(*tex_desc.device)->CreateCommittedResource(
+	HRESULT hr = dx_rhi_get_interface<ID3D12Device>(*tex_desc.device)->CreateCommittedResource(
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
 		&textureDesc,

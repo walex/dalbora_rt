@@ -23,7 +23,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_index_buffer(const RHI_INDEX_BUFFER_DESC
     bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     ID3D12Resource* ib;
-    HRESULT hr = dx_rhi_get_interface<ID3D12Device5>(*ib_desc.device)->CreateCommittedResource(
+    HRESULT hr = dx_rhi_get_interface<ID3D12Device>(*ib_desc.device)->CreateCommittedResource(
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,

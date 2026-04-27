@@ -3,19 +3,19 @@
 std::unique_ptr<RHI_OBJECT> dx12_create_command_buffer(const RHI_COMMAND_BUFFER_DESC& cb_desc) {
 
 	// For simplicity, we will create a command allocator and a command list
-	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*cb_desc.device);
-	if (!device5) {
+	ID3D12Device* device = dx_rhi_get_interface<ID3D12Device>(*cb_desc.device);
+	if (!device) {
 		throw std::exception("Invalid device for command buffer creation");
 	}
 	// Create command allocator
 	ID3D12CommandAllocator* commandAllocator = nullptr;
-	HRESULT hr = device5->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
+	HRESULT hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	if (FAILED(hr) || !commandAllocator) {
 		throw std::exception("Failed to create D3D12 command allocator");
 	}
 	// Create command list
 	ID3D12GraphicsCommandList* commandList = nullptr;
-	hr = device5->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList));
+	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList));
 	if (FAILED(hr) || !commandList) {
 		if (commandAllocator) commandAllocator->Release();
 		throw std::exception("Failed to create D3D12 command list");

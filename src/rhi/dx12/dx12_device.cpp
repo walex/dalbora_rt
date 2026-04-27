@@ -10,13 +10,15 @@ bool dx12_device_check_rt_support(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
-bool dx12_device_check_device_features(ID3D12Device* device, __int64 features) {
-	
+bool dx12_device_check_device_features(ID3D12Device* device, const __int64 features) {
+
 	bool result = true;
-	
-	if (features & device_features_raytracing)
+
+	auto feats = features;
+	if (feats & device_features_raytracing) {
 		result |= dx12_device_check_rt_support(device);
-	
+		feats ^= device_features_raytracing;
+	}
 	return result;
 }
 
@@ -57,7 +59,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 }
 
 std::unique_ptr<RHI_OBJECT> dx12_create_device(const RHI_DEVICE_DESC& desc) {
-	
+
 	// Pick the best hardware adapter that supports D3D12
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	bool check_features = true;
@@ -73,11 +75,23 @@ std::unique_ptr<RHI_OBJECT> dx12_create_device(const RHI_DEVICE_DESC& desc) {
 		check_features = false;
 	}
 
-	// Create D3D12 device (request ID3D12Device5). Try feature level 12_0 then 11_0.
-	ID3D12Device5* device5 = nullptr;
-	HRESULT hr = D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device5));
+	// Create D3D12 device (request ID3D12Device). Try feature level 12_0 then 11_0.
+	ID3D12Device* device = nullptr;
+	HRESULT hr = D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device));
 	if (FAILED(hr)) {
-		hr = D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device5));
+		throw std::exception("Failed to create D3D12 device with feature level 12_0");
+	}
+	if (check_features == true && dx12_device_check_device_features(device, desc.features) == false)
+		throw std::exception("D3D12 device does not support required features");
+	if ((desc.features & device_features_raytracing) == device_features_raytracing) {
+		ID3D12Device* device5 = nullptr;
+		hr = device->QueryInterface(IID_PPV_ARGS(&device5));
+		if (FAILED(hr)) {
+			throw std::exception("Failed to query ID3D12Device5 interface");
+		}
+		auto old_device = device;
+		device = device5;
+		old_device->Release();
 	}
 	// Release adapter and factory references we no longer need
 	DXGI_ADAPTER_DESC ad;
@@ -86,13 +100,10 @@ std::unique_ptr<RHI_OBJECT> dx12_create_device(const RHI_DEVICE_DESC& desc) {
 
 	printf("Using graphics device: %ls\n", ad.Description);
 
-	if (FAILED(hr) || !device5) {
+	if (FAILED(hr) || !device) {
 		throw std::exception("Failed to create D3D12 device");
 	}
 
-	if (check_features == true && dx12_device_check_device_features(device5, desc.features) == false)
-		throw std::exception("D3D12 device does not support required features");
-
-	return std::make_unique<RHI_OBJECT>(new DX_DEVICE_HANDLE(device5));
+	return std::make_unique<RHI_OBJECT>(new DX_DEVICE_HANDLE(device));
 }
 

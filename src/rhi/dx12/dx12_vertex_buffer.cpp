@@ -25,7 +25,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_vertex_buffer(const RHI_VERTEX_BUFFER_DE
     buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     buffer.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-    HRESULT hr = dx_rhi_get_interface<ID3D12Device5>(*vb_desc.device)->CreateCommittedResource(
+    HRESULT hr = dx_rhi_get_interface<ID3D12Device>(*vb_desc.device)->CreateCommittedResource(
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
         &buffer,

@@ -2,8 +2,8 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_create_pipeline(const RHI_PIPELINE_DESC& pipeline_desc) {
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
-	ID3D12Device5* device5 = dx_rhi_get_interface<ID3D12Device5>(*pipeline_desc.device);
-	if (!device5) {
+	ID3D12Device* device = dx_rhi_get_interface<ID3D12Device>(*pipeline_desc.device);
+	if (!device) {
 		throw std::exception("Invalid device for pipeline creation");
 	}
 	D3D12_RASTERIZER_DESC rasterizer_desc_default = {
@@ -51,7 +51,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_pipeline(const RHI_PIPELINE_DESC& pipeli
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.SampleDesc.Count = 1;
 	ID3D12PipelineState* pipelineState = nullptr;
-	HRESULT hr = device5->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
+	HRESULT hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
 	if (FAILED(hr) || !pipelineState) {
 		throw std::exception("Failed to create D3D12 graphics pipeline state");
 	}
