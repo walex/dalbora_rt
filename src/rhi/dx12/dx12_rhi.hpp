@@ -5,50 +5,23 @@
 #include "dx12_helpers.hpp"
 
 struct ID3D12Device;
-struct EmptyDeleter { void operator()(IUnknown*) const {} };
-struct ReleaseDeleter { void operator()(IUnknown* p) const { SAFE_RELEASE2(p); } };
-template<typename T, typename U>
-using rf_unique_ptr = std::unique_ptr<T, U>;
+struct COMReleaseDeleter { void operator()(IUnknown* p) const { SAFE_RELEASE2(p); } };
 
-template<typename IDX12, typename DELETER>
-struct  RHI_DX_HANDLE : public RHI_NATIVE_HANDLE {
-	RHI_DX_HANDLE(IDX12* ptr) : native_ptr(ptr) {}
-	virtual ~RHI_DX_HANDLE() { 
-		native_ptr.reset(); 
-	}
-	operator IDX12*() {
-		return native_ptr.get();
-	}
-	void* get_native_handle() override {
-		return static_cast<void*>(native_ptr.get());
-	}
-private:
-	rf_unique_ptr<IDX12, DELETER> native_ptr;
-};
-struct DX_WINDOW_HANDLE : public RHI_NATIVE_HANDLE {
-	DX_WINDOW_HANDLE(HWND h) : hwnd(h) {}
-	operator HWND() { return hwnd; }
-	void* get_native_handle() override {
-		return static_cast<void*>(hwnd);
-	}
-private:
-	HWND hwnd;
-};
-
-using DX_DEVICE_HANDLE =  RHI_DX_HANDLE<ID3D12Device, ReleaseDeleter>;
-using DX_COMMAND_QUEUE_HANDLE =  RHI_DX_HANDLE<ID3D12CommandQueue, EmptyDeleter>;
-using DX_SWAP_CHAIN_HANDLE =  RHI_DX_HANDLE<IDXGISwapChain1, ReleaseDeleter>;
-using DX_BUFFER_HANDLE =  RHI_DX_HANDLE<ID3D12Resource, ReleaseDeleter>;
-using DX_COMMAND_BUFFER_HANDLE =  RHI_DX_HANDLE<ID3D12GraphicsCommandList, ReleaseDeleter>;
-using DX_RASTER_PIPELINE_HANDLE =  RHI_DX_HANDLE<ID3D12PipelineState, ReleaseDeleter>;
-using DX_RT_PIPELINE_HANDLE =  RHI_DX_HANDLE<ID3D12StateObject, ReleaseDeleter>;
-using DX_FENCE_HANDLE =  RHI_DX_HANDLE<ID3D12Fence, ReleaseDeleter>;
-using DX_SHADER_HANDLE =  RHI_DX_HANDLE<IDxcBlob, ReleaseDeleter>;
+using DX_DEVICE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Device, COMReleaseDeleter>;
+using DX_COMMAND_QUEUE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12CommandQueue>;
+using DX_SWAP_CHAIN_HANDLE = RHI_TEMPLATE_HANDLE<IDXGISwapChain1, COMReleaseDeleter>;
+using DX_BUFFER_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Resource, COMReleaseDeleter>;
+using DX_COMMAND_BUFFER_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12GraphicsCommandList, COMReleaseDeleter>;
+using DX_RASTER_PIPELINE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12PipelineState, COMReleaseDeleter>;
+using DX_RT_PIPELINE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12StateObject, COMReleaseDeleter>;
+using DX_FENCE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Fence, COMReleaseDeleter>;
+using DX_SHADER_HANDLE = RHI_TEMPLATE_HANDLE<IDxcBlob, COMReleaseDeleter>;
+using DX_WINDOW_HANDLE = RHI_TEMPLATE_HANDLE<HWND>;
 
 template<typename I>
 inline Microsoft::WRL::ComPtr<I> dx_rhi_get_interface(RHI_OBJECT& resource) {
 	I* id3dres = nullptr;
-	IUnknown* iunk = static_cast<IUnknown*>(resource.get_native_impl()->get_native_handle());
+	IUnknown* iunk =  static_cast<IUnknown*>(reinterpret_cast<RHI_TEMPLATE_HANDLE<IUnknown>&>(resource.get_native_handle()));
 	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
 	if (FAILED(hr)) {
 		throw std::exception("Failed to get interface from RHI_OBJECT");
@@ -59,15 +32,13 @@ inline Microsoft::WRL::ComPtr<I> dx_rhi_get_interface(RHI_OBJECT& resource) {
 template<typename I>
 I* dx_rhi_get_interface_ptr(RHI_OBJECT& resource) {
 	I* id3dres = nullptr;
-	IUnknown* iunk = static_cast<IUnknown*>(resource.get_native_impl()->get_native_handle());
+	IUnknown* iunk = static_cast<IUnknown*>(reinterpret_cast<RHI_TEMPLATE_HANDLE<IUnknown>&>(resource.get_native_handle()));
 	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
 	if (FAILED(hr)) {
 		throw std::exception("Failed to get interface from RHI_OBJECT");
 	}
 	return id3dres;
 }
-
-HWND dx_rhi_get_window(RHI_NATIVE_HANDLE& window);
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, // primitive_topology_none

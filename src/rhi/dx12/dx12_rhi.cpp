@@ -19,9 +19,11 @@ void dx12_rhi_init() {
 	dx12_create_factory();
 
 	// set function pointers
+	rhi_create_window = &dx12_window_create;
+	rhi_window_main_loop = &dx12_window_main_loop;
+
 	rhi_create_device = &dx12_create_device;
 	rhi_create_swap_chain = &dx12_create_swap_chain;
-	rhi_create_window = &dx12_create_window;
 	rhi_create_graphics_command_queue = &dx12_create_graphics_command_queue;
 	rhi_create_compute_command_queue = &dx12_create_compute_command_queue;
 	rhi_create_transfer_command_queue = &dx12_create_copy_command_queue;
@@ -38,8 +40,4 @@ void dx12_rhi_init() {
 void dx12_rhi_end() {
 	// destroy factory
 	dx12_destroy_factory();
-}
-
-HWND dx_rhi_get_window(RHI_NATIVE_HANDLE& window) {
-	return static_cast<HWND>(reinterpret_cast<DX_WINDOW_HANDLE&>(window));
 }

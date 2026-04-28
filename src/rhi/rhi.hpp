@@ -5,6 +5,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
+using fptr_main_loop_callback = std::function<void()>;
+
 enum device_type {
 	device_type_none = 0,
 	device_type_dx12
@@ -72,8 +74,38 @@ constexpr __int64 device_features_variable_rate_shading = 0x2;
 constexpr __int64 device_features_mesh_shaders = 0x4;
 
 struct RHI_NATIVE_HANDLE {
+	RHI_NATIVE_HANDLE(void* h) : handle(h) {}
 	virtual ~RHI_NATIVE_HANDLE() = default;
-	virtual void* get_native_handle() = 0;
+	void* get_handle() { return handle; }
+private:
+	void* handle;
+};
+
+struct DefaultDeleter { void operator()(void*) const {} };
+template<typename I, typename U = DefaultDeleter>
+struct RHI_TEMPLATE_HANDLE : public RHI_NATIVE_HANDLE {
+
+	RHI_TEMPLATE_HANDLE(I* i) :
+		RHI_NATIVE_HANDLE((void*)(new std::unique_ptr<I>(i))) {
+	}
+	~RHI_TEMPLATE_HANDLE() {
+		delete (static_cast<std::unique_ptr<I>*>(this->get_handle()));
+	}
+	operator I* () { 
+		return (*static_cast<std::unique_ptr<I>*>(this->get_handle())).get();
+	}
+};
+
+template<typename T>
+struct RHI_WINDOW_HANDLE : public RHI_NATIVE_HANDLE {
+	RHI_WINDOW_HANDLE(T h, fptr_main_loop_callback cb)
+		: RHI_NATIVE_HANDLE(h)
+		, main_loop(cb) {
+	}
+	operator T() { return reinterpret_cast<T>(this->get_handle()); }
+	fptr_main_loop_callback& get_main_loop() { return main_loop; }
+private:
+	fptr_main_loop_callback main_loop;
 };
 
 struct RHI_OBJECT {
@@ -81,10 +113,13 @@ struct RHI_OBJECT {
 	RHI_OBJECT(RHI_NATIVE_HANDLE* ptr) {
 		native_impl.reset(ptr);
 	}
-	std::unique_ptr<RHI_NATIVE_HANDLE>& get_native_impl() {
-		return native_impl;
+	RHI_NATIVE_HANDLE& get_native_handle() {
+		return *native_impl.get();
 	}
-	
+	template<typename T>
+	T get_native_handle() {
+		return reinterpret_cast<T>(this->get_native_handle());
+	}
 private:
 	std::unique_ptr<RHI_NATIVE_HANDLE> native_impl;
 };
@@ -209,6 +244,7 @@ struct RHI_WINDOW_DESC {
 	size_t width;
 	size_t height;
 	bool full_screen;
+	fptr_main_loop_callback callback;
 };
 
 struct RHI_COMMAND_QUEUE_DESC {
@@ -220,7 +256,7 @@ struct RHI_SWAP_CHAIN_DESC {
 	size_t height;
 	resource_format color_format;
 	bool allow_tearing;
-	RHI_NATIVE_HANDLE* window;
+	RHI_OBJECT* window;
 	RHI_OBJECT* device;
 	RHI_OBJECT* command_queue;
 	size_t buffer_count;
@@ -273,9 +309,11 @@ struct RHI_TRANSFER_BUFFER_DESC {
 void rhi_init(device_type dt);
 void rhi_end();
 
+inline std::unique_ptr<RHI_OBJECT>(*rhi_create_window)(const RHI_WINDOW_DESC& desc);
+inline void(*rhi_window_main_loop)(RHI_OBJECT& handle);
+
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_device)(const RHI_DEVICE_DESC& desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_swap_chain)(const RHI_SWAP_CHAIN_DESC& swpc_desc);
-inline std::unique_ptr<RHI_NATIVE_HANDLE>(*rhi_create_window)(const RHI_WINDOW_DESC& desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_graphics_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_compute_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_transfer_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);

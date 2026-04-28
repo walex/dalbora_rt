@@ -22,7 +22,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& bvh_desc) 
 
 	geomDesc.Triangles.VertexBuffer.StrideInBytes = vb_h->stride;
 
-		geomDesc.Triangles.VertexCount = vb_h->size / vb_h->stride;
+		geomDesc.Triangles.VertexCount = (UINT)(vb_h->size / vb_h->stride);
 
 	geomDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
 
@@ -30,7 +30,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& bvh_desc) 
 		auto indexBuffer = dx_rhi_get_interface<ID3D12Resource>(*ib_h);
 		geomDesc.Triangles.IndexBuffer =
 			indexBuffer->GetGPUVirtualAddress();
-		geomDesc.Triangles.IndexCount = ib_h->size / ib_h->stride;
+		geomDesc.Triangles.IndexCount = (UINT)(ib_h->size / ib_h->stride);
 		geomDesc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
 	}
 	// opcional

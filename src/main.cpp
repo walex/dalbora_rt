@@ -1,16 +1,4 @@
-#include "Common.hpp"
-#include "Scene.hpp"
-#include "Mesh.hpp"
-#include "Camera.hpp"
-#include "Light.hpp"
-#include "Material.hpp"
-#include "SceneCuller.hpp"
-#include "Render.hpp"
-#include "RayRadianceIntegrator.hpp"
-#include "SurfaceRadiance.hpp"
-#include "Sampler.hpp"
-#include "AreaLight_Circular.hpp"
-#include "rhi.hpp"
+#include "dalbora_rt_api.hpp"
 
 void test_graphics_api() {
 
@@ -96,7 +84,7 @@ void test_rt() {
 
 int main(int UNUSED_PARAM(argc), char* UNUSED_PARAM(argv[])) {
 
-	test_graphics_api();	
+	test_graphics_api();
 
 	return 0;
 }
