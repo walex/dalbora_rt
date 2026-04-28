@@ -15,7 +15,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_texture_2d(const RHI_TEXTURE_2D_DESC& te
 	textureDesc.Height = (UINT)tex_desc.height;
 	textureDesc.DepthOrArraySize = 1;
 	textureDesc.MipLevels = 1;
-	textureDesc.Format = dx12_color_format_type[(int)tex_desc.format];
+	textureDesc.Format = dx12_resource_format_type[(int)tex_desc.format];
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -31,5 +31,5 @@ std::unique_ptr<RHI_OBJECT> dx12_create_texture_2d(const RHI_TEXTURE_2D_DESC& te
 	if (FAILED(hr) || !texture) {
 		throw std::exception("Failed to create D3D12 2D texture");
 	}
-	return std::make_unique<DX_RHI_RESOURCE>(new DX_BUFFER_HANDLE(texture));
+	return std::make_unique<RHI_RESOURCE>(new DX_BUFFER_HANDLE(texture));
 }

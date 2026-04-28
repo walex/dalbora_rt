@@ -35,7 +35,7 @@ if (MSVC)
 	
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4 /DDEBUG /EHsc")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /W4 /EHsc")		
-	
+	add_compile_options(/MP)
 endif (MSVC)
 
 file(GLOB RT_RENDER_HEADERS "*.asm" "*.cpp" "*.c")
@@ -61,7 +61,7 @@ set(CG_LIBS "")
 # DX12 system libraries (Windows)
 if (MSVC AND WIN32)
     # link against system DirectX 12 libraries (no .lib extension needed)
-    set(CG_LIBS ${CG_LIBS} d3d12 dxgi d3dcompiler)
+    set(CG_LIBS ${CG_LIBS} d3d12 dxgi dxcompiler)
 else()
     
 endif()

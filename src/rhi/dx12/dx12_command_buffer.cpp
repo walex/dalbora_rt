@@ -1,9 +1,10 @@
 #include "dx12_command_buffer.hpp"
+#include "dx12_command_queue.hpp"
 
 std::unique_ptr<RHI_OBJECT> dx12_create_command_buffer(const RHI_COMMAND_BUFFER_DESC& cb_desc) {
 
 	// For simplicity, we will create a command allocator and a command list
-	ID3D12Device* device = dx_rhi_get_interface<ID3D12Device>(*cb_desc.device);
+	auto device = dx_rhi_get_interface<ID3D12Device>(*cb_desc.device);
 	if (!device) {
 		throw std::exception("Invalid device for command buffer creation");
 	}

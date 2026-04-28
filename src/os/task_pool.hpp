@@ -1,5 +1,5 @@
-#ifndef __task_pool_hpp__
-#define __task_pool_hpp__
+#ifndef __os_task_pool_hpp__
+#define __os_task_pool_hpp__
 
 #include "platform.hpp"
 #include "queue.hpp"

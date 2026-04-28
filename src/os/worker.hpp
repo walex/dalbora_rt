@@ -1,5 +1,5 @@
-#ifndef __worker_hpp__
-#define __worker_hpp__
+#ifndef __os_worker_hpp__
+#define __os_worker_hpp__
 
 #include "platform.hpp"
 

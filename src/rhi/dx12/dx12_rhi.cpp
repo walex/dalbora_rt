@@ -7,9 +7,11 @@
 #include "dx12_command_buffer.hpp"
 #include "dx12_index_buffer.hpp"
 #include "dx12_vertex_buffer.hpp"
-#include "dx12_pipeline.hpp"
+#include "dx12_raster_pipeline.hpp"
+#include "dx12_rt_pipeline.hpp"
 #include "dx12_texture_2d.hpp"
 #include "dx12_resource_state.hpp"
+#include "dx12_shaders.hpp"
 
 void dx12_rhi_init() {
 
@@ -24,10 +26,13 @@ void dx12_rhi_init() {
 	rhi_create_compute_command_queue = &dx12_create_compute_command_queue;
 	rhi_create_transfer_command_queue = &dx12_create_copy_command_queue;
 	rhi_create_command_buffer = &dx12_create_command_buffer;
-	rhi_create_pipeline = &dx12_create_pipeline;
-	rhi_create_vertex_buffer = &dx12_create_vertex_buffer;
-	rhi_create_index_buffer = &dx12_create_index_buffer;
+	rhi_create_pipeline = &dx12_create_raster_pipeline;
+	rhi_create_vertex_buffer = &dx12_vertex_buffer_create;
+	rhi_create_index_buffer = &dx12_index_buffer_create;
 	rhi_create_texture_2d = &dx12_create_texture_2d;
+	rhi_create_raster_pipeline = &dx12_create_raster_pipeline;
+	rhi_create_rt_pipeline = &dx12_create_rt_pipeline;
+	rhi_compile_shader = &dx12_shaders_compile;
 }
 
 void dx12_rhi_end() {
@@ -35,13 +40,6 @@ void dx12_rhi_end() {
 	dx12_destroy_factory();
 }
 
-HWND dx_rhi_get_window(RHI_HANDLE& window) {
+HWND dx_rhi_get_window(RHI_NATIVE_HANDLE& window) {
 	return static_cast<HWND>(reinterpret_cast<DX_WINDOW_HANDLE&>(window));
-}
-
-
-void DX_RHI_RESOURCE::change_state(resource_state new_state) {
-
-	dx12_resource_state_transition(*this->get_command_buffer(), *this, this->get_current_state(), new_state);
-	this->set_current_state(new_state);
 }

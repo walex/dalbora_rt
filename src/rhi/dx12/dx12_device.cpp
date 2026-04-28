@@ -81,17 +81,8 @@ std::unique_ptr<RHI_OBJECT> dx12_create_device(const RHI_DEVICE_DESC& desc) {
 	if (FAILED(hr)) {
 		throw std::exception("Failed to create D3D12 device with feature level 12_0");
 	}
-	if (check_features == true && dx12_device_check_device_features(device, desc.features) == false)
+	if (check_features == true && dx12_device_check_device_features(device, desc.features) == false) {
 		throw std::exception("D3D12 device does not support required features");
-	if ((desc.features & device_features_raytracing) == device_features_raytracing) {
-		ID3D12Device* device5 = nullptr;
-		hr = device->QueryInterface(IID_PPV_ARGS(&device5));
-		if (FAILED(hr)) {
-			throw std::exception("Failed to query ID3D12Device5 interface");
-		}
-		auto old_device = device;
-		device = device5;
-		old_device->Release();
 	}
 	// Release adapter and factory references we no longer need
 	DXGI_ADAPTER_DESC ad;

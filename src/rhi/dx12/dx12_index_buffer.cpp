@@ -1,38 +1,24 @@
 #include "dx12_index_buffer.hpp"
+#include "dx12_buffers.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_index_buffer(const RHI_INDEX_BUFFER_DESC& ib_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_index_buffer_create(const RHI_INDEX_BUFFER_DESC& ib_desc) {
 
-    D3D12_HEAP_PROPERTIES heapProps = {};
-    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    heapProps.CreationNodeMask = 1;
-    heapProps.VisibleNodeMask = 1;
+	// overwrite the size in the buffer desc to match the index buffer size just in case
+	RHI_INDEX_BUFFER_DESC& ib_desc_mutable = const_cast<RHI_INDEX_BUFFER_DESC&>(ib_desc);
+	ib_desc_mutable.size = ib_desc.count * (size_t)ib_desc.format;
+	ib_desc_mutable.memory_type = buffer_memory_type_gpu_only;
+    ib_desc_mutable.initial_state = resource_state_constant_buffer;
+    return dx12_buffers_create(ib_desc);
+}
 
-    D3D12_RESOURCE_DESC bufferDesc = {};
-    bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    bufferDesc.Alignment = 0;
-    bufferDesc.Width = ib_desc.count * (size_t)ib_desc.format;
-    bufferDesc.Height = 1;
-    bufferDesc.DepthOrArraySize = 1;
-    bufferDesc.MipLevels = 1;
-    bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-    bufferDesc.SampleDesc.Count = 1;
-    bufferDesc.SampleDesc.Quality = 0;
-    bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-    ID3D12Resource* ib;
-    HRESULT hr = dx_rhi_get_interface<ID3D12Device>(*ib_desc.device)->CreateCommittedResource(
-        &heapProps,
-        D3D12_HEAP_FLAG_NONE,
-        &bufferDesc,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(&ib)
-    );
-    if (FAILED(hr) || !ib) {
-        throw std::exception("Failed to create D3D12 vertex buffer");
+void dx12_index_buffer_update(RHI_OBJECT& index_buffer, const void* data, size_t size) {
+    auto ib = dx_rhi_get_interface<ID3D12Resource>(index_buffer);
+    void* mappedData = nullptr;
+    D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read from this resource on CPU
+    HRESULT hr = ib->Map(0, &readRange, &mappedData);
+    if (FAILED(hr) || !mappedData) {
+        throw std::exception("Failed to map D3D12 index buffer");
     }
-    return std::make_unique<DX_RHI_RESOURCE>(new DX_BUFFER_HANDLE(ib));
+    memcpy(mappedData, data, size);
+    ib->Unmap(0, nullptr);
 }

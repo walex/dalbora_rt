@@ -1,40 +1,24 @@
 #include "dx12_vertex_buffer.hpp"
+#include "dx12_buffers.hpp"
+#include "dx12_command_buffer.hpp"
+#include "dx12_resource_state.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_vertex_buffer(const RHI_VERTEX_BUFFER_DESC& vb_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_vertex_buffer_create(const RHI_VERTEX_BUFFER_DESC& vb_desc) {
 
-    ID3D12Resource* vb = nullptr;
+    // overwrite the size in the buffer desc to match the index buffer size just in case
+    RHI_VERTEX_BUFFER_DESC& vb_desc_mutable = const_cast<RHI_VERTEX_BUFFER_DESC&>(vb_desc);
+    vb_desc_mutable.size = vb_desc.stride * vb_desc.count;
+    vb_desc_mutable.memory_type = buffer_memory_type_gpu_only;
+    vb_desc_mutable.initial_state = resource_state_constant_buffer;
+    return dx12_buffers_create(vb_desc);
+}
 
-    D3D12_HEAP_PROPERTIES heapProps;
-    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    heapProps.CreationNodeMask = 1;
-    heapProps.VisibleNodeMask = 1;
+void dx12_vertex_buffer_upload(RHI_TRANSFER_BUFFER_DESC& desc) {
 
-    size_t buffSize = vb_desc.stride * vb_desc.count;
-    D3D12_RESOURCE_DESC buffer;
-    buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    buffer.Alignment = 0;
-    buffer.Width = (UINT)buffSize;
-    buffer.Height = 1;
-    buffer.DepthOrArraySize = 1;
-    buffer.MipLevels = 1;
-    buffer.Format = DXGI_FORMAT_UNKNOWN;
-    buffer.SampleDesc.Count = 1;
-    buffer.SampleDesc.Quality = 0;
-    buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    buffer.Flags = D3D12_RESOURCE_FLAG_NONE;
+    dx12_buffers_upload(desc);
+}
 
-    HRESULT hr = dx_rhi_get_interface<ID3D12Device>(*vb_desc.device)->CreateCommittedResource(
-        &heapProps,
-        D3D12_HEAP_FLAG_NONE,
-        &buffer,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(&vb)
-	);
-    if (FAILED(hr) || !vb) {
-        throw std::exception("Failed to create D3D12 vertex buffer");
-	}
-	return std::make_unique<DX_RHI_RESOURCE>(new DX_BUFFER_HANDLE(vb));
+void dx12_vertex_buffer_download(RHI_TRANSFER_BUFFER_DESC& desc) {
+
+    dx12_buffers_download_synchronized(desc);
 }

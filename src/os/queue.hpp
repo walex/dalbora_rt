@@ -1,5 +1,5 @@
-#ifndef __QUEUE_HPP__
-#define __QUEUE_HPP__
+#ifndef __os_queue_hpp__
+#define __os_queue_hpp__
 
 #include "platform.hpp"
 

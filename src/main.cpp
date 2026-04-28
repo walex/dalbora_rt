@@ -37,7 +37,7 @@ void test_graphics_api() {
 	swap_chain_desc.height = 600;
 	swap_chain_desc.allow_tearing = false;
 	swap_chain_desc.buffer_count = 2;
-	swap_chain_desc.color_format = color_format_R8G8B8A8;
+	swap_chain_desc.color_format = resource_format_R8G8B8A8;
 	swap_chain_desc.device = dev.get();
 	swap_chain_desc.command_queue = queue.get();
 	swap_chain_desc.window = window.get();

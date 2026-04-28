@@ -3,8 +3,8 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& swpc_desc) {
 
-	ID3D12Device* device = dx_rhi_get_interface<ID3D12Device>(*swpc_desc.device);
-	ID3D12CommandQueue* commandQueue = dx_rhi_get_interface<ID3D12CommandQueue>(*swpc_desc.command_queue);
+	auto device = dx_rhi_get_interface<ID3D12Device>(*swpc_desc.device);
+	auto commandQueue = dx_rhi_get_interface<ID3D12CommandQueue>(*swpc_desc.command_queue);
 	IDXGIFactory5* factory = dx12_get_factory();
 	HWND hwnd = dx_rhi_get_window(*swpc_desc.window);
 
@@ -16,8 +16,8 @@ std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& sw
 	UINT width = (UINT)((swpc_desc.width > 0) ? swpc_desc.width : 800);
 	UINT height = (UINT)((swpc_desc.height > 0) ? swpc_desc.height : 600);
 	UINT bufferCount = (UINT)((swpc_desc.buffer_count > 0) ? swpc_desc.buffer_count : 2);
-	DXGI_FORMAT format = (swpc_desc.color_format != color_format_none)
-		?  dx12_color_format_type[(int)swpc_desc.color_format]
+	DXGI_FORMAT format = (swpc_desc.color_format != resource_format_none)
+		?  dx12_resource_format_type[(int)swpc_desc.color_format]
 		: DXGI_FORMAT_R8G8B8A8_UNORM;
 	BOOL allowTearing = FALSE;
 
@@ -47,7 +47,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& sw
 	// Create swap chain
 	IDXGISwapChain1* swapChain1 = nullptr;
 	HRESULT hr = factory->CreateSwapChainForHwnd(
-		commandQueue,
+		commandQueue.Get(),
 		hwnd,
 		&scDesc,
 		nullptr, // fullscreen desc

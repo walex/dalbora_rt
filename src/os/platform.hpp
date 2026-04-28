@@ -1,5 +1,5 @@
-#ifndef __Platform_hpp__
-#define __Platform_hpp__
+#ifndef __os_platform_hpp__
+#define __os_platform_hpp__
 
 #ifdef _WIN32
 
@@ -122,6 +122,8 @@
 	#ifdef USE_DX12
 		#include <d3d12.h>
 		#include <dxgi1_6.h>
+		#include <dxcapi.h>
+		#include <wrl.h>
 	#endif
 
 	#define __PRETTY_FUNCTION__  __FUNCSIG__
@@ -212,6 +214,7 @@ namespace cv {
 #include <limits>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <stack>

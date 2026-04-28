@@ -1,5 +1,5 @@
-#ifndef __TEMPO_H__
-#define __TEMPO_H__
+#ifndef __os_tempo_hpp__
+#define __os_tempo_hpp__
 
 #include "platform.hpp"
 
