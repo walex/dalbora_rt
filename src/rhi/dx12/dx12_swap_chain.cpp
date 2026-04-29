@@ -3,10 +3,10 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& desc) {
 
-	ID3D12Device* device = static_cast<DX_DEVICE_HANDLE&>(desc.device->get_native_handle());
-	ID3D12CommandQueue* commandQueue = static_cast<DX_COMMAND_QUEUE_HANDLE&>(desc.command_queue->get_native_handle());
+	ID3D12Device* device = desc.device->handle<DX_DEVICE_HANDLE>();
+	ID3D12CommandQueue* commandQueue = desc.command_queue->handle<DX_COMMAND_QUEUE_HANDLE>();
 	IDXGIFactory5* factory = dx12_factory_get();
-	HWND hwnd = desc.window->get_native_handle<RHI_WINDOW_HANDLE<HWND>&>();
+	HWND hwnd = desc.window->handle<RHI_WINDOW_HANDLE<HWND>>();
 	if (!device || !commandQueue || !factory) {
 		throw std::exception("Invalid device/queue/factory for swapchain creation");
 	}
@@ -72,6 +72,6 @@ std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& de
 
 void dx12_swap_chain_present(RHI_OBJECT& swap_chain) {
 
-	IDXGISwapChain1* h_swap_chain = static_cast<DX_SWAP_CHAIN_HANDLE&>(swap_chain.get_native_handle());
+	IDXGISwapChain1* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
 	h_swap_chain->Present(1, 0);
 }

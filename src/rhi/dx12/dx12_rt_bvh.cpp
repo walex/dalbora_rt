@@ -10,7 +10,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 	auto vb_h = dynamic_cast<RHI_BUFFER_RESOURCE*>(desc.geometry_buffer->get_vertex_buffer());
 	auto ib_h = dynamic_cast<RHI_BUFFER_RESOURCE*>(desc.geometry_buffer->get_index_buffer());
 	auto& transforms = desc.geometry_buffer->get_transforms();
-	ID3D12Resource* vertexBuffer = static_cast<DX_BUFFER_HANDLE&>(vb_h->get_native_handle());
+	ID3D12Resource* vertexBuffer = vb_h->handle<DX_BUFFER_HANDLE>();
 
 	// create geometry descriptor
 	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc = {};
@@ -28,7 +28,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 
 	if (ib_h) {
 
-		ID3D12Resource* indexBuffer  = static_cast<DX_BUFFER_HANDLE&>(ib_h->get_native_handle());
+		ID3D12Resource* indexBuffer  = ib_h->handle<DX_BUFFER_HANDLE>();
 		geomDesc.Triangles.IndexBuffer =
 			indexBuffer->GetGPUVirtualAddress();
 		geomDesc.Triangles.IndexCount = (UINT)(ib_h->size / ib_h->stride);
@@ -62,8 +62,8 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 	buffer_desc.size = blasInfo.ScratchDataSizeInBytes;
 	auto scratchBuffer = dx12_buffers_create(buffer_desc);
 
-	ID3D12Resource* iblasBuffer = static_cast<DX_BUFFER_HANDLE&>(blasBuffer->get_native_handle());
-	ID3D12Resource* iscratchBuffer = static_cast<DX_BUFFER_HANDLE&>(scratchBuffer->get_native_handle());
+	ID3D12Resource* iblasBuffer = blasBuffer->handle<DX_BUFFER_HANDLE>();
+	ID3D12Resource* iscratchBuffer = scratchBuffer->handle<DX_BUFFER_HANDLE>();
 
 	// build
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
@@ -115,7 +115,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.size = instances.size() * sizeof(instances[0]);
 	auto instanceBuffer = dx12_buffers_create(buffer_desc);
-	ID3D12Resource* iinstanceBuffer = static_cast<DX_BUFFER_HANDLE&>(instanceBuffer->get_native_handle());
+	ID3D12Resource* iinstanceBuffer = instanceBuffer->handle<DX_BUFFER_HANDLE>();
 
 	void* mapped = nullptr;
 	iinstanceBuffer->Map(0, nullptr, &mapped);
@@ -139,8 +139,8 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 	buffer_desc.size = tlasInfo.ScratchDataSizeInBytes;
 	auto tlasScratch = dx12_buffers_create(buffer_desc);
 
-	ID3D12Resource* itlasBuffer = static_cast<DX_BUFFER_HANDLE&>(tlasBuffer->get_native_handle());
-	iscratchBuffer = static_cast<DX_BUFFER_HANDLE&>(tlasScratch->get_native_handle());
+	ID3D12Resource* itlasBuffer = tlasBuffer->handle<DX_BUFFER_HANDLE>();
+	iscratchBuffer = tlasScratch->handle<DX_BUFFER_HANDLE>();
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC tlasBuild = {};
 	tlasBuild.Inputs = tlasInputs;

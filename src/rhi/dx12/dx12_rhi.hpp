@@ -28,7 +28,7 @@ using DX_WINDOW_HANDLE = RHI_TEMPLATE_HANDLE<HWND>;
 template<typename I>
 inline std::unique_ptr<I, COMReleaseDeleter> com_query_interface(RHI_OBJECT& resource) {
 	I* id3dres = nullptr;
-	IUnknown* iunk =  static_cast<IUnknown*>(reinterpret_cast<RHI_TEMPLATE_HANDLE<IUnknown>&>(resource.get_native_handle()));
+	IUnknown* iunk =  resource.handle<RHI_TEMPLATE_HANDLE<IUnknown>>();
 	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
 	if (FAILED(hr)) {
 		throw std::exception("Failed to get interface from RHI_OBJECT");

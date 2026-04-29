@@ -109,7 +109,6 @@ private:
 	std::unique_ptr<I, U> template_instance;
 };
 
-
 template<typename T>
 struct RHI_WINDOW_HANDLE : public RHI_NATIVE_HANDLE {
 	RHI_WINDOW_HANDLE(T h, const RHI_WINDOW_CALLBACKS& window_callbacks)
@@ -127,12 +126,13 @@ struct RHI_OBJECT {
 	RHI_OBJECT(RHI_NATIVE_HANDLE* ptr) {
 		native_impl.reset(ptr);
 	}
-	RHI_NATIVE_HANDLE& get_native_handle() {
+	operator RHI_NATIVE_HANDLE& () {
 		return *native_impl.get();
 	}
 	template<typename T>
-	T get_native_handle() {
-		return reinterpret_cast<T>(this->get_native_handle());
+	T& handle() {
+
+		return static_cast<T&>(static_cast<RHI_NATIVE_HANDLE&>(*this));
 	}
 private:
 	std::unique_ptr<RHI_NATIVE_HANDLE> native_impl;

@@ -108,7 +108,7 @@ static std::atomic<bool> window_running;
 
 void dx12_window_main_loop(RHI_OBJECT& handle) {
 
-    RHI_WINDOW_HANDLE<HWND>& wnd_handle = handle.get_native_handle<RHI_WINDOW_HANDLE<HWND>&>();
+    auto wnd_handle = handle.handle<RHI_WINDOW_HANDLE<HWND>>();
     ShowWindow(wnd_handle, SW_SHOW);
 
     MSG msg = {};

@@ -18,8 +18,8 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& 
 
 	// get DXIL library
 	auto dxilLib_h = dx12_shaders_compile("neural_pbr.hlsl", "", "lib_6_9");
-	IDxcBlob* dxilLib = static_cast<DX_SHADER_HANDLE&>(dxilLib_h->get_native_handle());
-
+	IDxcBlob* dxilLib = dxilLib_h->handle<DX_SHADER_HANDLE>();
+	
 	// export shaders
 	D3D12_EXPORT_DESC exports[3] = {};
 

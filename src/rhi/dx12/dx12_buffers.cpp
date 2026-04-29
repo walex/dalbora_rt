@@ -25,7 +25,7 @@ std::unique_ptr<RHI_OBJECT> dx12_buffers_create(const RHI_BUFFER_DESC& desc) {
 	bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	bufferDesc.Flags = flags;
 	ID3D12Resource* resource;
-	ID3D12Device* device = static_cast<DX_DEVICE_HANDLE&>(desc.device->get_native_handle());
+	ID3D12Device* device = desc.device->handle<DX_DEVICE_HANDLE>();
 	HRESULT hr = device->CreateCommittedResource(
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
@@ -47,9 +47,9 @@ void dx12_buffers_upload(RHI_TRANSFER_BUFFER_DESC& desc, const bool sync) {
 	upd_desc.size = desc.transfer_size;
 	upd_desc.memory_type = buffer_memory_type_cpu_to_gpu;
 	auto& buffer_dest = dynamic_cast<RHI_RESOURCE&>(*desc.buffer);
-	ID3D12Resource* buffer_dest_h = static_cast<DX_BUFFER_HANDLE&>(buffer_dest.get_native_handle());
-	ID3D12Resource* buf_upd = static_cast<DX_BUFFER_HANDLE&>(dx12_buffers_create(upd_desc)->get_native_handle());
-	ID3D12GraphicsCommandList* cmd_buffer = static_cast<DX_COMMAND_BUFFER_HANDLE&>(desc.command_list->get_native_handle());
+	ID3D12Resource* buffer_dest_h = buffer_dest.handle<DX_BUFFER_HANDLE>();
+	ID3D12Resource* buf_upd = dx12_buffers_create(upd_desc)->handle<DX_BUFFER_HANDLE>();
+	ID3D12GraphicsCommandList* cmd_buffer = desc.command_list->handle<DX_COMMAND_BUFFER_HANDLE>();
 	auto queue = desc.command_queue;
 	void* mapped = nullptr;
 	buf_upd->Map(0, nullptr, &mapped);
@@ -75,9 +75,9 @@ void dx12_buffers_download_synchronized(RHI_TRANSFER_BUFFER_DESC& desc) {
 	down_desc.size = desc.transfer_size;
 	down_desc.memory_type = buffer_memory_type_gpu_to_cpu;
 	auto& buffer_src = dynamic_cast<RHI_RESOURCE&>(*desc.buffer);
-	ID3D12Resource* buffer_src_h = static_cast<DX_BUFFER_HANDLE&>(buffer_src.get_native_handle());
-	ID3D12Resource* buf_dwnl = static_cast<DX_BUFFER_HANDLE&>(dx12_buffers_create(down_desc)->get_native_handle());
-	ID3D12GraphicsCommandList* cmd_buffer = static_cast<DX_COMMAND_BUFFER_HANDLE&>(desc.command_list->get_native_handle());
+	ID3D12Resource* buffer_src_h = buffer_src.handle<DX_BUFFER_HANDLE>();
+	ID3D12Resource* buf_dwnl = dx12_buffers_create(down_desc)->handle<DX_BUFFER_HANDLE>();
+	ID3D12GraphicsCommandList* cmd_buffer = desc.command_list->handle<DX_COMMAND_BUFFER_HANDLE>();
 	auto queue = desc.command_queue;
 	dx12_resource_state_transition(*desc.command_list, *desc.buffer, resource_state_copy_dest);
 	cmd_buffer->CopyResource(buf_dwnl, buffer_src_h);
