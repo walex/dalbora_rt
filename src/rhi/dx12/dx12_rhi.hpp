@@ -5,7 +5,14 @@
 #include "dx12_helpers.hpp"
 
 struct ID3D12Device;
-struct COMReleaseDeleter { void operator()(IUnknown* p) const { SAFE_RELEASE2(p); } };
+struct COMReleaseDeleter { 
+	void operator()(IUnknown* p) const { 
+		printf("com object %IX with %d references about to release a reference ...\n", (__int64)p, p->AddRef() - 1);
+		p->Release();
+		SAFE_RELEASE2(p); 
+		printf("com object released!\n");
+	}
+};
 
 using DX_DEVICE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Device, COMReleaseDeleter>;
 using DX_COMMAND_QUEUE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12CommandQueue>;
@@ -19,25 +26,14 @@ using DX_SHADER_HANDLE = RHI_TEMPLATE_HANDLE<IDxcBlob, COMReleaseDeleter>;
 using DX_WINDOW_HANDLE = RHI_TEMPLATE_HANDLE<HWND>;
 
 template<typename I>
-inline Microsoft::WRL::ComPtr<I> dx_rhi_get_interface(RHI_OBJECT& resource) {
+inline std::unique_ptr<I, COMReleaseDeleter> com_query_interface(RHI_OBJECT& resource) {
 	I* id3dres = nullptr;
 	IUnknown* iunk =  static_cast<IUnknown*>(reinterpret_cast<RHI_TEMPLATE_HANDLE<IUnknown>&>(resource.get_native_handle()));
 	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
 	if (FAILED(hr)) {
 		throw std::exception("Failed to get interface from RHI_OBJECT");
 	}
-	return id3dres;
-}
-
-template<typename I>
-I* dx_rhi_get_interface_ptr(RHI_OBJECT& resource) {
-	I* id3dres = nullptr;
-	IUnknown* iunk = static_cast<IUnknown*>(reinterpret_cast<RHI_TEMPLATE_HANDLE<IUnknown>&>(resource.get_native_handle()));
-	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
-	if (FAILED(hr)) {
-		throw std::exception("Failed to get interface from RHI_OBJECT");
-	}
-	return id3dres;
+	return std::unique_ptr<I, COMReleaseDeleter>(id3dres);
 }
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {

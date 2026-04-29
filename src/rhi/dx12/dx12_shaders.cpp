@@ -1,6 +1,4 @@
 #include "dx12_fence.hpp"
-#include "strings.hpp"
-#include "file_system.hpp"
 
 static std::string g_shaders_folder;
 

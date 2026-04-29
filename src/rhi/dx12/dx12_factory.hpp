@@ -3,8 +3,8 @@
 
 #include "dx12_rhi.hpp"
 
-IDXGIFactory5* dx12_get_factory();
-void dx12_destroy_factory();
-void dx12_create_factory();
+IDXGIFactory5* dx12_factory_get();
+void dx12_factory_destroy();
+void dx12_factory_create();
 
 #endif

@@ -2,11 +2,11 @@
 
 static IDXGIFactory5* g_dx12_factory = nullptr;
 
-IDXGIFactory5* dx12_get_factory() {
+IDXGIFactory5* dx12_factory_get() {
 	return g_dx12_factory;
 }
 
-void dx12_destroy_factory() {
+void dx12_factory_destroy() {
 
 	if (g_dx12_factory) {
 
@@ -15,9 +15,9 @@ void dx12_destroy_factory() {
 	}
 }
 
-void dx12_create_factory() {
+void dx12_factory_create() {
 
-	dx12_destroy_factory();
+	dx12_factory_destroy();
 
 	// Enable debug layer in debug builds
 	UINT dxgiFactoryFlags = 0;

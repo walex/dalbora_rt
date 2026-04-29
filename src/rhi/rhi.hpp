@@ -1,11 +1,9 @@
 #ifndef __rhi_hpp__
 #define __rhi_hpp__
 
-#include <memory>
-#include <vector>
+#include "strings.hpp"
+#include "file_system.hpp"
 #include <Eigen/Dense>
-
-using fptr_main_loop_callback = std::function<void()>;
 
 enum device_type {
 	device_type_none = 0,
@@ -73,6 +71,18 @@ constexpr __int64 device_features_raytracing = 0x1;
 constexpr __int64 device_features_variable_rate_shading = 0x2;
 constexpr __int64 device_features_mesh_shaders = 0x4;
 
+struct RHI_OBJECT;
+using fptr_window_main_loop_callback = std::function<void()>;
+using fptr_window_on_init = std::function<void(RHI_OBJECT& window_handle)>;
+using fptr_window_on_end = std::function<void()>;
+
+struct RHI_WINDOW_CALLBACKS {
+	
+	fptr_window_on_init on_init;
+	fptr_window_main_loop_callback main_loop;
+	fptr_window_on_end on_end;
+};
+
 struct RHI_NATIVE_HANDLE {
 	RHI_NATIVE_HANDLE(void* h) : handle(h) {}
 	virtual ~RHI_NATIVE_HANDLE() = default;
@@ -85,27 +95,31 @@ struct DefaultDeleter { void operator()(void*) const {} };
 template<typename I, typename U = DefaultDeleter>
 struct RHI_TEMPLATE_HANDLE : public RHI_NATIVE_HANDLE {
 
-	RHI_TEMPLATE_HANDLE(I* i) :
-		RHI_NATIVE_HANDLE((void*)(new std::unique_ptr<I>(i))) {
+	RHI_TEMPLATE_HANDLE(I* i) 
+		: template_instance(i)
+		, RHI_NATIVE_HANDLE(&template_instance) {
 	}
 	~RHI_TEMPLATE_HANDLE() {
-		delete (static_cast<std::unique_ptr<I>*>(this->get_handle()));
+		printf("deleting %s\n", get_type_name<I>().c_str());
 	}
 	operator I* () { 
-		return (*static_cast<std::unique_ptr<I>*>(this->get_handle())).get();
+		return template_instance.get();
 	}
+private:
+	std::unique_ptr<I, U> template_instance;
 };
+
 
 template<typename T>
 struct RHI_WINDOW_HANDLE : public RHI_NATIVE_HANDLE {
-	RHI_WINDOW_HANDLE(T h, fptr_main_loop_callback cb)
+	RHI_WINDOW_HANDLE(T h, const RHI_WINDOW_CALLBACKS& window_callbacks)
 		: RHI_NATIVE_HANDLE(h)
-		, main_loop(cb) {
+		, callbacks(window_callbacks) {
 	}
 	operator T() { return reinterpret_cast<T>(this->get_handle()); }
-	fptr_main_loop_callback& get_main_loop() { return main_loop; }
+	const RHI_WINDOW_CALLBACKS& get_callbacks() const { return callbacks; }
 private:
-	fptr_main_loop_callback main_loop;
+	const RHI_WINDOW_CALLBACKS& callbacks;
 };
 
 struct RHI_OBJECT {
@@ -244,7 +258,7 @@ struct RHI_WINDOW_DESC {
 	size_t width;
 	size_t height;
 	bool full_screen;
-	fptr_main_loop_callback callback;
+	RHI_WINDOW_CALLBACKS callbacks;
 };
 
 struct RHI_COMMAND_QUEUE_DESC {
@@ -313,7 +327,11 @@ inline std::unique_ptr<RHI_OBJECT>(*rhi_create_window)(const RHI_WINDOW_DESC& de
 inline void(*rhi_window_main_loop)(RHI_OBJECT& handle);
 
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_device)(const RHI_DEVICE_DESC& desc);
+
+// swap chain api
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_swap_chain)(const RHI_SWAP_CHAIN_DESC& swpc_desc);
+inline void (*rhi_swap_chain_present)(RHI_OBJECT& swap_chain);
+
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_graphics_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_compute_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_transfer_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
@@ -326,4 +344,6 @@ inline std::unique_ptr<RHI_OBJECT>(*rhi_create_fence)(const RHI_FENCE_DESC& desc
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_raster_pipeline)(const RHI_RASTER_PIPELINE_DESC& desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_rt_pipeline)(const RHI_RT_PIPELINE_DESC& desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_compile_shader)(const char* const file,	const char* const entry, const char* const target);
+
+
 #endif

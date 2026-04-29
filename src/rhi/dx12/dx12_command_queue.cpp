@@ -1,9 +1,9 @@
 #include "dx12_command_queue.hpp"
 #include "dx12_fence.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_command_queue(const RHI_COMMAND_QUEUE_DESC& queue_desc, queue_type type) {
+std::unique_ptr<RHI_OBJECT> dx12_create_command_queue(const RHI_COMMAND_QUEUE_DESC& desc, queue_type type) {
 	
-	auto device = dx_rhi_get_interface<ID3D12Device>(*queue_desc.device);
+	ID3D12Device* device = static_cast<DX_DEVICE_HANDLE&>(desc.device->get_native_handle());
 	// Create a direct command queue
 	ID3D12CommandQueue* commandQueue = nullptr;
 	{
@@ -17,42 +17,42 @@ std::unique_ptr<RHI_OBJECT> dx12_create_command_queue(const RHI_COMMAND_QUEUE_DE
 			throw std::exception("Failed to create D3D12 command queue");
 		}}
 
-	RHI_FENCE_DESC desc;
-	desc.device = queue_desc.device;
-	desc.flags = fence_flags_none;
-	desc.initial_value = 0;
-	std::unique_ptr<RHI_OBJECT> fence = dx12_create_fence(desc);
+	RHI_FENCE_DESC fence_desc;
+	fence_desc.device = desc.device;
+	fence_desc.flags = fence_flags_none;
+	fence_desc.initial_value = 0;
+	std::unique_ptr<RHI_OBJECT> fence = dx12_fence_create(fence_desc);
 	return std::make_unique<RHI_COMMAND_QUEUE>(new DX_COMMAND_QUEUE_HANDLE(commandQueue), std::move(fence));
 }
 
-std::unique_ptr<RHI_OBJECT> dx12_create_graphics_command_queue(const RHI_COMMAND_QUEUE_DESC& queue_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_command_queue_create_for_render(const RHI_COMMAND_QUEUE_DESC& queue_desc) {
 	return dx12_create_command_queue(queue_desc, queue_type_graphics);
 }
 
-std::unique_ptr<RHI_OBJECT> dx12_create_compute_command_queue(const RHI_COMMAND_QUEUE_DESC& queue_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_command_queue_create_for_compute(const RHI_COMMAND_QUEUE_DESC& queue_desc) {
 	return dx12_create_command_queue(queue_desc, queue_type_compute);
 }
 
-std::unique_ptr<RHI_OBJECT> dx12_create_copy_command_queue(const RHI_COMMAND_QUEUE_DESC& queue_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_command_queue_create_for_copy(const RHI_COMMAND_QUEUE_DESC& queue_desc) {
 	return dx12_create_command_queue(queue_desc, queue_type_copy);
 }
 
-void dx12_command_queue_execute_command_buffers(RHI_COMMAND_BUUFER_LIST& command_buffer_list, bool sync) {
+void dx12_command_queue_execute_list(RHI_COMMAND_BUUFER_LIST& command_buffer_list, bool sync) {
 	
-	auto& queue = command_buffer_list.get_queue();
 	auto& list = command_buffer_list.get_list();
 	std::vector<ID3D12CommandList*> native_list(list.size());
 	for (int i = 0; i < list.size(); i++) {
-		auto cmd_buffer = dx_rhi_get_interface_ptr<ID3D12GraphicsCommandList>(*list[i]);
+		ID3D12GraphicsCommandList* cmd_buffer = static_cast<DX_COMMAND_BUFFER_HANDLE&>(list[i]->get_native_handle());
 		cmd_buffer->Close();
 		native_list[i] = cmd_buffer;
 	}
-	dx_rhi_get_interface<ID3D12CommandQueue>(queue).Get()->ExecuteCommandLists(1, native_list.data());
+	ID3D12CommandQueue* queue = static_cast<DX_COMMAND_QUEUE_HANDLE&>(command_buffer_list.get_queue().get_native_handle());
+	queue->ExecuteCommandLists(1, native_list.data());
 	if (sync)
-		dx12_command_queue_wait_command_buffers(command_buffer_list);
+		dx12_command_queue_wait(command_buffer_list);
 }
 
-void dx12_command_queue_wait_command_buffers(RHI_COMMAND_BUUFER_LIST& command_buffers) {
+void dx12_command_queue_wait(RHI_COMMAND_BUUFER_LIST& command_buffers) {
 
 	HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);	
 	if (!eventHandle) {
@@ -60,9 +60,9 @@ void dx12_command_queue_wait_command_buffers(RHI_COMMAND_BUUFER_LIST& command_bu
 	}
 	
 	auto& queue = command_buffers.get_queue();
-	auto iqueue = dx_rhi_get_interface<ID3D12CommandQueue>(queue);
-	auto fence = dx_rhi_get_interface<ID3D12Fence>(queue.get_fence());
-	iqueue->Signal(fence.Get(), command_buffers.get_counter());
+	ID3D12CommandQueue* iqueue = static_cast<DX_COMMAND_QUEUE_HANDLE&>(queue.get_native_handle());
+	ID3D12Fence* fence = static_cast<DX_FENCE_HANDLE&>(queue.get_fence().get_native_handle());
+	iqueue->Signal(fence, command_buffers.get_counter());
 	if (fence->GetCompletedValue() < command_buffers.get_counter()) {
 		// Wait for the fence to be signaled
 		fence->SetEventOnCompletion(command_buffers.get_counter(), eventHandle);
@@ -72,18 +72,18 @@ void dx12_command_queue_wait_command_buffers(RHI_COMMAND_BUUFER_LIST& command_bu
 	command_buffers.increment_counter();
 }
 
-void dx12_command_queue_execute_single_command_buffer(RHI_COMMAND_QUEUE& queue, RHI_OBJECT& cmd_buffer, bool sync) {
+void dx12_command_queue_execute(RHI_COMMAND_QUEUE& queue, RHI_OBJECT& cmd_buffer, bool sync) {
 
 	std::vector<RHI_OBJECT*> cmd_buffers(1);
 	cmd_buffers.push_back(&cmd_buffer);
 	RHI_COMMAND_BUUFER_LIST command_buffer_list(queue, std::move(cmd_buffers));
-	dx12_command_queue_execute_command_buffers(command_buffer_list, sync);		
+	dx12_command_queue_execute_list(command_buffer_list, sync);		
 }
 
-void dx12_command_queue_execute_single_command_buffer_synchronized(RHI_COMMAND_QUEUE& queue, RHI_OBJECT& cmd_buffer) {
-	dx12_command_queue_execute_single_command_buffer(queue, cmd_buffer, true);
+void dx12_command_queue_execute_synchronized(RHI_COMMAND_QUEUE& queue, RHI_OBJECT& cmd_buffer) {
+	dx12_command_queue_execute(queue, cmd_buffer, true);
 }
 
-void dx12_command_queue_execute_command_buffers_synchronized(RHI_COMMAND_BUUFER_LIST& command_buffers) {
-	dx12_command_queue_execute_command_buffers(command_buffers, true);
+void dx12_command_queue_execute_list_synchronized(RHI_COMMAND_BUUFER_LIST& command_buffers) {
+	dx12_command_queue_execute_list(command_buffers, true);
 }

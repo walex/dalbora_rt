@@ -1,6 +1,7 @@
 #include "dx12_texture_2d.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_texture_2d(const RHI_TEXTURE_2D_DESC& tex_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC& desc) {
+
 	ID3D12Resource* texture = nullptr;
 	D3D12_HEAP_PROPERTIES heapProps = {};
 	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -11,16 +12,17 @@ std::unique_ptr<RHI_OBJECT> dx12_create_texture_2d(const RHI_TEXTURE_2D_DESC& te
 	D3D12_RESOURCE_DESC textureDesc = {};
 	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	textureDesc.Alignment = 0;
-	textureDesc.Width = (UINT)tex_desc.width;
-	textureDesc.Height = (UINT)tex_desc.height;
+	textureDesc.Width = (UINT)desc.width;
+	textureDesc.Height = (UINT)desc.height;
 	textureDesc.DepthOrArraySize = 1;
 	textureDesc.MipLevels = 1;
-	textureDesc.Format = dx12_resource_format_type[(int)tex_desc.format];
+	textureDesc.Format = dx12_resource_format_type[(int)desc.format];
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	HRESULT hr = dx_rhi_get_interface<ID3D12Device>(*tex_desc.device)->CreateCommittedResource(
+	ID3D12Device* device = static_cast<DX_DEVICE_HANDLE&>(desc.device->get_native_handle());
+	HRESULT hr = device->CreateCommittedResource(
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
 		&textureDesc,

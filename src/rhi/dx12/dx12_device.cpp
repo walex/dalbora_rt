@@ -27,7 +27,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	for (UINT adapterIndex = 0;; ++adapterIndex) {
 		IDXGIAdapter1* adapter = nullptr;
-		HRESULT hr = dx12_get_factory()->EnumAdapters1(adapterIndex, &adapter);
+		HRESULT hr = dx12_factory_get()->EnumAdapters1(adapterIndex, &adapter);
 		if (hr == DXGI_ERROR_NOT_FOUND) {
 			break;
 		}
@@ -58,14 +58,14 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 	return chosenAdapter;
 }
 
-std::unique_ptr<RHI_OBJECT> dx12_create_device(const RHI_DEVICE_DESC& desc) {
+std::unique_ptr<RHI_OBJECT> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 
 	// Pick the best hardware adapter that supports D3D12
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	bool check_features = true;
 	if (desc.adapter_id != -1) {
 		// Try to get the adapter by index
-		HRESULT hr = dx12_get_factory()->EnumAdapters1(desc.adapter_id, &chosenAdapter);
+		HRESULT hr = dx12_factory_get()->EnumAdapters1(desc.adapter_id, &chosenAdapter);
 		if (FAILED(hr) || !chosenAdapter) {
 			throw std::exception("Failed to get specified adapter");
 		}

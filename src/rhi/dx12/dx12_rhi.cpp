@@ -16,28 +16,32 @@
 void dx12_rhi_init() {
 
 	// create factory
-	dx12_create_factory();
+	dx12_factory_create();
 
 	// set function pointers
 	rhi_create_window = &dx12_window_create;
 	rhi_window_main_loop = &dx12_window_main_loop;
 
-	rhi_create_device = &dx12_create_device;
-	rhi_create_swap_chain = &dx12_create_swap_chain;
-	rhi_create_graphics_command_queue = &dx12_create_graphics_command_queue;
-	rhi_create_compute_command_queue = &dx12_create_compute_command_queue;
-	rhi_create_transfer_command_queue = &dx12_create_copy_command_queue;
-	rhi_create_command_buffer = &dx12_create_command_buffer;
-	rhi_create_pipeline = &dx12_create_raster_pipeline;
+	rhi_create_device = &dx12_device_create;
+
+	// swap chain api
+	rhi_create_swap_chain = &dx12_swap_chain_create;
+	rhi_swap_chain_present = &dx12_swap_chain_present;
+
+	rhi_create_graphics_command_queue = &dx12_command_queue_create_for_render;
+	rhi_create_compute_command_queue = &dx12_command_queue_create_for_compute;
+	rhi_create_transfer_command_queue = &dx12_command_queue_create_for_copy;
+	rhi_create_command_buffer = &dx12_command_buffer_create;
+	rhi_create_pipeline = &dx12_raster_pipeline_create;
 	rhi_create_vertex_buffer = &dx12_vertex_buffer_create;
 	rhi_create_index_buffer = &dx12_index_buffer_create;
-	rhi_create_texture_2d = &dx12_create_texture_2d;
-	rhi_create_raster_pipeline = &dx12_create_raster_pipeline;
-	rhi_create_rt_pipeline = &dx12_create_rt_pipeline;
+	rhi_create_texture_2d = &dx12_texture_2d_create;
+	rhi_create_raster_pipeline = &dx12_raster_pipeline_create;
+	rhi_create_rt_pipeline = &dx12_rt_pipeline_create;
 	rhi_compile_shader = &dx12_shaders_compile;
 }
 
 void dx12_rhi_end() {
 	// destroy factory
-	dx12_destroy_factory();
+	dx12_factory_destroy();
 }

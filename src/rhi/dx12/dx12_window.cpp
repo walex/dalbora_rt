@@ -101,7 +101,7 @@ std::unique_ptr<RHI_OBJECT> dx12_window_create(const RHI_WINDOW_DESC& desc) {
 		throw std::exception("Failed to create window");
 	}
 
-    return std::make_unique<RHI_OBJECT>(new RHI_WINDOW_HANDLE(hwnd, desc.callback));
+    return std::make_unique<RHI_OBJECT>(new RHI_WINDOW_HANDLE(hwnd, desc.callbacks));
 }
 
 static std::atomic<bool> window_running;
@@ -113,7 +113,9 @@ void dx12_window_main_loop(RHI_OBJECT& handle) {
 
     MSG msg = {};
 
+    auto callback = wnd_handle.get_callbacks();
     window_running.store(true);
+    callback.on_init(handle);
     while (window_running.load() == true)
     {
         // Procesar todos los mensajes pendientes
@@ -132,8 +134,9 @@ void dx12_window_main_loop(RHI_OBJECT& handle) {
         if (!window_running)
             break;
 
-        wnd_handle.get_main_loop()();
+        callback.main_loop();
     }
+    callback.on_end();
 }
 
 #else

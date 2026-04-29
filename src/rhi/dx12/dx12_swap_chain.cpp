@@ -1,22 +1,22 @@
 #include "dx12_swap_chain.hpp"
 #include "dx12_factory.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& swpc_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& desc) {
 
-	auto device = dx_rhi_get_interface<ID3D12Device>(*swpc_desc.device);
-	auto commandQueue = dx_rhi_get_interface<ID3D12CommandQueue>(*swpc_desc.command_queue);
-	IDXGIFactory5* factory = dx12_get_factory();
-	HWND hwnd = swpc_desc.window->get_native_handle<RHI_WINDOW_HANDLE<HWND>&>();
+	ID3D12Device* device = static_cast<DX_DEVICE_HANDLE&>(desc.device->get_native_handle());
+	ID3D12CommandQueue* commandQueue = static_cast<DX_COMMAND_QUEUE_HANDLE&>(desc.command_queue->get_native_handle());
+	IDXGIFactory5* factory = dx12_factory_get();
+	HWND hwnd = desc.window->get_native_handle<RHI_WINDOW_HANDLE<HWND>&>();
 	if (!device || !commandQueue || !factory) {
 		throw std::exception("Invalid device/queue/factory for swapchain creation");
 	}
 
 	// Extract parameters from desc with sensible defaults if fields are missing
-	UINT width = (UINT)((swpc_desc.width > 0) ? swpc_desc.width : 800);
-	UINT height = (UINT)((swpc_desc.height > 0) ? swpc_desc.height : 600);
-	UINT bufferCount = (UINT)((swpc_desc.buffer_count > 0) ? swpc_desc.buffer_count : 2);
-	DXGI_FORMAT format = (swpc_desc.color_format != resource_format_none)
-		?  dx12_resource_format_type[(int)swpc_desc.color_format]
+	UINT width = (UINT)((desc.width > 0) ? desc.width : 800);
+	UINT height = (UINT)((desc.height > 0) ? desc.height : 600);
+	UINT bufferCount = (UINT)((desc.buffer_count > 0) ? desc.buffer_count : 2);
+	DXGI_FORMAT format = (desc.color_format != resource_format_none)
+		?  dx12_resource_format_type[(int)desc.color_format]
 		: DXGI_FORMAT_R8G8B8A8_UNORM;
 	BOOL allowTearing = FALSE;
 
@@ -25,7 +25,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& sw
 		BOOL tearSupported = FALSE;
 		auto hrTear = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearSupported, sizeof(tearSupported));
 		if (SUCCEEDED(hrTear) && tearSupported) {
-			allowTearing = swpc_desc.allow_tearing ? TRUE : FALSE;
+			allowTearing = desc.allow_tearing ? TRUE : FALSE;
 		}
 	}
 
@@ -46,7 +46,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& sw
 	// Create swap chain
 	IDXGISwapChain1* swapChain1 = nullptr;
 	HRESULT hr = factory->CreateSwapChainForHwnd(
-		commandQueue.Get(),
+		commandQueue,
 		hwnd,
 		&scDesc,
 		nullptr, // fullscreen desc
@@ -68,4 +68,10 @@ std::unique_ptr<RHI_OBJECT> dx12_create_swap_chain(const RHI_SWAP_CHAIN_DESC& sw
 	}
 
 	return std::make_unique<RHI_OBJECT>(new DX_SWAP_CHAIN_HANDLE(swapChain3));
+}
+
+void dx12_swap_chain_present(RHI_OBJECT& swap_chain) {
+
+	IDXGISwapChain1* h_swap_chain = static_cast<DX_SWAP_CHAIN_HANDLE&>(swap_chain.get_native_handle());
+	h_swap_chain->Present(1, 0);
 }

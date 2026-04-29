@@ -1,8 +1,9 @@
 #include "dx12_raster_pipeline.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_raster_pipeline(const RHI_RASTER_PIPELINE_DESC& pipeline_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC& desc) {
+
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
-	auto device = dx_rhi_get_interface<ID3D12Device>(*pipeline_desc.device);
+	ID3D12Device* device = static_cast<DX_DEVICE_HANDLE&>(desc.device->get_native_handle());
 	if (!device) {
 		throw std::exception("Invalid device for pipeline creation");
 	}
@@ -46,7 +47,7 @@ std::unique_ptr<RHI_OBJECT> dx12_create_raster_pipeline(const RHI_RASTER_PIPELIN
 	psoDesc.RasterizerState = rasterizer_desc_default;
 	psoDesc.DepthStencilState = deep_stencil_desc_default;
 	psoDesc.InputLayout = { nullptr, 0 }; // Input layout
-	psoDesc.PrimitiveTopologyType = dx12_primitive_topology_type[(int)pipeline_desc.topology];
+	psoDesc.PrimitiveTopologyType = dx12_primitive_topology_type[(int)desc.topology];
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.SampleDesc.Count = 1;

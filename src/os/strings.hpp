@@ -3,7 +3,7 @@
 
 #include "platform.hpp"
 
-std::wstring utf8_to_wstring(const std::string& input)
+inline std::wstring utf8_to_wstring(const std::string& input)
 {
     std::wstring result;
     size_t i = 0;
@@ -69,5 +69,25 @@ std::wstring utf8_to_wstring(const std::string& input)
     }
 
     return result;
+}
+
+template <typename T>
+std::string get_type_name() {
+#ifdef __clang__
+    std::string_view name = __PRETTY_FUNCTION__;
+    auto start = name.find("T = ") + 4;
+    auto end = name.find("]", start);
+    return std::string(name.substr(start, end - start));
+#elif defined(__GNUC__)
+    std::string_view name = __PRETTY_FUNCTION__;
+    auto start = name.find("T = ") + 4;
+    auto end = name.find(";", start);
+    return std::string(name.substr(start, end - start));
+#elif defined(_MSC_VER)
+    std::string_view name = __FUNCSIG__;
+    auto start = name.find("get_type_name<") + 14;
+    auto end = name.find(">(void)");
+    return std::string(name.substr(start, end - start));
+#endif
 }
 #endif

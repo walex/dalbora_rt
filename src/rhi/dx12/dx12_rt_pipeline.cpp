@@ -1,9 +1,9 @@
 #include "dx12_rt_pipeline.hpp"
 #include "dx12_shaders.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_create_rt_pipeline(const RHI_RT_PIPELINE_DESC& pipeline_desc) {
+std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& desc) {
 
-	auto device = dx_rhi_get_interface<ID3D12Device5>(*pipeline_desc.device);
+	auto device = com_query_interface<ID3D12Device5>(*desc.device);
 
 	D3D12_FEATURE_DATA_SHADER_MODEL SM;
 	device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM));
@@ -14,11 +14,11 @@ std::unique_ptr<RHI_OBJECT> dx12_create_rt_pipeline(const RHI_RT_PIPELINE_DESC& 
 	// TODO: Check for reording shader support when sdk available
 
 	// root dignature creation
-	auto rootSignature = dx12_helpers_create_global_root_signature(device.Get());
+	auto rootSignature = dx12_helpers_create_global_root_signature(device.get());
 
 	// get DXIL library
 	auto dxilLib_h = dx12_shaders_compile("neural_pbr.hlsl", "", "lib_6_9");
-	auto dxilLib = dx_rhi_get_interface<IDxcBlob>(*(dxilLib_h.get()));
+	IDxcBlob* dxilLib = static_cast<DX_SHADER_HANDLE&>(dxilLib_h->get_native_handle());
 
 	// export shaders
 	D3D12_EXPORT_DESC exports[3] = {};

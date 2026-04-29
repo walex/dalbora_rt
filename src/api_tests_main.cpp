@@ -3,7 +3,17 @@
 
 int main(int UNUSED_PARAM(argc), char* UNUSED_PARAM(argv[])) {
 
-	test_create_window();
+	// init rhi
+	rhi_init(device_type_dx12);
+
+	// simple platform windows creation
+	//test_create_window();
+
+	// swap chain
+	test_swap_chain();
+
+	// end rhi
+	rhi_end();
 
 	return 0;
 }

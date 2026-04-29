@@ -119,13 +119,6 @@
 	
 	#endif
 
-	#ifdef USE_DX12
-		#include <d3d12.h>
-		#include <dxgi1_6.h>
-		#include <dxcapi.h>
-		#include <wrl.h>
-	#endif
-
 	#define __PRETTY_FUNCTION__  __FUNCSIG__
 	#define INLINE_METHOD(m) __forceinline m
 
