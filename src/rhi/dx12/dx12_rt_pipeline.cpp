@@ -3,7 +3,7 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& desc) {
 
-	auto device = com_query_interface<ID3D12Device5>(*desc.device);
+	auto device = com_query_interface<ID3D12Device5>(desc.device());
 
 	D3D12_FEATURE_DATA_SHADER_MODEL SM;
 	device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM));
@@ -13,7 +13,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& 
 
 	// TODO: Check for reording shader support when sdk available
 
-	// root dignature creation
+	// root signature creation
 	auto rootSignature = dx12_helpers_create_global_root_signature(device.get());
 
 	// get DXIL library

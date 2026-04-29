@@ -1,5 +1,35 @@
 #include "dx12_helpers.hpp"
 
+static std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> g_heap_descriptors(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES);
+ 
+void dx12_create_RTV_heap_descriptors(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int slot_count) {
+
+    ID3D12DescriptorHeap* heap_descriptor;
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+    rtvHeapDesc.NumDescriptors = slot_count;
+    rtvHeapDesc.Type = type;
+    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    auto hr = device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&heap_descriptor));
+    if (FAILED(hr)) {
+        throw std::exception("Error creating RTV heap descriptors");
+    }
+    g_heap_descriptors[(int)type] = heap_descriptor;
+}
+
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dx12_get_RTV_heap_descriptor(D3D12_DESCRIPTOR_HEAP_TYPE type) {
+
+    return g_heap_descriptors[(int)type];
+}
+
+std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_descriptor_heap_handle(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int slot) {
+    
+    UINT rtvDescriptorSize =
+        device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);  
+    auto h = dx12_get_RTV_heap_descriptor(type)->GetCPUDescriptorHandleForHeapStart();
+    h.ptr += (slot * rtvDescriptorSize);
+    return std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(h);
+}
+
 Microsoft::WRL::ComPtr<ID3D12RootSignature> dx12_helpers_create_global_root_signature(ID3D12Device* device) {
 
     D3D12_ROOT_SIGNATURE_DESC desc = {};

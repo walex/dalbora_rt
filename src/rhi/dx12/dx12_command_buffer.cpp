@@ -4,7 +4,7 @@
 std::unique_ptr<RHI_OBJECT> dx12_command_buffer_create(const RHI_COMMAND_BUFFER_DESC& desc) {
 
 	// For simplicity, we will create a command allocator and a command list
-	ID3D12Device* device = desc.device->handle<DX_DEVICE_HANDLE>();
+	ID3D12Device* device = desc.device().handle<DX_DEVICE_HANDLE>();
 	if (!device) {
 		throw std::exception("Invalid device for command buffer creation");
 	}

@@ -25,7 +25,7 @@ std::unique_ptr<RHI_OBJECT> dx12_buffers_create(const RHI_BUFFER_DESC& desc) {
 	bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	bufferDesc.Flags = flags;
 	ID3D12Resource* resource;
-	ID3D12Device* device = desc.device->handle<DX_DEVICE_HANDLE>();
+	ID3D12Device* device = desc.device().handle<DX_DEVICE_HANDLE>();
 	HRESULT hr = device->CreateCommittedResource(
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
@@ -42,14 +42,13 @@ std::unique_ptr<RHI_OBJECT> dx12_buffers_create(const RHI_BUFFER_DESC& desc) {
 
 void dx12_buffers_upload(RHI_TRANSFER_BUFFER_DESC& desc, const bool sync) {
 
-	RHI_BUFFER_DESC upd_desc;
-	upd_desc.device = desc.device;
+	RHI_BUFFER_DESC upd_desc(desc.device);
 	upd_desc.size = desc.transfer_size;
 	upd_desc.memory_type = buffer_memory_type_cpu_to_gpu;
-	auto& buffer_dest = dynamic_cast<RHI_RESOURCE&>(*desc.buffer);
+	auto& buffer_dest = dynamic_cast<RHI_RESOURCE&>(desc.buffer());
 	ID3D12Resource* buffer_dest_h = buffer_dest.handle<DX_BUFFER_HANDLE>();
 	ID3D12Resource* buf_upd = dx12_buffers_create(upd_desc)->handle<DX_BUFFER_HANDLE>();
-	ID3D12GraphicsCommandList* cmd_buffer = desc.command_list->handle<DX_COMMAND_BUFFER_HANDLE>();
+	ID3D12GraphicsCommandList* cmd_buffer = desc.command_buffer().handle<DX_COMMAND_BUFFER_HANDLE>();
 	auto queue = desc.command_queue;
 	void* mapped = nullptr;
 	buf_upd->Map(0, nullptr, &mapped);
@@ -57,11 +56,11 @@ void dx12_buffers_upload(RHI_TRANSFER_BUFFER_DESC& desc, const bool sync) {
 	buf_upd->Unmap(0, nullptr);
 	// set barrier
 	auto current_state = buffer_dest.get_current_state();
-	dx12_resource_state_transition(*desc.command_list, *desc.buffer, resource_state_copy_src);
+	dx12_resource_state_transition(desc.command_buffer(), desc.buffer.get(), resource_state_copy_src);
 	cmd_buffer->CopyBufferRegion(buffer_dest_h, 0, buf_upd, 0, desc.transfer_size);
-	dx12_resource_state_transition(*desc.command_list, *desc.buffer, current_state);
+	dx12_resource_state_transition(desc.command_buffer(), desc.buffer.get(), current_state);
 	if (sync)
-		dx12_command_queue_execute_synchronized(*queue, *desc.command_list);
+		dx12_command_queue_execute_synchronized(queue, desc.command_buffer());
 }
 
 void dx12_buffers_upload_synchronized(RHI_TRANSFER_BUFFER_DESC& desc) {
@@ -70,20 +69,19 @@ void dx12_buffers_upload_synchronized(RHI_TRANSFER_BUFFER_DESC& desc) {
 
 void dx12_buffers_download_synchronized(RHI_TRANSFER_BUFFER_DESC& desc) {
 
-	RHI_BUFFER_DESC down_desc;
-	down_desc.device = desc.device;
+	RHI_BUFFER_DESC down_desc(desc.device);
 	down_desc.size = desc.transfer_size;
 	down_desc.memory_type = buffer_memory_type_gpu_to_cpu;
-	auto& buffer_src = dynamic_cast<RHI_RESOURCE&>(*desc.buffer);
+	auto& buffer_src = dynamic_cast<RHI_RESOURCE&>(desc.buffer.get());
 	ID3D12Resource* buffer_src_h = buffer_src.handle<DX_BUFFER_HANDLE>();
 	ID3D12Resource* buf_dwnl = dx12_buffers_create(down_desc)->handle<DX_BUFFER_HANDLE>();
-	ID3D12GraphicsCommandList* cmd_buffer = desc.command_list->handle<DX_COMMAND_BUFFER_HANDLE>();
+	ID3D12GraphicsCommandList* cmd_buffer = desc.command_buffer().handle<DX_COMMAND_BUFFER_HANDLE>();
 	auto queue = desc.command_queue;
-	dx12_resource_state_transition(*desc.command_list, *desc.buffer, resource_state_copy_dest);
+	dx12_resource_state_transition(desc.command_buffer(), desc.buffer.get(), resource_state_copy_dest);
 	cmd_buffer->CopyResource(buf_dwnl, buffer_src_h);
 	auto current_state = buffer_src.get_current_state();
-	dx12_resource_state_transition(*desc.command_list, *desc.buffer, current_state);
-	dx12_command_queue_execute_synchronized(*queue, *desc.command_list);
+	dx12_resource_state_transition(desc.command_buffer(), desc.buffer.get(), current_state);
+	dx12_command_queue_execute_synchronized(queue, desc.command_buffer());
 	void* mapped = nullptr;
 	D3D12_RANGE range = { 0, desc.transfer_size };
 	buf_dwnl->Map(0, &range, &mapped);

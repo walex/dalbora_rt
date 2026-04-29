@@ -4,13 +4,13 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 
-	auto device = com_query_interface<ID3D12Device5>(*desc.device);
-	auto command_list = com_query_interface<ID3D12GraphicsCommandList4>(*desc.command_buffer);
+	auto device = com_query_interface<ID3D12Device5>(desc.device());
+	auto command_list = com_query_interface<ID3D12GraphicsCommandList4>(desc.command_buffer());
 
-	auto vb_h = dynamic_cast<RHI_BUFFER_RESOURCE*>(desc.geometry_buffer->get_vertex_buffer());
-	auto ib_h = dynamic_cast<RHI_BUFFER_RESOURCE*>(desc.geometry_buffer->get_index_buffer());
-	auto& transforms = desc.geometry_buffer->get_transforms();
-	ID3D12Resource* vertexBuffer = vb_h->handle<DX_BUFFER_HANDLE>();
+	auto& vb_h = reinterpret_cast<RHI_BUFFER_RESOURCE&>(desc.geometry_buffer.get().get_vertex_buffer());
+	auto ib_h = dynamic_cast<RHI_BUFFER_RESOURCE*>(desc.geometry_buffer.get().get_index_buffer());
+	auto& transforms = desc.geometry_buffer.get().get_transforms();
+	ID3D12Resource* vertexBuffer = vb_h.handle<DX_BUFFER_HANDLE>();
 
 	// create geometry descriptor
 	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc = {};
@@ -20,9 +20,9 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 	geomDesc.Triangles.VertexBuffer.StartAddress =
 		vertexBuffer->GetGPUVirtualAddress();
 
-	geomDesc.Triangles.VertexBuffer.StrideInBytes = vb_h->stride;
+	geomDesc.Triangles.VertexBuffer.StrideInBytes = vb_h.stride;
 
-		geomDesc.Triangles.VertexCount = (UINT)(vb_h->size / vb_h->stride);
+		geomDesc.Triangles.VertexCount = (UINT)(vb_h.size / vb_h.stride);
 
 	geomDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
 
@@ -52,10 +52,9 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 		&blasInfo
 	);
 
-	RHI_BUFFER_DESC buffer_desc;
+	RHI_BUFFER_DESC buffer_desc(desc.device);
 	buffer_desc.initial_state = resource_state_none;
 	buffer_desc.is_uav = true;
-	buffer_desc.device = desc.device;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.size = blasInfo.ResultDataMaxSizeInBytes;
 	auto blasBuffer = dx12_buffers_create(buffer_desc);
@@ -156,7 +155,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_bvh_create(const RHI_RT_BVH_DESC& desc) {
 
 	command_list->ResourceBarrier(1, &tlasBarrier);
 
-	dx12_command_queue_execute_synchronized(*desc.command_queue, *desc.command_buffer);
+	dx12_command_queue_execute_synchronized(desc.command_queue.get(), desc.command_buffer());
 
 	return std::make_unique<RHI_RESOURCE>(new DX_BUFFER_HANDLE(itlasBuffer));
 }

@@ -126,6 +126,7 @@ struct RHI_OBJECT {
 	RHI_OBJECT(RHI_NATIVE_HANDLE* ptr) {
 		native_impl.reset(ptr);
 	}
+	RHI_OBJECT& operator()() { return *this; }
 	operator RHI_NATIVE_HANDLE& () {
 		return *native_impl.get();
 	}
@@ -140,16 +141,9 @@ private:
 
 struct RHI_RESOURCE : public RHI_OBJECT {
 	RHI_RESOURCE(RHI_NATIVE_HANDLE* ptr)
-		: RHI_OBJECT(ptr)
-		, device(nullptr) {}
+		: RHI_OBJECT(ptr) {}
 	resource_state get_current_state() const {
 		return current_state;
-	}
-	void set_device(RHI_OBJECT* dev) {
-		device = dev;
-	}
-	RHI_OBJECT* get_device() {
-		return device;
 	}
 protected:
 	void set_current_state(resource_state state) {
@@ -158,7 +152,6 @@ protected:
 private:
 	resource_state current_state = resource_state_none;
 	resource_format format = resource_format_none;
-	RHI_OBJECT* device;
 };
 
 struct RHI_BUFFER_RESOURCE : public RHI_RESOURCE {
@@ -173,10 +166,10 @@ struct RHI_BUFFER_RESOURCE : public RHI_RESOURCE {
 
 struct RHI_GEOMETRY {
 	RHI_GEOMETRY(RHI_RESOURCE& vb, RHI_RESOURCE* ib = nullptr)
-		: vbo(&vb)
+		: vbo(vb)
 		, ibo(ib) {}
-	RHI_RESOURCE* get_vertex_buffer() {
-		return vbo;
+	RHI_RESOURCE& get_vertex_buffer() {
+		return vbo.get();
 	}
 	RHI_RESOURCE* get_index_buffer() {
 		return ibo;
@@ -188,7 +181,7 @@ struct RHI_GEOMETRY {
 		return transforms;
 	}
 private:
-	RHI_RESOURCE* vbo;
+	std::reference_wrapper<RHI_RESOURCE> vbo;
 	RHI_RESOURCE* ibo;
 	std::vector<Eigen::Matrix4f> transforms;
 };
@@ -204,10 +197,23 @@ protected:
 	std::unique_ptr<RHI_OBJECT> fence;
 };
 
+struct RHI_RENDER_PASS : public RHI_OBJECT {
+	RHI_RENDER_PASS(RHI_NATIVE_HANDLE* ptr, RHI_OBJECT& dev, RHI_RESOURCE& buffer)
+		: RHI_OBJECT(ptr)
+		, device(dev)
+		, surface(buffer) {}
+		
+	RHI_OBJECT& get_device() { return device; }
+	RHI_OBJECT& get_surface() { return surface; }
+private:
+	std::reference_wrapper<RHI_RESOURCE> surface;
+	std::reference_wrapper<RHI_OBJECT> device;
+};
+
 struct RHI_COMMAND_BUUFER_LIST {
-	RHI_COMMAND_BUUFER_LIST(RHI_COMMAND_QUEUE& cmd_queue,
+	RHI_COMMAND_BUUFER_LIST(RHI_OBJECT& cmd_queue,
 		std::vector<RHI_OBJECT*>&& cmd_buffers)
-	: command_queue(&cmd_queue)
+	: command_queue(cmd_queue)
 	, command_buffers(std::move(cmd_buffers))
 	, counter(1) {}
 	std::vector<RHI_OBJECT*>& get_list() {
@@ -219,13 +225,13 @@ struct RHI_COMMAND_BUUFER_LIST {
 	unsigned __int64 get_counter() const {
 		return counter;
 	}
-	RHI_COMMAND_QUEUE& get_queue() {
-		return *command_queue;
+	RHI_OBJECT& get_queue() {
+		return command_queue.get();
 	}
 private:
+	std::reference_wrapper<RHI_OBJECT> command_queue;
 	std::vector<RHI_OBJECT*>&& command_buffers;
 	unsigned __int64 counter;
-	RHI_COMMAND_QUEUE* command_queue;
 };
 
 struct RHI_DEVICE_DESC {
@@ -234,7 +240,14 @@ struct RHI_DEVICE_DESC {
 };
 
 struct RHI_BUFFER_DESC {
-	RHI_OBJECT* device;
+
+	RHI_BUFFER_DESC(RHI_OBJECT& dev)
+		: device(dev)
+		, size(0)
+		, memory_type(buffer_memory_type_gpu_only)
+	    , initial_state(resource_state_none)
+	    , is_uav(false) {}
+	std::reference_wrapper<RHI_OBJECT> device;
 	size_t size;
 	buffer_memory_type memory_type;
 	resource_state initial_state;
@@ -262,62 +275,132 @@ struct RHI_WINDOW_DESC {
 };
 
 struct RHI_COMMAND_QUEUE_DESC {
-	RHI_OBJECT* device;
+	RHI_COMMAND_QUEUE_DESC(RHI_OBJECT& dev)
+		: device(dev) {}
+	std::reference_wrapper<RHI_OBJECT> device;
 };
 
 struct RHI_SWAP_CHAIN_DESC {
+
+	RHI_SWAP_CHAIN_DESC(RHI_OBJECT& dev, RHI_OBJECT& cmd_queue, RHI_OBJECT& wnd)
+		: device(dev)
+		, command_queue(cmd_queue)
+		, window(wnd)
+		, width(0)
+		, height(0)
+		, color_format(resource_format_none)
+		, allow_tearing(false)
+		, buffer_count(0) {}	
+
+	std::reference_wrapper<RHI_OBJECT> device;
+	std::reference_wrapper<RHI_OBJECT> command_queue;
+	std::reference_wrapper<RHI_OBJECT> window;
 	size_t width;
 	size_t height;
 	resource_format color_format;
 	bool allow_tearing;
-	RHI_OBJECT* window;
-	RHI_OBJECT* device;
-	RHI_OBJECT* command_queue;
 	size_t buffer_count;
 };
 
 struct RHI_COMMAND_BUFFER_DESC {
-	RHI_OBJECT* device;
-	RHI_OBJECT* command_queue;
+
+	RHI_COMMAND_BUFFER_DESC(RHI_OBJECT& dev, RHI_OBJECT& cmd_queue)
+		: device(dev)
+		, command_queue(cmd_queue)
+		, type(queue_type_graphics) { }
+
+	std::reference_wrapper<RHI_OBJECT> device;
+	std::reference_wrapper<RHI_OBJECT> command_queue;
 	queue_type type;
 };
 
 struct RHI_RASTER_PIPELINE_DESC {
-	RHI_OBJECT* device;
-	primitive_topology topology = primitive_topology_none;
+
+	RHI_RASTER_PIPELINE_DESC(RHI_OBJECT& dev)
+		: device(dev)
+		, topology(primitive_topology_none) {}
+
+	std::reference_wrapper<RHI_OBJECT> device;
+	primitive_topology topology;
 };
 
 struct RHI_RT_PIPELINE_DESC {
-	RHI_OBJECT* device;
+
+	RHI_RT_PIPELINE_DESC(RHI_OBJECT& dev)
+		: device(dev) {}
+	std::reference_wrapper<RHI_OBJECT> device;
 };
 
 struct RHI_TEXTURE_2D_DESC {
-	RHI_OBJECT* device;
+
+	RHI_TEXTURE_2D_DESC(RHI_OBJECT& dev)
+		: device(dev)
+		, width(0)
+		, height(0)
+		, format(resource_format_none) {}
+	std::reference_wrapper<RHI_OBJECT> device;
 	size_t width;
 	size_t height;
 	resource_format format;
 };
 
 struct RHI_FENCE_DESC {
-	RHI_OBJECT* device;
-	fence_flags flags = fence_flags_none;
-	int initial_value = 0;
+
+	RHI_FENCE_DESC(RHI_OBJECT& dev)
+		: device(dev)
+		, flags(fence_flags_none)
+		, initial_value(0) {}
+	std::reference_wrapper<RHI_OBJECT> device;
+	fence_flags flags;
+	int initial_value;
 };
 
 struct RHI_RT_BVH_DESC {
-	RHI_OBJECT* device;
-	RHI_COMMAND_QUEUE* command_queue;
-	RHI_OBJECT* command_buffer;
-	RHI_GEOMETRY* geometry_buffer;
+
+	RHI_RT_BVH_DESC(RHI_OBJECT& dev, RHI_COMMAND_QUEUE& cmd_queue,
+					RHI_OBJECT& cmd_buffer, RHI_GEOMETRY& geo_buffer)
+		: device(dev)
+		, command_queue(cmd_queue)
+		, command_buffer(cmd_buffer)
+		, geometry_buffer(geo_buffer) {}
+	std::reference_wrapper<RHI_OBJECT> device;
+	std::reference_wrapper<RHI_COMMAND_QUEUE> command_queue;
+	std::reference_wrapper<RHI_OBJECT> command_buffer;
+	std::reference_wrapper<RHI_GEOMETRY> geometry_buffer;
 };
 
 struct RHI_TRANSFER_BUFFER_DESC {
-	RHI_OBJECT* device;
-	RHI_RESOURCE* buffer;
-	RHI_COMMAND_QUEUE* command_queue;
-	RHI_OBJECT* command_list;
+
+	RHI_TRANSFER_BUFFER_DESC(RHI_OBJECT& dev, RHI_COMMAND_QUEUE& cmd_queue,
+		RHI_OBJECT& cmd_buffer, RHI_RESOURCE& buff)
+		: device(dev)
+		, command_queue(cmd_queue)
+		, command_buffer(cmd_buffer)
+		, buffer(buff)
+		, data(nullptr)
+		, transfer_size(0) {
+	}
+
+	std::reference_wrapper<RHI_OBJECT> device;
+	std::reference_wrapper<RHI_COMMAND_QUEUE> command_queue;
+	std::reference_wrapper<RHI_OBJECT> command_buffer;
+	std::reference_wrapper<RHI_RESOURCE> buffer;	
 	void* data;
 	size_t transfer_size;
+};
+
+struct RHI_RENDER_PASS_DESC {
+
+	RHI_RENDER_PASS_DESC(RHI_OBJECT& dev, RHI_RESOURCE& buffer)
+		: device(dev)
+		, surface(buffer)
+		, format(resource_format_none)
+		, buffer_index(-1) {
+	}
+	std::reference_wrapper<RHI_OBJECT> device;
+	std::reference_wrapper<RHI_RESOURCE> surface;
+	resource_format format;
+	int buffer_index;
 };
 
 void rhi_init(device_type dt);

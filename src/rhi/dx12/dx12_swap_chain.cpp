@@ -3,10 +3,10 @@
 
 std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& desc) {
 
-	ID3D12Device* device = desc.device->handle<DX_DEVICE_HANDLE>();
-	ID3D12CommandQueue* commandQueue = desc.command_queue->handle<DX_COMMAND_QUEUE_HANDLE>();
+	ID3D12Device* device = desc.device().handle<DX_DEVICE_HANDLE>();
+	ID3D12CommandQueue* commandQueue = desc.command_queue().handle<DX_COMMAND_QUEUE_HANDLE>();
 	IDXGIFactory5* factory = dx12_factory_get();
-	HWND hwnd = desc.window->handle<RHI_WINDOW_HANDLE<HWND>>();
+	HWND hwnd = desc.window().handle<RHI_WINDOW_HANDLE<HWND>>();
 	if (!device || !commandQueue || !factory) {
 		throw std::exception("Invalid device/queue/factory for swapchain creation");
 	}

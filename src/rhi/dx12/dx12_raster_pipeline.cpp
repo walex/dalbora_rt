@@ -3,7 +3,7 @@
 std::unique_ptr<RHI_OBJECT> dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC& desc) {
 
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
-	ID3D12Device* device = desc.device->handle<DX_DEVICE_HANDLE>();
+	ID3D12Device* device = desc.device().handle<DX_DEVICE_HANDLE>();
 	if (!device) {
 		throw std::exception("Invalid device for pipeline creation");
 	}
