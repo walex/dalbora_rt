@@ -100,7 +100,7 @@ struct RHI_TEMPLATE_HANDLE : public RHI_NATIVE_HANDLE {
 		, RHI_NATIVE_HANDLE(&template_instance) {
 	}
 	~RHI_TEMPLATE_HANDLE() {
-		printf("deleting %s\n", get_type_name<I>().c_str());
+		printf("deleting %s %IX\n", get_type_name<I>().c_str(), (__int64)template_instance.get());
 	}
 	operator I* () { 
 		return template_instance.get();
@@ -198,20 +198,20 @@ protected:
 };
 
 struct RHI_RENDER_PASS : public RHI_OBJECT {
-	RHI_RENDER_PASS(RHI_NATIVE_HANDLE* ptr, RHI_OBJECT& dev, RHI_RESOURCE& buffer)
+	RHI_RENDER_PASS(RHI_NATIVE_HANDLE* ptr, RHI_OBJECT& dev, std::unique_ptr<RHI_OBJECT>&& buffer)
 		: RHI_OBJECT(ptr)
 		, device(dev)
-		, surface(buffer) {}
+		, surface(std::move(buffer)) {}
 		
 	RHI_OBJECT& get_device() { return device; }
-	RHI_OBJECT& get_surface() { return surface; }
+	RHI_OBJECT& get_surface() { return *surface.get(); }
 private:
-	std::reference_wrapper<RHI_RESOURCE> surface;
+	std::unique_ptr<RHI_OBJECT> surface;
 	std::reference_wrapper<RHI_OBJECT> device;
 };
 
-struct RHI_COMMAND_BUUFER_LIST {
-	RHI_COMMAND_BUUFER_LIST(RHI_OBJECT& cmd_queue,
+struct RHI_COMMAND_BUFFER_LIST {
+	RHI_COMMAND_BUFFER_LIST(RHI_OBJECT& cmd_queue,
 		std::vector<RHI_OBJECT*>&& cmd_buffers)
 	: command_queue(cmd_queue)
 	, command_buffers(std::move(cmd_buffers))
@@ -306,12 +306,10 @@ struct RHI_COMMAND_BUFFER_DESC {
 
 	RHI_COMMAND_BUFFER_DESC(RHI_OBJECT& dev, RHI_OBJECT& cmd_queue)
 		: device(dev)
-		, command_queue(cmd_queue)
-		, type(queue_type_graphics) { }
+		, command_queue(cmd_queue) {}
 
 	std::reference_wrapper<RHI_OBJECT> device;
 	std::reference_wrapper<RHI_OBJECT> command_queue;
-	queue_type type;
 };
 
 struct RHI_RASTER_PIPELINE_DESC {
@@ -391,14 +389,14 @@ struct RHI_TRANSFER_BUFFER_DESC {
 
 struct RHI_RENDER_PASS_DESC {
 
-	RHI_RENDER_PASS_DESC(RHI_OBJECT& dev, RHI_RESOURCE& buffer)
+	RHI_RENDER_PASS_DESC(RHI_OBJECT& dev, std::unique_ptr<RHI_OBJECT>&& buffer)
 		: device(dev)
-		, surface(buffer)
+		, surface(std::move(buffer))
 		, format(resource_format_none)
 		, buffer_index(-1) {
 	}
 	std::reference_wrapper<RHI_OBJECT> device;
-	std::reference_wrapper<RHI_RESOURCE> surface;
+	std::unique_ptr<RHI_OBJECT> surface;
 	resource_format format;
 	int buffer_index;
 };
@@ -412,21 +410,27 @@ inline void(*rhi_window_main_loop)(RHI_OBJECT& handle);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_device)(const RHI_DEVICE_DESC& desc);
 
 // swap chain api
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_swap_chain)(const RHI_SWAP_CHAIN_DESC& swpc_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_swap_chain_create)(const RHI_SWAP_CHAIN_DESC& swpc_desc);
 inline void (*rhi_swap_chain_present)(RHI_OBJECT& swap_chain);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_swap_chain_get_surface)(RHI_OBJECT& swap_chain, int surface_index);
+inline unsigned int (*rhi_swap_chain_get_current_buffer_id)(RHI_OBJECT& swap_chain);
 
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_graphics_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_compute_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_transfer_command_queue)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_command_buffer)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_pipeline)(const RHI_RASTER_PIPELINE_DESC& pipeline_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_vertex_buffer)(const RHI_VERTEX_BUFFER_DESC& vb_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_index_buffer)(const RHI_INDEX_BUFFER_DESC& ib_desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_texture_2d)(const RHI_TEXTURE_2D_DESC& tex_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_command_queue_create_for_render)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_command_queue_create_for_compute)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_command_queue_create_for_copy)(const RHI_COMMAND_QUEUE_DESC& queue_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_command_buffer_create)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_raster_pipeline_create)(const RHI_RASTER_PIPELINE_DESC& pipeline_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_vertex_buffer_create)(const RHI_VERTEX_BUFFER_DESC& vb_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_index_buffer_create)(const RHI_INDEX_BUFFER_DESC& ib_desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_texture_2d_create)(const RHI_TEXTURE_2D_DESC& tex_desc);
 inline std::unique_ptr<RHI_OBJECT>(*rhi_create_fence)(const RHI_FENCE_DESC& desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_raster_pipeline)(const RHI_RASTER_PIPELINE_DESC& desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_create_rt_pipeline)(const RHI_RT_PIPELINE_DESC& desc);
-inline std::unique_ptr<RHI_OBJECT>(*rhi_compile_shader)(const char* const file,	const char* const entry, const char* const target);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_rt_pipeline_create)(const RHI_RT_PIPELINE_DESC& desc);
+inline std::unique_ptr<RHI_OBJECT>(*rhi_shaders_compile)(const char* const file,	const char* const entry, const char* const target);
+
+// render pass api
+inline std::unique_ptr<RHI_OBJECT>(*rhi_render_pass_create)(RHI_RENDER_PASS_DESC& desc);
+inline void (*rhi_render_pass_begin)(RHI_OBJECT& render_pass, RHI_OBJECT& command_buffer);
+inline void (*rhi_render_pass_end)(RHI_OBJECT& render_pass, RHI_OBJECT& command_queue, RHI_OBJECT& command_buffer);
 
 
 #endif

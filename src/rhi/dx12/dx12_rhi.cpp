@@ -12,6 +12,7 @@
 #include "dx12_texture_2d.hpp"
 #include "dx12_resource_state.hpp"
 #include "dx12_shaders.hpp"
+#include "dx12_render_pass.hpp"
 
 void dx12_rhi_init() {
 
@@ -25,20 +26,26 @@ void dx12_rhi_init() {
 	rhi_create_device = &dx12_device_create;
 
 	// swap chain api
-	rhi_create_swap_chain = &dx12_swap_chain_create;
+	rhi_swap_chain_create = &dx12_swap_chain_create;
 	rhi_swap_chain_present = &dx12_swap_chain_present;
+	rhi_swap_chain_get_surface = &dx12_swap_chain_get_surface;
+	rhi_swap_chain_get_current_buffer_id = &dx12_swap_chain_get_current_buffer_id;
 
-	rhi_create_graphics_command_queue = &dx12_command_queue_create_for_render;
-	rhi_create_compute_command_queue = &dx12_command_queue_create_for_compute;
-	rhi_create_transfer_command_queue = &dx12_command_queue_create_for_copy;
-	rhi_create_command_buffer = &dx12_command_buffer_create;
-	rhi_create_pipeline = &dx12_raster_pipeline_create;
-	rhi_create_vertex_buffer = &dx12_vertex_buffer_create;
-	rhi_create_index_buffer = &dx12_index_buffer_create;
-	rhi_create_texture_2d = &dx12_texture_2d_create;
-	rhi_create_raster_pipeline = &dx12_raster_pipeline_create;
-	rhi_create_rt_pipeline = &dx12_rt_pipeline_create;
-	rhi_compile_shader = &dx12_shaders_compile;
+	rhi_command_queue_create_for_render = &dx12_command_queue_create_for_render;
+	rhi_command_queue_create_for_compute = &dx12_command_queue_create_for_compute;
+	rhi_command_queue_create_for_copy = &dx12_command_queue_create_for_copy;
+	rhi_command_buffer_create = &dx12_command_buffer_create;
+	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
+	rhi_vertex_buffer_create = &dx12_vertex_buffer_create;
+	rhi_index_buffer_create = &dx12_index_buffer_create;
+	rhi_texture_2d_create = &dx12_texture_2d_create;
+	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
+	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
+	rhi_shaders_compile = &dx12_shaders_compile;
+
+	rhi_render_pass_create = &dx12_render_pass_create;
+	rhi_render_pass_begin = &dx12_render_pass_begin;
+	rhi_render_pass_end = &dx12_render_pass_end;
 }
 
 void dx12_rhi_end() {

@@ -33,5 +33,5 @@ std::unique_ptr<RHI_OBJECT> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC& de
 	if (FAILED(hr) || !texture) {
 		throw std::exception("Failed to create D3D12 2D texture");
 	}
-	return std::make_unique<RHI_RESOURCE>(new DX_BUFFER_HANDLE(texture));
+	return std::make_unique<RHI_RESOURCE>(new DX_RESOURCE_HANDLE(texture));
 }

@@ -62,8 +62,10 @@ std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& de
 	// Query for IDXGISwapChain3
 	IDXGISwapChain3* swapChain3 = nullptr;
 	hr = swapChain1->QueryInterface(IID_PPV_ARGS(&swapChain3));
+	swapChain1->Release();
 	if (FAILED(hr) || !swapChain3) {
-		// Release the IDXGISwapChain1 (ComPtr will release) and throw
+		if (swapChain3)
+			swapChain3->Release();
 		throw std::exception("Failed to acquire IDXGISwapChain3");
 	}
 
@@ -72,6 +74,24 @@ std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& de
 
 void dx12_swap_chain_present(RHI_OBJECT& swap_chain) {
 
-	IDXGISwapChain1* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
+	IDXGISwapChain3* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
 	h_swap_chain->Present(1, 0);
+}
+
+std::unique_ptr<RHI_OBJECT> dx12_swap_chain_get_surface(RHI_OBJECT& swap_chain, int surface_index) {
+
+	ID3D12Resource* surface;
+	IDXGISwapChain3* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
+	if (surface_index < 0)
+		surface_index = (int)h_swap_chain->GetCurrentBackBufferIndex();
+	if (FAILED(h_swap_chain->GetBuffer(surface_index, IID_PPV_ARGS(&surface)))) {
+		throw std::exception("Error getting surface");
+	}
+	return std::make_unique<RHI_OBJECT>(new DX_RESOURCE_HANDLE(surface));
+}
+
+unsigned int dx12_swap_chain_get_current_buffer_id(RHI_OBJECT& swap_chain) {
+
+	IDXGISwapChain3* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
+	return (unsigned int)h_swap_chain->GetCurrentBackBufferIndex();
 }

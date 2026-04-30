@@ -37,7 +37,7 @@ std::unique_ptr<RHI_OBJECT> dx12_buffers_create(const RHI_BUFFER_DESC& desc) {
 	if (FAILED(hr) || !resource) {
 		throw std::exception("Failed to create D3D12 resource");
 	}
-	return std::make_unique<RHI_RESOURCE>(new DX_BUFFER_HANDLE(resource));
+	return std::make_unique<RHI_RESOURCE>(new DX_RESOURCE_HANDLE(resource));
 }
 
 void dx12_buffers_upload(RHI_TRANSFER_BUFFER_DESC& desc, const bool sync) {
@@ -46,8 +46,8 @@ void dx12_buffers_upload(RHI_TRANSFER_BUFFER_DESC& desc, const bool sync) {
 	upd_desc.size = desc.transfer_size;
 	upd_desc.memory_type = buffer_memory_type_cpu_to_gpu;
 	auto& buffer_dest = dynamic_cast<RHI_RESOURCE&>(desc.buffer());
-	ID3D12Resource* buffer_dest_h = buffer_dest.handle<DX_BUFFER_HANDLE>();
-	ID3D12Resource* buf_upd = dx12_buffers_create(upd_desc)->handle<DX_BUFFER_HANDLE>();
+	ID3D12Resource* buffer_dest_h = buffer_dest.handle<DX_RESOURCE_HANDLE>();
+	ID3D12Resource* buf_upd = dx12_buffers_create(upd_desc)->handle<DX_RESOURCE_HANDLE>();
 	ID3D12GraphicsCommandList* cmd_buffer = desc.command_buffer().handle<DX_COMMAND_BUFFER_HANDLE>();
 	auto queue = desc.command_queue;
 	void* mapped = nullptr;
@@ -73,8 +73,8 @@ void dx12_buffers_download_synchronized(RHI_TRANSFER_BUFFER_DESC& desc) {
 	down_desc.size = desc.transfer_size;
 	down_desc.memory_type = buffer_memory_type_gpu_to_cpu;
 	auto& buffer_src = dynamic_cast<RHI_RESOURCE&>(desc.buffer.get());
-	ID3D12Resource* buffer_src_h = buffer_src.handle<DX_BUFFER_HANDLE>();
-	ID3D12Resource* buf_dwnl = dx12_buffers_create(down_desc)->handle<DX_BUFFER_HANDLE>();
+	ID3D12Resource* buffer_src_h = buffer_src.handle<DX_RESOURCE_HANDLE>();
+	ID3D12Resource* buf_dwnl = dx12_buffers_create(down_desc)->handle<DX_RESOURCE_HANDLE>();
 	ID3D12GraphicsCommandList* cmd_buffer = desc.command_buffer().handle<DX_COMMAND_BUFFER_HANDLE>();
 	auto queue = desc.command_queue;
 	dx12_resource_state_transition(desc.command_buffer(), desc.buffer.get(), resource_state_copy_dest);

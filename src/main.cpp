@@ -18,7 +18,7 @@ void test_graphics_api() {
 
 	RHI_COMMAND_QUEUE_DESC queue_desc;
 	queue_desc.device = dev.get();
-	auto queue = rhi_create_graphics_command_queue(queue_desc);
+	auto queue = rhi_command_queue_create_for_render(queue_desc);
 
 	RHI_SWAP_CHAIN_DESC swap_chain_desc;
 	swap_chain_desc.width = 800;

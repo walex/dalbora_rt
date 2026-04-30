@@ -37,7 +37,7 @@ std::unique_ptr<RHI_OBJECT> dx12_command_queue_create_for_copy(const RHI_COMMAND
 	return dx12_create_command_queue(queue_desc, queue_type_copy);
 }
 
-void dx12_command_queue_execute_list(RHI_COMMAND_BUUFER_LIST& command_buffer_list, bool sync) {
+void dx12_command_queue_execute_list(RHI_COMMAND_BUFFER_LIST& command_buffer_list, bool sync) {
 	
 	auto& list = command_buffer_list.get_list();
 	std::vector<ID3D12CommandList*> native_list(list.size());
@@ -52,7 +52,7 @@ void dx12_command_queue_execute_list(RHI_COMMAND_BUUFER_LIST& command_buffer_lis
 		dx12_command_queue_wait(command_buffer_list);
 }
 
-void dx12_command_queue_wait(RHI_COMMAND_BUUFER_LIST& command_buffers) {
+void dx12_command_queue_wait(RHI_COMMAND_BUFFER_LIST& command_buffers) {
 
 	HANDLE eventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);	
 	if (!eventHandle) {
@@ -73,9 +73,9 @@ void dx12_command_queue_wait(RHI_COMMAND_BUUFER_LIST& command_buffers) {
 
 void dx12_command_queue_execute(RHI_OBJECT& queue, RHI_OBJECT& cmd_buffer, bool sync) {
 
-	std::vector<RHI_OBJECT*> cmd_buffers(1);
+	std::vector<RHI_OBJECT*> cmd_buffers;
 	cmd_buffers.push_back(&cmd_buffer);
-	RHI_COMMAND_BUUFER_LIST command_buffer_list(queue, std::move(cmd_buffers));
+	RHI_COMMAND_BUFFER_LIST command_buffer_list(queue, std::move(cmd_buffers));
 	dx12_command_queue_execute_list(command_buffer_list, sync);		
 }
 
@@ -83,6 +83,6 @@ void dx12_command_queue_execute_synchronized(RHI_OBJECT& queue, RHI_OBJECT& cmd_
 	dx12_command_queue_execute(queue, cmd_buffer, true);
 }
 
-void dx12_command_queue_execute_list_synchronized(RHI_COMMAND_BUUFER_LIST& command_buffers) {
+void dx12_command_queue_execute_list_synchronized(RHI_COMMAND_BUFFER_LIST& command_buffers) {
 	dx12_command_queue_execute_list(command_buffers, true);
 }

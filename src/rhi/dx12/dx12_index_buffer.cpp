@@ -13,7 +13,7 @@ std::unique_ptr<RHI_OBJECT> dx12_index_buffer_create(const RHI_INDEX_BUFFER_DESC
 
 void dx12_index_buffer_update(RHI_OBJECT& index_buffer, const void* data, size_t size) {
 
-    ID3D12Resource* ib = index_buffer.handle<DX_BUFFER_HANDLE>();
+    ID3D12Resource* ib = index_buffer.handle<DX_RESOURCE_HANDLE>();
 
     void* mappedData = nullptr;
     D3D12_RANGE readRange = { 0, 0 }; // We do not intend to read from this resource on CPU

@@ -2,22 +2,21 @@
 #define __dx12_rhi_hpp__
 
 #include "rhi.hpp"
+#include "dx12_api_params.h"
 #include "dx12_helpers.hpp"
 
 struct ID3D12Device;
 struct COMReleaseDeleter { 
 	void operator()(IUnknown* p) const { 
-		printf("com object %IX with %d references about to release a reference ...\n", (__int64)p, p->AddRef() - 1);
-		p->Release();
 		SAFE_RELEASE2(p); 
-		printf("com object released!\n");
+		printf("com object %IX released!\n", (__int64)p);
 	}
 };
 
 using DX_DEVICE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Device, COMReleaseDeleter>;
 using DX_COMMAND_QUEUE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12CommandQueue>;
-using DX_SWAP_CHAIN_HANDLE = RHI_TEMPLATE_HANDLE<IDXGISwapChain1, COMReleaseDeleter>;
-using DX_BUFFER_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Resource, COMReleaseDeleter>;
+using DX_SWAP_CHAIN_HANDLE = RHI_TEMPLATE_HANDLE<IDXGISwapChain3, COMReleaseDeleter>;
+using DX_RESOURCE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Resource, COMReleaseDeleter>;
 using DX_COMMAND_BUFFER_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12GraphicsCommandList, COMReleaseDeleter>;
 using DX_RASTER_PIPELINE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12PipelineState, COMReleaseDeleter>;
 using DX_RT_PIPELINE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12StateObject, COMReleaseDeleter>;

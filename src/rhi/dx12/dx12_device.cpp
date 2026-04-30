@@ -95,6 +95,9 @@ std::unique_ptr<RHI_OBJECT> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 		throw std::exception("Failed to create D3D12 device");
 	}
 
+	// create heaps for this device
+	dx12_create_RTV_heap_descriptors(device, kDeviceMaxRTVHeapDescriptors);
+
 	return std::make_unique<RHI_OBJECT>(new DX_DEVICE_HANDLE(device));
 }
 
