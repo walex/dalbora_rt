@@ -1,5 +1,6 @@
 #include "dx12_device.hpp"
 #include "dx12_factory.hpp"
+#include "dx12_heap.hpp"
 
 bool dx12_device_check_rt_support(ID3D12Device* device) {
 	D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureData = {};
@@ -75,13 +76,13 @@ std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 		check_features = false;
 	}
 
-	// Create D3D12 device (request ID3D12Device). Try feature level 12_0 then 11_0.
-	ID3D12Device* device = nullptr;
-	HRESULT hr = D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device));
+	// Create D3D12 device (request ID3D12Device). Try feature level 12_0.
+	ID3D12Device* i_device = nullptr;
+	HRESULT hr = D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device));
 	if (FAILED(hr)) {
 		throw std::exception("Failed to create D3D12 device with feature level 12_0");
 	}
-	if (check_features == true && dx12_device_check_device_features(device, desc.features) == false) {
+	if (check_features == true && dx12_device_check_device_features(i_device, desc.features) == false) {
 		throw std::exception("D3D12 device does not support required features");
 	}
 	// Release adapter and factory references we no longer need
@@ -91,10 +92,30 @@ std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 
 	printf("Using graphics device: %ls\n", ad.Description);
 
-	if (FAILED(hr) || !device) {
+	if (FAILED(hr) || !i_device) {
 		throw std::exception("Failed to create D3D12 device");
 	}
+	auto dx_device = std::make_unique<DX_DEVICE>(i_device);
+	if (desc.platform_desc_ptr != nullptr) {
 
-	return std::make_unique<DX_DEVICE>(device);
+		DX_DEVICE_DESC* device_desc = reinterpret_cast<DX_DEVICE_DESC*>(desc.platform_desc_ptr);
+		if (device_desc->resources_heap_desc.enable == true) {
+			printf("rs\n");
+			dx_device->set_resources_heap(std::move(dx12_heap_create(i_device, device_desc->resources_heap_desc)));
+		}
+		if (device_desc->dsv_heap_desc.enable == true) {
+			printf("dsv\n");
+			dx_device->set_dsv_heap(std::move(dx12_heap_create(i_device, device_desc->dsv_heap_desc)));
+		}
+		if (device_desc->rtv_heap_desc.enable == true) {
+			printf("rtv\n");
+			dx_device->set_rtv_heap(std::move(dx12_heap_create(i_device, device_desc->rtv_heap_desc)));
+		}
+		if (device_desc->samples_heap_desc.enable == true) {
+			// TODO
+		}
+	}
+
+	return dx_device;
 }
 

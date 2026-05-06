@@ -13,7 +13,7 @@
 #include "dx12_shaders_compiler.hpp"
 #include "dx12_render_pass.hpp"
 #include "dx12_pipeline_layout.hpp"
-#include "dx12_descriptor_pool.hpp"
+#include "dx12_heap.hpp"
 #include "dx12_buffers.hpp"
 
 void dx12_rhi_init() {
@@ -47,9 +47,9 @@ void dx12_rhi_init() {
 	rhi_buffers_gpu_write = &dx12_buffers_gpu_write;
 	rhi_buffers_cpu_write = &dx12_buffers_cpu_write;
 	rhi_buffers_cpu_read = &dx12_buffers_cpu_read;
+	rhi_command_buffer_draw_triangle_list = dx12_command_buffer_draw_triangle_list;
 
 	// pipeline layout
-	rhi_descriptor_pool_create = &dx12_descriptor_pool_create;
 	rhi_pipeline_layout_create = &dx12_pipeline_layout_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
 

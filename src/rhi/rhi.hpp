@@ -30,6 +30,7 @@ inline void (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE& command_queue, bool 
 inline std::unique_ptr<RHI_COMMAND_BUFFER>(*rhi_command_buffer_create)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
 inline void (*rhi_command_buffer_record)(RHI_COMMAND_BUFFER& command_buffer,
 	fptr_command_buffer_on_record callback);
+inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& vb, RHI_BUFFER* ib);
 
 //buffers
 inline std::unique_ptr<RHI_BUFFER>(*rhi_buffers_create_raw)(const RHI_BUFFER_DESC& desc);
@@ -63,7 +64,6 @@ inline std::unique_ptr<RHI_RT_PIPELINE>(*rhi_rt_pipeline_create)(const RHI_RT_PI
 inline std::unique_ptr<RHI_RASTER_PIPELINE>(*rhi_raster_pipeline_create)(const RHI_RASTER_PIPELINE_DESC& pipeline_desc);
 
 // pipeline layout
-inline std::unique_ptr<RHI_DESCRIPTOR_POOL>(*rhi_descriptor_pool_create)(const RHI_DESCRIPTOR_POOL_DESC& desc);
 inline std::unique_ptr<RHI_PIPELINE_LAYOUT>(*rhi_pipeline_layout_create)(const RHI_PIPELINE_LAYOUT_DESC& desc);
 inline std::unique_ptr<RHI_SHADER_BUFFER>(*rhi_shaders_compiler_compile)(const char* const file, const char* const entry, const char* const target);
 inline void (*rhi_shaders_compiler_set_folder)(const char* const folder);

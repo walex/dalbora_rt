@@ -5,9 +5,7 @@ void test_raster_triangle(std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(o
 	, std::function<void(RHI_RENDER_PASS& render_pass)> UNUSED_PARAM(on_draw)
 	, std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(on_end)) {
 
-	std::unique_ptr<RHI_DESCRIPTOR_POOL> shaders_descriptor_pool;
-	std::unique_ptr<RHI_DESCRIPTOR_POOL> depth_buffer_descriptor_pool;
-	std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_pool;
+	std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_layout;
 	std::unique_ptr<RHI_BUFFER> vertex_buffer;
 	std::unique_ptr<RHI_BUFFER> index_buffer;
 	std::unique_ptr<RHI_SHADER_BUFFER> vertex_shader;
@@ -45,22 +43,6 @@ void test_raster_triangle(std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(o
 		//if (on_init)
 		//	on_init(device, command_queue, command_buffer);
 
-		// create pool for shader descriptors
-		RHI_DESCRIPTOR_POOL_DESC dp_shaders_desc(device);
-		dp_shaders_desc.resource_type = resource_type_generic_rw_buffer;
-		dp_shaders_desc.device = std::reference_wrapper(device);
-		dp_shaders_desc.slot_count = 10;
-		dp_shaders_desc.shader_visibility = true;
-		shaders_descriptor_pool = rhi_descriptor_pool_create(dp_shaders_desc);
-
-		// create pool for depth stencil buffer only dx12, not used in other case ( returns null )
-		// FixME: hide when support another graphics api
-		RHI_DESCRIPTOR_POOL_DESC dp_depth_desc(device);
-		dp_depth_desc.resource_type = resource_type_depth_stencil_target;
-		dp_depth_desc.device = std::reference_wrapper(device);
-		dp_depth_desc.slot_count = 1;
-		depth_buffer_descriptor_pool = rhi_descriptor_pool_create(dp_depth_desc);
-
 		// create layout for pipeline 
 		RHI_PIPELINE_LAYOUT_DESC pl_desc(device);
 		pl_desc.shader_type = shader_type_undef;
@@ -80,7 +62,7 @@ void test_raster_triangle(std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(o
 		pl_desc.descriptors.push_back(s_desc);
 
 		// create pipeline layout
-		pipeline_pool = rhi_pipeline_layout_create(pl_desc);
+		pipeline_layout = rhi_pipeline_layout_create(pl_desc);
 
 		// compile shaders
 		rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
@@ -133,8 +115,6 @@ void test_raster_triangle(std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(o
 					db_desc.width = 800;
 					db_desc.height = 600;
 					db_desc.format = resource_format_d32_float_s8_uint;
-					// only used by dx12
-					db_desc.pool = depth_buffer_descriptor_pool.get();
 					depth_buffer = rhi_buffers_create_depth(db_desc);
 				
 					});
@@ -149,7 +129,7 @@ void test_raster_triangle(std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(o
 		// set depth_buffer in render pass
 		//rhi_render_pass_set_depth_buffer();
 		// create pipeline
-		RHI_RASTER_PIPELINE_DESC pipe_desc(device, *pipeline_pool, input_layouts, vertex_shader.get(), pixel_shader.get());
+		RHI_RASTER_PIPELINE_DESC pipe_desc(device, *pipeline_layout, input_layouts, vertex_shader.get(), pixel_shader.get());
 		pipe_desc.topology = primitive_topology_triangle;
 		pipe_desc.surface_format = resource_format_R8G8B8A8_norm;
 		raster_pipeline = rhi_raster_pipeline_create(pipe_desc);
@@ -162,10 +142,10 @@ void test_raster_triangle(std::function<void(RHI_DEVICE& device)> UNUSED_PARAM(o
 			rhi_render_pass_set_depth_buffer(render_pass, depth_buffer.get());
 
 		},
-		[&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass)) {
+		[&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_COMMAND_BUFFER& command_buffer) {
 
 			// on draw
-
+			rhi_command_buffer_draw_triangle_list(command_buffer, *vertex_buffer, index_buffer.get()); 
 
 		},
 		[&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass)) {

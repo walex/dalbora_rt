@@ -64,8 +64,10 @@ std::unique_ptr<RHI_BUFFER> dx12_buffers_create_raw(const RHI_BUFFER_DESC& desc)
 
 std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC& desc) {
 	
-	if (desc.pool == nullptr) {
-		throw std::exception("Memory pool required.");
+	DX_DEVICE& device_impl = reinterpret_cast<DX_DEVICE&>(desc.device.get());
+	DX_HEAP* heap_impl = device_impl.get_dsv_heap();
+	if (heap_impl == nullptr) {
+		throw std::exception("NO heap found for dsv.");
 	}
 	// overwrite desc to match must have depth buffer requeriments
 	RHI_DEPTH_BUFFER_DESC db_desc_mutable = const_cast<RHI_DEPTH_BUFFER_DESC&>(desc);
@@ -84,9 +86,9 @@ std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFF
 
 	ID3D12Resource* i_resource = static_cast<ID3D12Resource*>(*depth_buffer.get());
 	i_resource->AddRef();
-	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
-	ID3D12DescriptorHeap* i_heap = static_cast<ID3D12DescriptorHeap*>(*desc.pool);
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dsv_handle = dx12_helpers_get_descriptor_heap_handle(i_device, i_heap, desc.slot);
+	ID3D12Device* i_device = static_cast<ID3D12Device*>(device_impl);
+	ID3D12DescriptorHeap* i_heap = static_cast<ID3D12DescriptorHeap*>(*heap_impl);
+	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dsv_handle = dx12_helpers_get_descriptor_heap_handle(i_device, i_heap, 0);
 	i_device->CreateDepthStencilView(i_resource, &dsvDesc, *dsv_handle);
 	D3D12_RESOURCE_DESC r_desc = i_resource->GetDesc();
 	return std::make_unique<DX_DEPTH_BUFFER>(i_resource, *dsv_handle, static_cast<size_t>(r_desc.Width), static_cast<size_t>(r_desc.Height));

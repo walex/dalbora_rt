@@ -11,7 +11,6 @@ RHI_STRUCT(RHI_RT_PIPELINE, () {})
 RHI_STRUCT(RHI_FENCE, () {})
 RHI_STRUCT(RHI_SHADER_BUFFER, () {})
 RHI_STRUCT(RHI_PIPELINE_LAYOUT, () {})
-RHI_STRUCT(RHI_DESCRIPTOR_POOL, () {})
 RHI_STRUCT(RHI_COMMAND_BUFFER, () {})
 
 struct RHI_COMMAND_QUEUE {
@@ -70,29 +69,6 @@ struct RHI_TEXTURE_2D : public RHI_BUFFER {
 struct RHI_DEPTH_BUFFER : public RHI_BUFFER {
 
 	RHI_DEPTH_BUFFER(size_t length, size_t stride) : RHI_BUFFER(length, stride) {}
-};
-
-struct RHI_GEOMETRY {
-	RHI_GEOMETRY(RHI_RESOURCE& vb, RHI_RESOURCE* ib = nullptr)
-		: vbo(vb)
-		, ibo(ib) {
-	}
-	RHI_RESOURCE& get_vertex_buffer() {
-		return vbo;
-	}
-	std::observer_ptr<RHI_RESOURCE> get_index_buffer() {
-		return ibo;
-	}
-	void set_transforms(std::vector<Eigen::Matrix4f>&& t) {
-		transforms = std::move(t);
-	}
-	const std::vector<Eigen::Matrix4f>& get_transforms() {
-		return transforms;
-	}
-private:
-	std::reference_wrapper<RHI_RESOURCE> vbo;
-	std::observer_ptr<RHI_RESOURCE> ibo;
-	std::vector<Eigen::Matrix4f> transforms;
 };
 
 struct RHI_RENDER_PASS {

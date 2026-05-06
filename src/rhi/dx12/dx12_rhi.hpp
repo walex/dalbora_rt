@@ -5,6 +5,22 @@
 #include "dx12_api_params.hpp"
 #include "dx12_helpers.hpp"
 
+struct DX_HEAP_DESC {
+
+	size_t slot_count;
+	bool shader_visibility;
+	resource_type resource_type;
+	bool enable;
+};
+
+struct DX_DEVICE_DESC {
+	
+	DX_HEAP_DESC rtv_heap_desc;
+	DX_HEAP_DESC dsv_heap_desc;
+	DX_HEAP_DESC resources_heap_desc;
+	DX_HEAP_DESC samples_heap_desc;
+};
+
 template<typename T>
 struct DX_NATIVE_HANDLE: public Microsoft::WRL::ComPtr<T> {
 
@@ -22,28 +38,35 @@ using DX_RT_PIPELINE_HANDLE = DX_NATIVE_HANDLE<ID3D12StateObject>;
 using DX_FENCE_HANDLE = DX_NATIVE_HANDLE<ID3D12Fence>;
 using DX_SHADER_BUFFER_HANDLE = DX_NATIVE_HANDLE<IDxcBlob>;
 using DX_PIPELINE_LAYOUT_HANDLE = DX_NATIVE_HANDLE<ID3D12RootSignature>;
-using DX_DESCRIPTOR_POOL_HANDLE = DX_NATIVE_HANDLE<ID3D12DescriptorHeap>;
+using DX_HEAP_HANDLE = DX_NATIVE_HANDLE<ID3D12DescriptorHeap>;
 using DX_COMMAND_BUFFER_HANDLE = DX_NATIVE_HANDLE<ID3D12CommandList>;
 using DX_COMMAND_ALLOCATOR = DX_NATIVE_HANDLE<ID3D12CommandAllocator>; 
 
-//template<typename I>
-//inline std::unique_ptr<I, COMReleaseDeleter> com_query_interface(RHI_OBJECT& resource) {
-//	I* id3dres = nullptr;
-//	IUnknown* iunk =  resource.handle<RHI_TEMPLATE_HANDLE<IUnknown>>();
-//	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
-//	if (FAILED(hr)) {
-//		throw std::exception("Failed to get interface from RHI_OBJECT");
-//	}
-//	return std::unique_ptr<I, COMReleaseDeleter>(id3dres);
-//}
-
-#define HANDLE_CONSTRUCTOR(name, iface) name(iface* ptr) : name##_HANDLE(ptr) {}
+#define HANDLE_CONSTRUCTOR(name, iface, ...) name(iface* ptr) : name##_HANDLE(ptr) { __VA_ARGS__ }
 #define IMPLEMENT_GET_NATIVE_HANDLE(iface) RHI_VOID_PTR get_native_handle() override { return static_cast<iface*>(*this); }
+
+struct DX_HEAP : public DX_HEAP_HANDLE {
+
+	HANDLE_CONSTRUCTOR(DX_HEAP, ID3D12DescriptorHeap)
+};
 
 struct DX_DEVICE: public RHI_DEVICE, public DX_DEVICE_HANDLE {
 	
 	HANDLE_CONSTRUCTOR(DX_DEVICE, ID3D12Device)
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Device)
+	void set_rtv_heap(std::unique_ptr<DX_HEAP>&& heap) {m_rtv_heap = std::move(heap);}
+	DX_HEAP* get_rtv_heap() {return m_rtv_heap.get();}
+	void set_dsv_heap(std::unique_ptr<DX_HEAP>&& heap) {m_dsv_heap = std::move(heap);}
+	DX_HEAP* get_dsv_heap() { return m_dsv_heap.get(); }
+	void set_resources_heap(std::unique_ptr<DX_HEAP>&& heap) {m_resources_heap = std::move(heap);}
+	DX_HEAP* get_resources_heap() { return m_resources_heap.get(); }
+	void set_samples_heap(std::unique_ptr<DX_HEAP>&& heap) {m_samples_heap = std::move(heap);}
+	DX_HEAP* get_samples_heap() { return m_samples_heap.get(); }
+private:
+	std::unique_ptr<DX_HEAP> m_rtv_heap;
+	std::unique_ptr<DX_HEAP> m_dsv_heap;
+	std::unique_ptr<DX_HEAP> m_resources_heap;
+	std::unique_ptr<DX_HEAP> m_samples_heap;
 };
 
 struct DX_SWAP_CHAIN: public RHI_SWAP_CHAIN, public DX_SWAP_CHAIN_HANDLE {
@@ -80,12 +103,6 @@ struct DX_PIPELINE_LAYOUT : public RHI_PIPELINE_LAYOUT, public DX_PIPELINE_LAYOU
 
 	HANDLE_CONSTRUCTOR(DX_PIPELINE_LAYOUT, ID3D12RootSignature)
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12RootSignature)
-};
-
-struct DX_DESCRIPTOR_POOL: public RHI_DESCRIPTOR_POOL, public DX_DESCRIPTOR_POOL_HANDLE{
-	
-	HANDLE_CONSTRUCTOR(DX_DESCRIPTOR_POOL, ID3D12DescriptorHeap)
-	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12DescriptorHeap)
 };
 
 struct DX_RESOURCE: public DX_RESOURCE_HANDLE {

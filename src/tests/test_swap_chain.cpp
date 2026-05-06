@@ -1,6 +1,34 @@
 #include "test_api.hpp"
 #include "rhi.hpp"
+#include "dx12_rhi.hpp"
 
+DX_DEVICE_DESC configure_dx12_device_desc() {
+
+	DX_DEVICE_DESC dx_device_desc;
+
+	// rtv
+	DX_HEAP_DESC& rtv_heap_desc = dx_device_desc.rtv_heap_desc;
+	rtv_heap_desc.resource_type = resource_type_render_target;
+	rtv_heap_desc.slot_count = kImageViewsCount;
+	rtv_heap_desc.shader_visibility = false;
+	rtv_heap_desc.enable = true;
+
+	// create pool for cbv_srv_uav
+	DX_HEAP_DESC& resources_heap_desc = dx_device_desc.resources_heap_desc;
+	resources_heap_desc.resource_type = resource_type_generic_rw_buffer;
+	resources_heap_desc.slot_count = 10;
+	resources_heap_desc.shader_visibility = true;
+	resources_heap_desc.enable = true;
+
+	// dsv
+	DX_HEAP_DESC& dsv_heap_desc = dx_device_desc.dsv_heap_desc;
+	dsv_heap_desc.resource_type = resource_type_depth_stencil_target;
+	dsv_heap_desc.slot_count = 1;
+	dsv_heap_desc.shader_visibility = false;
+	dsv_heap_desc.enable = true;
+
+	return dx_device_desc;
+}
 
 void test_swap_chain(test_swap_chain_on_init on_init
 	, test_swap_chain_on_before_draw on_before_draw
@@ -13,8 +41,6 @@ void test_swap_chain(test_swap_chain_on_init on_init
 	std::unique_ptr<RHI_SWAP_CHAIN> swap_chain;
 	std::unique_ptr<RHI_COMMAND_BUFFER> command_buffer;
 	std::vector<std::unique_ptr<RHI_RENDER_PASS>> render_passes;
-	// memory pool for image views implemented only for dx12
-	std::unique_ptr<RHI_DESCRIPTOR_POOL> rt_descriptor_pool;
 	
 	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
 	callbacks.get()->on_init = ([&] (RHI_WINDOW& window) {
@@ -22,13 +48,11 @@ void test_swap_chain(test_swap_chain_on_init on_init
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = 0;
 		device_desc.features = device_features_raytracing;
+	//	if (rhi_api == DX12) {
+		DX_DEVICE_DESC dx_device_desc = configure_dx12_device_desc();
+		device_desc.platform_desc_ptr = &dx_device_desc;
+	//	}
 		device = rhi_create_device(device_desc);
-
-		// applies only to dx12
-		RHI_DESCRIPTOR_POOL_DESC dp_desc(*device);
-		dp_desc.resource_type = resource_type_render_target;
-		dp_desc.slot_count = kImageViewsCount;
-		rt_descriptor_pool = rhi_descriptor_pool_create(dp_desc);
 
 		RHI_COMMAND_QUEUE_DESC queue_desc(*device);
 		command_queue = rhi_command_queue_create_for_render(queue_desc);
@@ -47,7 +71,7 @@ void test_swap_chain(test_swap_chain_on_init on_init
 		for (int i = 0; i < kSwapChainBufferCount; i++) {
 
 			auto back_buffer = rhi_swap_chain_get_surface(*swap_chain, i);
-			RHI_RENDER_PASS_DESC render_pass_desc(*device, *rt_descriptor_pool, back_buffer);
+			RHI_RENDER_PASS_DESC render_pass_desc(*device, back_buffer);
 			render_pass_desc.buffer_index = i;
 			render_pass_desc.synchronized = true;
 			auto render_pass = rhi_render_pass_create(render_pass_desc);
@@ -76,7 +100,7 @@ void test_swap_chain(test_swap_chain_on_init on_init
 						rhi_render_pass_execute(*render_pass, *command_buffer, [&] {
 
 							if (on_draw)
-								on_draw(*render_pass);
+								on_draw(*render_pass, *command_buffer);
 
 						});
 				});

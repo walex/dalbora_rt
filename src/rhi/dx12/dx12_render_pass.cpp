@@ -4,12 +4,17 @@
 
 std::unique_ptr<RHI_RENDER_PASS> dx12_render_pass_create(const RHI_RENDER_PASS_DESC& desc) {
 
-	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
+	DX_DEVICE& device_impl = reinterpret_cast<DX_DEVICE&>(desc.device.get());
+	DX_HEAP* heap_impl = device_impl.get_rtv_heap();
+	if (heap_impl == nullptr) {
+		throw std::exception("NO heap found for rtv.");
+	}
+	ID3D12Device* i_device = static_cast<ID3D12Device*>(device_impl);
 	ID3D12Resource* i_buffer = static_cast<ID3D12Resource*>(*desc.render_target.get());
 	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
 	rtv_desc.Format = dx12_resource_format_type[(int)desc.format];
 	rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	ID3D12DescriptorHeap* i_heap = static_cast<ID3D12DescriptorHeap*>(desc.pool.get());
+	ID3D12DescriptorHeap* i_heap = static_cast<ID3D12DescriptorHeap*>(*heap_impl);
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandle = dx12_helpers_get_descriptor_heap_handle(i_device, i_heap, desc.buffer_index);
 	i_device->CreateRenderTargetView(i_buffer, &rtv_desc, *rtvHandle);
 	return std::make_unique<DX_RENDER_PASS>(

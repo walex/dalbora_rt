@@ -2,7 +2,7 @@
 #include "dx12_api_params.hpp"
 
 
-std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, int slot) {
+std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, size_t slot) {
 
     D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
     if (slot + 1 > (int)desc.NumDescriptors) {
@@ -55,7 +55,7 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> dx12_helpers_create_global_root_sign
 
 Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> 
 dx12_helpers_create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, 
-                                    int slot_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
+                                    size_t slot_count, D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
 
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = type;

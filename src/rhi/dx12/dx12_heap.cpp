@@ -1,8 +1,8 @@
-#include "dx12_descriptor_pool.hpp"
+#include "dx12_heap.hpp"
 #include "dx12_helpers.hpp"
 
 // bindless root signature
-std::unique_ptr<RHI_DESCRIPTOR_POOL> dx12_descriptor_pool_create(const RHI_DESCRIPTOR_POOL_DESC& desc) {
+std::unique_ptr<DX_HEAP> dx12_heap_create(ID3D12Device* i_device, const DX_HEAP_DESC& desc) {
 
 	D3D12_DESCRIPTOR_HEAP_TYPE type;
 	switch (desc.resource_type) {
@@ -27,7 +27,10 @@ std::unique_ptr<RHI_DESCRIPTOR_POOL> dx12_descriptor_pool_create(const RHI_DESCR
 			throw std::exception("Resource type not supported %d", (int)desc.resource_type);
 	}	
 
-	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
-	auto com_hrap_cbv_srv_uav = dx12_helpers_create_descriptor_heap(i_device, type, desc.slot_count, (desc.shader_visibility == true) ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
-	return std::make_unique<DX_DESCRIPTOR_POOL>(com_hrap_cbv_srv_uav.Detach());
+	auto com_hrap_cbv_srv_uav = dx12_helpers_create_descriptor_heap(i_device, type,
+		desc.slot_count,
+		(desc.shader_visibility == true)
+		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
+		: D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+	return std::make_unique<DX_HEAP>(com_hrap_cbv_srv_uav.Detach());
 }

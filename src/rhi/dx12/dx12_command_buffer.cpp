@@ -40,3 +40,26 @@ void dx12_command_buffer_record(RHI_COMMAND_BUFFER& command_buffer,
 
 	i_cmd_list->Close();
 }
+
+void dx12_command_buffer_draw_triangle_list(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& vb, 
+											RHI_BUFFER* ib) {
+
+	ID3D12Resource* i_vb = static_cast<ID3D12Resource*>(vb);
+	size_t vertex_length = vb.get_length();
+	size_t vertex_stride = vb.get_stride();
+	D3D12_VERTEX_BUFFER_VIEW vb_view;
+	vb_view.BufferLocation = i_vb->GetGPUVirtualAddress();
+	vb_view.SizeInBytes = vertex_length;
+	vb_view.StrideInBytes = vertex_stride;
+	ID3D12GraphicsCommandList* command_buffer_impl = reinterpret_cast<ID3D12GraphicsCommandList*>(static_cast<ID3D12CommandList*>(command_buffer));
+	command_buffer_impl->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	if (ib != nullptr) {
+		D3D12_INDEX_BUFFER_VIEW ib_view;
+		ID3D12Resource* i_ib = static_cast<ID3D12Resource*>(*ib);
+		ib_view.BufferLocation = i_ib->GetGPUVirtualAddress();
+		ib_view.SizeInBytes = ib->get_length();
+		ib_view.Format = dx12_resource_format_type[(int)ib->get_format()];
+		command_buffer_impl->IASetIndexBuffer(&ib_view);
+	}
+	command_buffer_impl->DrawInstanced(vertex_length / vertex_stride, 1, 0, 0);
+}

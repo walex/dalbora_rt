@@ -5,7 +5,7 @@
 
 using test_swap_chain_on_init = std::function<void(RHI_DEVICE& device, RHI_COMMAND_QUEUE& command_queue, RHI_COMMAND_BUFFER& command_buffer)>;
 using test_swap_chain_on_before_draw = std::function<void(RHI_RENDER_PASS& render_pass)>;
-using test_swap_chain_on_draw = std::function<void(RHI_RENDER_PASS& render_pass)>;
+using test_swap_chain_on_draw = std::function<void(RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer)>;
 using test_swap_chain_on_after_draw = std::function<void(RHI_RENDER_PASS& render_pass)>;
 using test_swap_chain_on_end = std::function<void(RHI_DEVICE& device)>;
 

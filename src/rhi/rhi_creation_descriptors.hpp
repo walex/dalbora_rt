@@ -3,13 +3,17 @@
 
 #include "rhi_types.hpp"
 
+struct RHI_PLATFORM_DESC {
+	RHI_VOID_PTR platform_desc_ptr = nullptr;
+};
+
 // Creation params
-struct RHI_DEVICE_DESC {
+struct RHI_DEVICE_DESC: public RHI_PLATFORM_DESC {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
 };
 
-struct RHI_BUFFER_DESC {
+struct RHI_BUFFER_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_BUFFER_DESC(RHI_DEVICE& dev)
 		: device(dev)
@@ -32,15 +36,10 @@ struct RHI_BUFFER_DESC {
 
 struct RHI_DEPTH_BUFFER_DESC : RHI_BUFFER_DESC {
 
-	RHI_DEPTH_BUFFER_DESC(RHI_DEVICE& device, RHI_DESCRIPTOR_POOL* memory_pool = nullptr)
+	RHI_DEPTH_BUFFER_DESC(RHI_DEVICE& device)
 		: RHI_BUFFER_DESC(device)
-		, pool(memory_pool)
-		, slot(0)
 	{
 	}
-
-	RHI_DESCRIPTOR_POOL* pool;
-	int slot;
 };
 
 struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {
@@ -61,7 +60,7 @@ struct RHI_INDEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 	size_t count;
 };
 
-struct RHI_WINDOW_DESC {
+struct RHI_WINDOW_DESC: public RHI_PLATFORM_DESC {
 
 	char title[_MAX_FNAME];
 	size_t width;
@@ -70,7 +69,7 @@ struct RHI_WINDOW_DESC {
 	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks;
 };
 
-struct RHI_COMMAND_QUEUE_DESC {
+struct RHI_COMMAND_QUEUE_DESC: public RHI_PLATFORM_DESC {
 	RHI_COMMAND_QUEUE_DESC(RHI_DEVICE& device)
 		: device(device) {
 	}
@@ -78,7 +77,7 @@ struct RHI_COMMAND_QUEUE_DESC {
 	std::reference_wrapper<RHI_DEVICE> device;
 };
 
-struct RHI_SWAP_CHAIN_DESC {
+struct RHI_SWAP_CHAIN_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_SWAP_CHAIN_DESC(RHI_DEVICE& device, RHI_COMMAND_QUEUE& command_queue, RHI_WINDOW& wnd)
 		: device(device)
@@ -101,7 +100,7 @@ struct RHI_SWAP_CHAIN_DESC {
 	size_t buffer_count;
 };
 
-struct RHI_COMMAND_BUFFER_DESC {
+struct RHI_COMMAND_BUFFER_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_COMMAND_BUFFER_DESC(RHI_DEVICE& device, RHI_COMMAND_QUEUE& command_queue)
 		: device(device)
@@ -112,14 +111,18 @@ struct RHI_COMMAND_BUFFER_DESC {
 	std::reference_wrapper<RHI_COMMAND_QUEUE> command_queue;
 };
 
-struct RHI_INPUT_LAYOUT_DESC {
+struct RHI_INPUT_LAYOUT_DESC: public RHI_PLATFORM_DESC {
 
+	RHI_INPUT_LAYOUT_DESC(const std::string& name, resource_format format, unsigned int offset)
+		: name(name)
+		, format(format)
+		, offset(offset) { }
 	std::string name;
 	resource_format format;
 	unsigned int offset;
 };
 
-struct RHI_RASTER_PIPELINE_DESC {
+struct RHI_RASTER_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_RASTER_PIPELINE_DESC(RHI_DEVICE& dev
 		, RHI_PIPELINE_LAYOUT& pipeline_layout
@@ -156,7 +159,7 @@ struct RHI_RASTER_PIPELINE_DESC {
 	resource_format surface_format;
 };
 
-struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC {
+struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_MESH_SHADER_RASTER_PIPELINE_DESC(RHI_DEVICE& dev
 		, RHI_SHADER_BUFFER* ms
@@ -174,7 +177,7 @@ struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC {
 	primitive_topology topology;
 };
 
-struct RHI_RT_PIPELINE_DESC {
+struct RHI_RT_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_RT_PIPELINE_DESC(RHI_DEVICE& dev)
 		: device(dev) {
@@ -182,29 +185,14 @@ struct RHI_RT_PIPELINE_DESC {
 	std::reference_wrapper<RHI_DEVICE> device;
 };
 
-struct RHI_DESCRIPTOR_POOL_DESC {
-
-	RHI_DESCRIPTOR_POOL_DESC(RHI_DEVICE& dev)
-		: device(dev)
-		, slot_count(1)
-		, shader_visibility(false) {
-	}
-	std::reference_wrapper<RHI_DEVICE> device;
-
-	int slot_count;
-	bool shader_visibility;
-	resource_type resource_type;
-
-};
-
-struct RHI_DESCRIPTOR_DESC {
+struct RHI_DESCRIPTOR_DESC: public RHI_PLATFORM_DESC {
 
 	resource_type resource_type;
 	int pool_range_start;
 	int pool_range_count;
 };
 
-struct RHI_PIPELINE_LAYOUT_DESC {
+struct RHI_PIPELINE_LAYOUT_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_PIPELINE_LAYOUT_DESC(RHI_DEVICE& dev)
 		: device(dev) {
@@ -215,7 +203,7 @@ struct RHI_PIPELINE_LAYOUT_DESC {
 	raster_pipeline_shader_type shader_type;
 };
 
-struct RHI_TEXTURE_2D_DESC {
+struct RHI_TEXTURE_2D_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_TEXTURE_2D_DESC(RHI_DEVICE& dev)
 		: device(dev)
@@ -229,7 +217,7 @@ struct RHI_TEXTURE_2D_DESC {
 	resource_format format;
 };
 
-struct RHI_FENCE_DESC {
+struct RHI_FENCE_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_FENCE_DESC(RHI_DEVICE& dev)
 		: device(dev)
@@ -241,10 +229,10 @@ struct RHI_FENCE_DESC {
 	int initial_value;
 };
 
-struct RHI_RT_BVH_DESC {
+struct RHI_RT_BVH_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_RT_BVH_DESC(RHI_DEVICE& dev, RHI_COMMAND_QUEUE& cmd_queue,
-		RHI_COMMAND_BUFFER& cmd_buffer, RHI_GEOMETRY& geo_buffer)
+		RHI_COMMAND_BUFFER& cmd_buffer, RHI_BUFFER& geo_buffer)
 		: device(dev)
 		, command_queue(cmd_queue)
 		, command_buffer(cmd_buffer)
@@ -253,15 +241,13 @@ struct RHI_RT_BVH_DESC {
 	std::reference_wrapper<RHI_DEVICE> device;
 	std::reference_wrapper<RHI_COMMAND_QUEUE> command_queue;
 	std::reference_wrapper<RHI_COMMAND_BUFFER> command_buffer;
-	std::reference_wrapper<RHI_GEOMETRY> geometry_buffer;
+	std::reference_wrapper<RHI_BUFFER> geometry_buffer;
 };
 
-struct RHI_RENDER_PASS_DESC {
+struct RHI_RENDER_PASS_DESC: public RHI_PLATFORM_DESC {
 
-	RHI_RENDER_PASS_DESC(RHI_DEVICE& dev, RHI_DESCRIPTOR_POOL& memory_pool
-		, std::shared_ptr<RHI_TEXTURE_2D> buffer)
-		: device(dev)
-		, pool(memory_pool)
+	RHI_RENDER_PASS_DESC(RHI_DEVICE& device, std::shared_ptr<RHI_TEXTURE_2D> buffer)
+		: device(device)
 		, render_target(buffer)
 		, format(resource_format_none)
 		, buffer_index(-1)
@@ -269,7 +255,6 @@ struct RHI_RENDER_PASS_DESC {
 	}
 	std::shared_ptr<RHI_TEXTURE_2D> render_target;
 	std::reference_wrapper<RHI_DEVICE> device;
-	std::reference_wrapper<RHI_DESCRIPTOR_POOL> pool;
 	resource_format format;
 	int buffer_index;
 	bool synchronized;
