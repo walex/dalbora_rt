@@ -58,7 +58,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 	return chosenAdapter;
 }
 
-std::unique_ptr<RHI_OBJECT> dx12_device_create(const RHI_DEVICE_DESC& desc) {
+std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 
 	// Pick the best hardware adapter that supports D3D12
 	IDXGIAdapter1* chosenAdapter = nullptr;
@@ -95,9 +95,6 @@ std::unique_ptr<RHI_OBJECT> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 		throw std::exception("Failed to create D3D12 device");
 	}
 
-	// create heaps for this device
-	dx12_create_RTV_heap_descriptors(device, kDeviceMaxRTVHeapDescriptors);
-
-	return std::make_unique<RHI_OBJECT>(new DX_DEVICE_HANDLE(device));
+	return std::make_unique<DX_DEVICE>(device);
 }
 

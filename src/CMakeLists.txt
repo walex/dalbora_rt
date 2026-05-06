@@ -35,7 +35,8 @@ if (MSVC)
 	
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4 /DDEBUG /EHsc")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /W4 /EHsc")		
-	add_compile_options(/MP)
+	add_compile_options(/MP) # multi process compilation
+	add_compile_options(/Zc:__cplusplus) # get C++ version
 endif (MSVC)
 
 add_subdirectory(./core)

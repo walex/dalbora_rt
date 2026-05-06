@@ -17,7 +17,7 @@ void test_graphics_api() {
 	auto dev = rhi_create_device(device_desc);
 
 	RHI_COMMAND_QUEUE_DESC queue_desc;
-	queue_desc.device = dev.get();
+	queue_desc.device = *dev;
 	auto queue = rhi_command_queue_create_for_render(queue_desc);
 
 	RHI_SWAP_CHAIN_DESC swap_chain_desc;
@@ -25,10 +25,10 @@ void test_graphics_api() {
 	swap_chain_desc.height = 600;
 	swap_chain_desc.allow_tearing = false;
 	swap_chain_desc.buffer_count = 2;
-	swap_chain_desc.color_format = resource_format_R8G8B8A8;
-	swap_chain_desc.device = dev.get();
-	swap_chain_desc.command_queue = queue.get();
-	swap_chain_desc.window = window.get();
+	swap_chain_desc.color_format = resource_format_normalized_R8G8B8A8;
+	swap_chain_desc.device = *dev;
+	swap_chain_desc.command_queue = *queue;
+	swap_chain_desc.window = *window;
 	auto swap_chain = rhi_create_swap_chain(swap_chain_desc);
 
 	rhi_end();

@@ -1,8 +1,9 @@
 #include "dx12_rt_pipeline.hpp"
-#include "dx12_shaders.hpp"
+#include "dx12_shaders_compiler.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& desc) {
+std::unique_ptr<RHI_RT_PIPELINE> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& desc) {
 
+	/*
 	auto device = com_query_interface<ID3D12Device5>(desc.device());
 
 	D3D12_FEATURE_DATA_SHADER_MODEL SM;
@@ -17,8 +18,8 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& 
 	auto rootSignature = dx12_helpers_create_global_root_signature(device.get());
 
 	// get DXIL library
-	auto dxilLib_h = dx12_shaders_compile("neural_pbr.hlsl", "", "lib_6_9");
-	IDxcBlob* dxilLib = dxilLib_h->handle<DX_SHADER_HANDLE>();
+	auto dxilLib_h = dx12_shaders_compiler_compile("neural_pbr.hlsl", "", "lib_6_9");
+	IDxcBlob* dxilLib = dxilLib_h->handle<DX_SHADER_BUFFER_HANDLE>();
 	
 	// export shaders
 	D3D12_EXPORT_DESC exports[3] = {};
@@ -109,4 +110,7 @@ std::unique_ptr<RHI_OBJECT> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& 
 	}
 
 	return std::make_unique<RHI_OBJECT>(new DX_RT_PIPELINE_HANDLE(rtStateObject));
+	*/
+
+	return nullptr;
 }

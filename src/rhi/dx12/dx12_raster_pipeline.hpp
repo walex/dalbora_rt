@@ -3,6 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC& pipeline_desc);
+std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC& pipeline_desc);
 
 #endif

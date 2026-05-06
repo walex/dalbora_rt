@@ -1,0 +1,99 @@
+#include "dx12_swap_chain.hpp"
+#include "dx12_factory.hpp"
+
+std::unique_ptr<RHI_OBJECT> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& desc) {
+
+	ID3D12Device* device = desc.device().handle<DX_DEVICE_HANDLE>();
+	ID3D12CommandQueue* commandQueue = desc.command_queue().handle<DX_COMMAND_QUEUE_HANDLE>();
+	IDXGIFactory5* factory = dx12_factory_get();
+	HWND hwnd = desc.window().handle<RHI_WINDOW_HANDLE<HWND>>();
+	if (!device || !commandQueue || !factory) {
+		throw std::exception("Invalid device/queue/factory for swapchain creation");
+	}
+
+	// Extract parameters from desc with sensible defaults if fields are missing
+	UINT width = (UINT)((desc.width > 0) ? desc.width : 800);
+	UINT height = (UINT)((desc.height > 0) ? desc.height : 600);
+	UINT bufferCount = (UINT)((desc.buffer_count > 0) ? desc.buffer_count : 2);
+	DXGI_FORMAT format = (desc.color_format != resource_format_none)
+		?  dx12_resource_format_type[(int)desc.color_format]
+		: DXGI_FORMAT_R8G8B8A8_UNORM;
+	BOOL allowTearing = FALSE;
+
+	// If tearing support requested/available, attempt to enable (best-effort)
+	{
+		BOOL tearSupported = FALSE;
+		auto hrTear = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearSupported, sizeof(tearSupported));
+		if (SUCCEEDED(hrTear) && tearSupported) {
+			allowTearing = desc.allow_tearing ? TRUE : FALSE;
+		}
+	}
+
+	DXGI_SWAP_CHAIN_DESC1 scDesc = {};
+	scDesc.Width = width;
+	scDesc.Height = height;
+	scDesc.Format = format;
+	scDesc.Stereo = FALSE;
+	scDesc.SampleDesc.Count = 1;
+	scDesc.SampleDesc.Quality = 0;
+	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	scDesc.BufferCount = bufferCount;
+	scDesc.Scaling = DXGI_SCALING_STRETCH;
+	scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	scDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+	scDesc.Flags = allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
+	// Create swap chain
+	IDXGISwapChain1* swapChain1 = nullptr;
+	HRESULT hr = factory->CreateSwapChainForHwnd(
+		commandQueue,
+		hwnd,
+		&scDesc,
+		nullptr, // fullscreen desc
+		nullptr, // restrict to output
+		&swapChain1
+	);
+	if (FAILED(hr) || !swapChain1) {
+		if (swapChain1)
+			swapChain1->Release();
+		throw std::exception("Failed to create DXGI swap chain");
+	}
+
+	// Query for IDXGISwapChain3
+	IDXGISwapChain3* swapChain3 = nullptr;
+	hr = swapChain1->QueryInterface(IID_PPV_ARGS(&swapChain3));
+	swapChain1->Release();
+	if (FAILED(hr) || !swapChain3) {
+		if (swapChain3)
+			swapChain3->Release();
+		throw std::exception("Failed to acquire IDXGISwapChain3");
+	}
+	return std::make_unique<RHI_OBJECT>(new DX_SWAP_CHAIN_HANDLE(swapChain3));
+}
+
+void dx12_swap_chain_present(RHI_OBJECT& swap_chain) {
+
+	IDXGISwapChain3* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
+	h_swap_chain->Present(1, 0);
+}
+
+std::unique_ptr<RHI_OBJECT> dx12_swap_chain_get_surface(RHI_OBJECT& swap_chain, int surface_index) {
+
+	ID3D12Resource* surface;
+	IDXGISwapChain3* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
+	if (surface_index < 0)
+		surface_index = (int)h_swap_chain->GetCurrentBackBufferIndex();
+	if (FAILED(h_swap_chain->GetBuffer(surface_index, IID_PPV_ARGS(&surface)))) {
+		throw std::exception("Error getting surface");
+	}
+	//std::string instance_name = "back buffer";
+	//instance_name += std::to_string(surface_index);
+	//return std::make_unique<RHI_OBJECT>(new DX_RESOURCE_HANDLE_DEBUG(surface, instance_name));
+	return std::make_unique<RHI_OBJECT>(new DX_RESOURCE_HANDLE(surface));
+}
+
+unsigned int dx12_swap_chain_get_current_buffer_id(RHI_OBJECT& swap_chain) {
+
+	IDXGISwapChain3* h_swap_chain = swap_chain.handle<DX_SWAP_CHAIN_HANDLE>();
+	return (unsigned int)h_swap_chain->GetCurrentBackBufferIndex();
+}

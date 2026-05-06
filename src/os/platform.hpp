@@ -102,12 +102,6 @@
 
 #elif defined(_MSC_VER)
 
-	#if _MSC_VER < 1900
-
-		#error "Please compile with Microsoft Visual Studio 2015 or higher" 
-
-	#endif
-
 	#if defined(WINDOWS_PLATFORM)
 		
 		#define NOMINMAX

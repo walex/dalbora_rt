@@ -1,0 +1,29 @@
+#ifndef __std_observer_ptr__
+#define __std_observer_ptr__
+
+namespace std {
+
+template <typename T>
+class observer_ptr {
+public:
+    using element_type = T;
+
+    constexpr observer_ptr() noexcept : ptr(nullptr) {}
+    constexpr observer_ptr(std::nullptr_t) noexcept : ptr(nullptr) {}
+    explicit constexpr observer_ptr(T* p) noexcept : ptr(p) {}
+
+    constexpr T* get() const noexcept { return ptr; }
+    constexpr T& operator*() const { return *ptr; }
+    constexpr T* operator->() const noexcept { return ptr; }
+
+    constexpr explicit operator bool() const noexcept {
+        return ptr != nullptr;
+    }
+
+private:
+    T* ptr;
+};
+
+};
+
+#endif

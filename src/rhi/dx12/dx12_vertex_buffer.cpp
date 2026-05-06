@@ -1,24 +1,15 @@
 #include "dx12_vertex_buffer.hpp"
 #include "dx12_buffers.hpp"
-#include "dx12_command_buffer.hpp"
-#include "dx12_resource_state.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_vertex_buffer_create(const RHI_VERTEX_BUFFER_DESC& vb_desc) {
+std::unique_ptr<RHI_BUFFER> dx12_vertex_buffer_create(const RHI_VERTEX_BUFFER_DESC& desc) {
 
-    // overwrite the size in the buffer desc to match the index buffer size just in case
-    RHI_VERTEX_BUFFER_DESC& vb_desc_mutable = const_cast<RHI_VERTEX_BUFFER_DESC&>(vb_desc);
-    vb_desc_mutable.size = vb_desc.stride * vb_desc.count;
+    // overwrite desc to match must have vertex buffer requeriments
+    RHI_VERTEX_BUFFER_DESC vb_desc_mutable = const_cast<RHI_VERTEX_BUFFER_DESC&>(desc);
+    vb_desc_mutable.width = desc.stride * desc.count;
+    vb_desc_mutable.height = 1;
     vb_desc_mutable.memory_type = buffer_memory_type_gpu_only;
     vb_desc_mutable.initial_state = resource_state_constant_buffer;
-    return dx12_buffers_create(vb_desc);
+    vb_desc_mutable.type = buffer_type_raw;
+    return dx12_buffers_create_raw(vb_desc_mutable);
 }
 
-void dx12_vertex_buffer_upload(RHI_TRANSFER_BUFFER_DESC& desc) {
-
-    dx12_buffers_upload(desc);
-}
-
-void dx12_vertex_buffer_download(RHI_TRANSFER_BUFFER_DESC& desc) {
-
-    dx12_buffers_download_synchronized(desc);
-}

@@ -3,5 +3,5 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_OBJECT> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC& tex_desc);
+std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC& tex_desc);
 #endif

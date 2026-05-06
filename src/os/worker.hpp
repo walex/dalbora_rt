@@ -17,7 +17,7 @@ public:
 protected:
 	virtual void onStartWorker();
 	virtual void onStopWorker() {}
-	const WorkerParams& getParameters() { return *mParameters.get(); }
+	const WorkerParams& getParameters() { return *mParameters; }
 private:
 	static void threadProc(Worker& instance);
 

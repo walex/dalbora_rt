@@ -7,10 +7,13 @@ int main(int UNUSED_PARAM(argc), char* UNUSED_PARAM(argv[])) {
 	rhi_init(device_type_dx12);
 
 	// simple platform windows creation
-	//test_create_window();
+	// test_create_window();
 
 	// swap chain
-	test_swap_chain();
+	// test_swap_chain();
+
+	// raster triangle
+	test_raster_triangle();
 
 	// end rhi
 	rhi_end();

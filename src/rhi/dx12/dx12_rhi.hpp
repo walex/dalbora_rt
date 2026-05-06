@@ -2,38 +2,179 @@
 #define __dx12_rhi_hpp__
 
 #include "rhi.hpp"
-#include "dx12_api_params.h"
+#include "dx12_api_params.hpp"
 #include "dx12_helpers.hpp"
 
-struct ID3D12Device;
-struct COMReleaseDeleter { 
-	void operator()(IUnknown* p) const { 
-		SAFE_RELEASE2(p); 
-		printf("com object %IX released!\n", (__int64)p);
-	}
+template<typename T>
+struct DX_NATIVE_HANDLE: public Microsoft::WRL::ComPtr<T> {
+
+	DX_NATIVE_HANDLE(T* ptr): Microsoft::WRL::ComPtr<T>(ptr) {}
+	virtual ~DX_NATIVE_HANDLE() = default;
+	operator T* () { return this->Get(); }
 };
 
-using DX_DEVICE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Device, COMReleaseDeleter>;
-using DX_COMMAND_QUEUE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12CommandQueue>;
-using DX_SWAP_CHAIN_HANDLE = RHI_TEMPLATE_HANDLE<IDXGISwapChain3, COMReleaseDeleter>;
-using DX_RESOURCE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Resource, COMReleaseDeleter>;
-using DX_COMMAND_BUFFER_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12GraphicsCommandList, COMReleaseDeleter>;
-using DX_RASTER_PIPELINE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12PipelineState, COMReleaseDeleter>;
-using DX_RT_PIPELINE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12StateObject, COMReleaseDeleter>;
-using DX_FENCE_HANDLE = RHI_TEMPLATE_HANDLE<ID3D12Fence, COMReleaseDeleter>;
-using DX_SHADER_HANDLE = RHI_TEMPLATE_HANDLE<IDxcBlob, COMReleaseDeleter>;
-using DX_WINDOW_HANDLE = RHI_TEMPLATE_HANDLE<HWND>;
+using DX_DEVICE_HANDLE = DX_NATIVE_HANDLE<ID3D12Device>;
+using DX_COMMAND_QUEUE_HANDLE = DX_NATIVE_HANDLE<ID3D12CommandQueue>;
+using DX_SWAP_CHAIN_HANDLE = DX_NATIVE_HANDLE<IDXGISwapChain3>;
+using DX_RESOURCE_HANDLE = DX_NATIVE_HANDLE<ID3D12Resource>;
+using DX_RASTER_PIPELINE_HANDLE = DX_NATIVE_HANDLE<ID3D12PipelineState>;
+using DX_RT_PIPELINE_HANDLE = DX_NATIVE_HANDLE<ID3D12StateObject>;
+using DX_FENCE_HANDLE = DX_NATIVE_HANDLE<ID3D12Fence>;
+using DX_SHADER_BUFFER_HANDLE = DX_NATIVE_HANDLE<IDxcBlob>;
+using DX_PIPELINE_LAYOUT_HANDLE = DX_NATIVE_HANDLE<ID3D12RootSignature>;
+using DX_DESCRIPTOR_POOL_HANDLE = DX_NATIVE_HANDLE<ID3D12DescriptorHeap>;
+using DX_COMMAND_BUFFER_HANDLE = DX_NATIVE_HANDLE<ID3D12CommandList>;
+using DX_COMMAND_ALLOCATOR = DX_NATIVE_HANDLE<ID3D12CommandAllocator>; 
 
-template<typename I>
-inline std::unique_ptr<I, COMReleaseDeleter> com_query_interface(RHI_OBJECT& resource) {
-	I* id3dres = nullptr;
-	IUnknown* iunk =  resource.handle<RHI_TEMPLATE_HANDLE<IUnknown>>();
-	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
-	if (FAILED(hr)) {
-		throw std::exception("Failed to get interface from RHI_OBJECT");
+//template<typename I>
+//inline std::unique_ptr<I, COMReleaseDeleter> com_query_interface(RHI_OBJECT& resource) {
+//	I* id3dres = nullptr;
+//	IUnknown* iunk =  resource.handle<RHI_TEMPLATE_HANDLE<IUnknown>>();
+//	HRESULT hr = iunk->QueryInterface(__uuidof(I), (void**)&id3dres);
+//	if (FAILED(hr)) {
+//		throw std::exception("Failed to get interface from RHI_OBJECT");
+//	}
+//	return std::unique_ptr<I, COMReleaseDeleter>(id3dres);
+//}
+
+#define HANDLE_CONSTRUCTOR(name, iface) name(iface* ptr) : name##_HANDLE(ptr) {}
+#define IMPLEMENT_GET_NATIVE_HANDLE(iface) RHI_VOID_PTR get_native_handle() override { return static_cast<iface*>(*this); }
+
+struct DX_DEVICE: public RHI_DEVICE, public DX_DEVICE_HANDLE {
+	
+	HANDLE_CONSTRUCTOR(DX_DEVICE, ID3D12Device)
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Device)
+};
+
+struct DX_SWAP_CHAIN: public RHI_SWAP_CHAIN, public DX_SWAP_CHAIN_HANDLE {
+
+	HANDLE_CONSTRUCTOR(DX_SWAP_CHAIN, IDXGISwapChain3)
+	IMPLEMENT_GET_NATIVE_HANDLE(IDXGISwapChain3)
+};
+
+struct DX_RASTER_PIPELINE: public RHI_RASTER_PIPELINE, public DX_RASTER_PIPELINE_HANDLE{
+	
+	HANDLE_CONSTRUCTOR(DX_RASTER_PIPELINE, ID3D12PipelineState)
+	IMPLEMENT_GET_NATIVE_HANDLE(IDXGISwapChain3)
+};
+
+struct DX_RT_PIPELINE : public RHI_RT_PIPELINE, public DX_RT_PIPELINE_HANDLE {
+
+	HANDLE_CONSTRUCTOR(DX_RT_PIPELINE, ID3D12StateObject)
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12StateObject)
+};
+
+struct DX_FENCE: public RHI_FENCE, public DX_FENCE_HANDLE{
+
+	HANDLE_CONSTRUCTOR(DX_FENCE, ID3D12Fence)
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Fence)
+};
+
+struct DX_SHADER_BUFFER: public RHI_SHADER_BUFFER, public DX_SHADER_BUFFER_HANDLE{
+
+	HANDLE_CONSTRUCTOR(DX_SHADER_BUFFER, IDxcBlob)
+	IMPLEMENT_GET_NATIVE_HANDLE(IDxcBlob)
+};
+
+struct DX_PIPELINE_LAYOUT : public RHI_PIPELINE_LAYOUT, public DX_PIPELINE_LAYOUT_HANDLE {
+
+	HANDLE_CONSTRUCTOR(DX_PIPELINE_LAYOUT, ID3D12RootSignature)
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12RootSignature)
+};
+
+struct DX_DESCRIPTOR_POOL: public RHI_DESCRIPTOR_POOL, public DX_DESCRIPTOR_POOL_HANDLE{
+	
+	HANDLE_CONSTRUCTOR(DX_DESCRIPTOR_POOL, ID3D12DescriptorHeap)
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12DescriptorHeap)
+};
+
+struct DX_RESOURCE: public DX_RESOURCE_HANDLE {
+
+	HANDLE_CONSTRUCTOR(DX_RESOURCE, ID3D12Resource)
+};
+
+struct DX_WINDOW: public RHI_WINDOW {
+
+	DX_WINDOW(HWND h, std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks):
+		RHI_WINDOW(static_cast<RHI_VOID_PTR>(h), callbacks) {}
+};
+
+struct DX_COMMAND_QUEUE : public RHI_COMMAND_QUEUE, public DX_COMMAND_QUEUE_HANDLE {
+	
+	DX_COMMAND_QUEUE(ID3D12CommandQueue* i_cmd_queue, std::unique_ptr<RHI_FENCE>&& fence)
+		: RHI_COMMAND_QUEUE(std::move(fence))
+		, DX_COMMAND_QUEUE_HANDLE(i_cmd_queue) {}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12CommandQueue)
+	operator ID3D12Fence* () { return static_cast<ID3D12Fence*>(this->get_fence()); }
+};
+
+struct DX_BUFFER: public RHI_BUFFER, public DX_RESOURCE {
+
+	DX_BUFFER(ID3D12Resource* resource, size_t length, size_t stride)
+		: DX_RESOURCE(resource)
+		, RHI_BUFFER(length, stride) {
 	}
-	return std::unique_ptr<I, COMReleaseDeleter>(id3dres);
-}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
+};
+
+struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_NATIVE_HANDLE<ID3D12CommandList> {
+
+	DX_COMMAND_BUFFER(ID3D12CommandList* command_buffer, ID3D12CommandAllocator* allocator)
+		: DX_NATIVE_HANDLE<ID3D12CommandList>(command_buffer)
+		, command_allocator(allocator) {
+	}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12CommandList)
+
+	operator ID3D12CommandAllocator* () {
+		return command_allocator.Get();
+	}
+	DX_COMMAND_ALLOCATOR command_allocator;
+};
+
+struct DX_RESOURCE_DESCRIPTOR : public DX_RESOURCE {
+
+	DX_RESOURCE_DESCRIPTOR(ID3D12Resource* render_target, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
+		: DX_RESOURCE(render_target)
+		, cpu_handle(cpu_handle) {
+
+	}
+	operator D3D12_CPU_DESCRIPTOR_HANDLE& () { 
+		return cpu_handle;
+	}
+private:
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
+};
+
+struct DX_DEPTH_BUFFER : public DX_RESOURCE_DESCRIPTOR, public RHI_DEPTH_BUFFER {
+
+	DX_DEPTH_BUFFER(ID3D12Resource* i_depth_buffer, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
+					size_t length, size_t stride) 
+		: DX_RESOURCE_DESCRIPTOR(i_depth_buffer, cpu_handle)
+		, RHI_DEPTH_BUFFER(length, stride) {}
+	
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
+};
+
+struct DX_TEXTURE_2D : public DX_RESOURCE, RHI_TEXTURE_2D {
+
+	DX_TEXTURE_2D(ID3D12Resource* i_texture,
+		size_t width, size_t height)
+		: DX_RESOURCE(i_texture)
+		, RHI_TEXTURE_2D(width, height) {
+	}
+
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
+};
+
+struct DX_RENDER_PASS : public DX_RESOURCE_DESCRIPTOR, public RHI_RENDER_PASS {
+
+	DX_RENDER_PASS(RHI_DEVICE& device, std::shared_ptr<RHI_TEXTURE_2D> render_target,
+					D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle )
+		: DX_RESOURCE_DESCRIPTOR(static_cast<ID3D12Resource*>(*render_target.get()), cpu_handle)
+		, RHI_RENDER_PASS(device, render_target) {
+	}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
+};
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, // primitive_topology_none
@@ -49,12 +190,36 @@ constexpr D3D12_COMMAND_LIST_TYPE dx12_queue_type[] = {
 	D3D12_COMMAND_LIST_TYPE_COPY // queue_type_copy
 };
 
+constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
+
+	D3D12_RESOURCE_DIMENSION_UNKNOWN,		// buffer_type_undef
+	D3D12_RESOURCE_DIMENSION_BUFFER,		// buffer_type_raw,
+	D3D12_RESOURCE_DIMENSION_TEXTURE1D,		// buffer_type_image_1d,
+	D3D12_RESOURCE_DIMENSION_TEXTURE2D,		// buffer_type_image_2d,
+	D3D12_RESOURCE_DIMENSION_TEXTURE3D		// buffer_type_image_3d
+};
+
+constexpr D3D12_RESOURCE_FLAGS buffer_resource_flags_type[] = {
+
+	D3D12_RESOURCE_FLAG_NONE,						// buffer_resource_flags_undef,
+	D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,		// buffer_resource_flags_rt,
+	D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,		// buffer_resource_flags_depth,
+	D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS		// buffer_resource_flags_uav,
+};
+
 constexpr DXGI_FORMAT dx12_resource_format_type[] = {
 	DXGI_FORMAT_UNKNOWN, // resource_format_none
 	DXGI_FORMAT_R16_UINT, // resource_format_uint16
 	DXGI_FORMAT_R32_UINT, // resource_format_uint32
-	DXGI_FORMAT_R8G8B8A8_UNORM, // color_format_R8G8B8A8
-	DXGI_FORMAT_R32G32B32_FLOAT // resource_format_R8G8B8A8_float
+	DXGI_FORMAT_R8G8B8A8_UNORM, // resource_format_R8G8B8A8
+	DXGI_FORMAT_R32_FLOAT, // resource_format_float
+	DXGI_FORMAT_R32G32_FLOAT, // resource_format_float2
+	DXGI_FORMAT_R32G32B32_FLOAT, // resource_format_float3
+	DXGI_FORMAT_R32G32B32A32_FLOAT, // resource_format_float4
+	DXGI_FORMAT_D32_FLOAT_S8X24_UINT, // resource_format_d32_float_s8_uint
+	DXGI_FORMAT_D24_UNORM_S8_UINT, // resource_format_d24_norm_s8_uint
+	DXGI_FORMAT_D32_FLOAT, // resource_format_32_float
+	DXGI_FORMAT_D16_UNORM // resource_format_d16_norm
 };
 
 constexpr D3D12_RESOURCE_STATES dx12_resource_state_type[] = {
