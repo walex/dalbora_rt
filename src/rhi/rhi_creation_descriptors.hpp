@@ -19,19 +19,18 @@ struct RHI_BUFFER_DESC: public RHI_PLATFORM_DESC {
 		: device(dev)
 		, width(0)
 		, height(0)
+		, stride(0)
 		, memory_type(buffer_memory_type_gpu_only)
-		, initial_state(resource_state_none)
+		, base_state(resource_state_none)
 		, format(resource_format_none)
-		, flags(buffer_resource_flags_none)
 		, type(buffer_type_raw) {
 	}
 	std::reference_wrapper<RHI_DEVICE> device;
-	size_t width, height;
+	size_t width, height, stride;
 	buffer_memory_type memory_type;
-	resource_state initial_state;
+	resource_state base_state;
 	resource_format format;
 	buffer_type type;
-	buffer_resource_flags flags;
 };
 
 struct RHI_DEPTH_BUFFER_DESC : RHI_BUFFER_DESC {
@@ -40,6 +39,7 @@ struct RHI_DEPTH_BUFFER_DESC : RHI_BUFFER_DESC {
 		: RHI_BUFFER_DESC(device)
 	{
 	}
+
 };
 
 struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {
@@ -47,7 +47,6 @@ struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 	RHI_VERTEX_BUFFER_DESC(RHI_DEVICE& device)
 		: RHI_BUFFER_DESC(device) {
 	}
-	size_t stride;
 	size_t count;
 };
 
@@ -56,7 +55,6 @@ struct RHI_INDEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 	RHI_INDEX_BUFFER_DESC(RHI_DEVICE& device)
 		: RHI_BUFFER_DESC(device) {
 	}
-	size_t stride;
 	size_t count;
 };
 
@@ -127,15 +125,15 @@ struct RHI_RASTER_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 	RHI_RASTER_PIPELINE_DESC(RHI_DEVICE& dev
 		, RHI_PIPELINE_LAYOUT& pipeline_layout
 		, std::vector<RHI_INPUT_LAYOUT_DESC>& input_layouts
-		, RHI_SHADER_BUFFER* vs = nullptr
-		, RHI_SHADER_BUFFER* ps = nullptr
-		, RHI_SHADER_BUFFER* gs = nullptr
-		, RHI_SHADER_BUFFER* hs = nullptr
-		, RHI_SHADER_BUFFER* ts = nullptr
-		, RHI_SHADER_BUFFER* ds = nullptr)
+		, RHI_COMPILED_SHADER_BUFFER* vs = nullptr
+		, RHI_COMPILED_SHADER_BUFFER* ps = nullptr
+		, RHI_COMPILED_SHADER_BUFFER* gs = nullptr
+		, RHI_COMPILED_SHADER_BUFFER* hs = nullptr
+		, RHI_COMPILED_SHADER_BUFFER* ts = nullptr
+		, RHI_COMPILED_SHADER_BUFFER* ds = nullptr)
 		: device(dev)
 		, layout(pipeline_layout)
-		, layouts(input_layouts)
+		, layouts_desc(input_layouts)
 		, vertex_shader(vs)
 		, pixel_shader(ps)
 		, geometry_shader(gs)
@@ -143,27 +141,29 @@ struct RHI_RASTER_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 		, tess_shader(ts)
 		, domain_shader(ds)
 		, topology(primitive_topology_none)
-		, surface_format(resource_format_R8G8B8A8_norm) {
+		, surface_format(resource_format_R8G8B8A8_norm)
+		, depth_buffer_format(resource_format_d24_norm_s8_uint){
 	}
-
+	
 	std::reference_wrapper<RHI_DEVICE> device;
 	std::reference_wrapper<RHI_PIPELINE_LAYOUT> layout;
-	std::vector<RHI_INPUT_LAYOUT_DESC> layouts;
-	std::observer_ptr<RHI_SHADER_BUFFER> vertex_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> pixel_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> geometry_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> hull_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> tess_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> domain_shader;
+	std::vector<RHI_INPUT_LAYOUT_DESC> layouts_desc;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> geometry_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> hull_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> tess_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> domain_shader;
 	primitive_topology topology;
 	resource_format surface_format;
+	resource_format depth_buffer_format;
 };
 
 struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 
 	RHI_MESH_SHADER_RASTER_PIPELINE_DESC(RHI_DEVICE& dev
-		, RHI_SHADER_BUFFER* ms
-		, RHI_SHADER_BUFFER* ass)
+		, RHI_COMPILED_SHADER_BUFFER* ms
+		, RHI_COMPILED_SHADER_BUFFER* ass)
 		: device(dev)
 		, mesh_shader(ms)
 		, as_shader(ass)
@@ -171,9 +171,9 @@ struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC: public RHI_PLATFORM_DESC {
 	}
 
 	std::reference_wrapper<RHI_DEVICE> device;
-	std::observer_ptr<RHI_SHADER_BUFFER> as_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> mesh_shader;
-	std::observer_ptr<RHI_SHADER_BUFFER> pixel_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> as_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> mesh_shader;
+	std::observer_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
 	primitive_topology topology;
 };
 
@@ -203,18 +203,10 @@ struct RHI_PIPELINE_LAYOUT_DESC: public RHI_PLATFORM_DESC {
 	raster_pipeline_shader_type shader_type;
 };
 
-struct RHI_TEXTURE_2D_DESC: public RHI_PLATFORM_DESC {
+struct RHI_TEXTURE_2D_DESC: public RHI_BUFFER_DESC {
 
 	RHI_TEXTURE_2D_DESC(RHI_DEVICE& dev)
-		: device(dev)
-		, width(0)
-		, height(0)
-		, format(resource_format_none) {
-	}
-	std::reference_wrapper<RHI_DEVICE> device;
-	size_t width;
-	size_t height;
-	resource_format format;
+		: RHI_BUFFER_DESC(dev) {}
 };
 
 struct RHI_FENCE_DESC: public RHI_PLATFORM_DESC {

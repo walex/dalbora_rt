@@ -1,27 +1,26 @@
 #include "test_api.hpp"
-#include "rhi.hpp"
 #include "dx12_rhi.hpp"
 
-DX_DEVICE_DESC configure_dx12_device_desc() {
+std::unique_ptr<DX_DEVICE_DESC> configure_dx12_device_desc() {
 
-	DX_DEVICE_DESC dx_device_desc;
+	std::unique_ptr<DX_DEVICE_DESC> dx_device_desc = std::make_unique<DX_DEVICE_DESC>();
 
 	// rtv
-	DX_HEAP_DESC& rtv_heap_desc = dx_device_desc.rtv_heap_desc;
+	DX_HEAP_DESC& rtv_heap_desc = dx_device_desc->rtv_heap_desc;
 	rtv_heap_desc.resource_type = resource_type_render_target;
 	rtv_heap_desc.slot_count = kImageViewsCount;
 	rtv_heap_desc.shader_visibility = false;
 	rtv_heap_desc.enable = true;
 
 	// create pool for cbv_srv_uav
-	DX_HEAP_DESC& resources_heap_desc = dx_device_desc.resources_heap_desc;
+	DX_HEAP_DESC& resources_heap_desc = dx_device_desc->resources_heap_desc;
 	resources_heap_desc.resource_type = resource_type_generic_rw_buffer;
 	resources_heap_desc.slot_count = 10;
 	resources_heap_desc.shader_visibility = true;
 	resources_heap_desc.enable = true;
 
 	// dsv
-	DX_HEAP_DESC& dsv_heap_desc = dx_device_desc.dsv_heap_desc;
+	DX_HEAP_DESC& dsv_heap_desc = dx_device_desc->dsv_heap_desc;
 	dsv_heap_desc.resource_type = resource_type_depth_stencil_target;
 	dsv_heap_desc.slot_count = 1;
 	dsv_heap_desc.shader_visibility = false;
@@ -48,17 +47,20 @@ void test_swap_chain(test_swap_chain_on_init on_init
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = 0;
 		device_desc.features = device_features_raytracing;
-	//	if (rhi_api == DX12) {
-		DX_DEVICE_DESC dx_device_desc = configure_dx12_device_desc();
-		device_desc.platform_desc_ptr = &dx_device_desc;
-	//	}
-		device = rhi_create_device(device_desc);
+		if (render_api == rhi_api_dx12) {
+			auto dx_device_desc = configure_dx12_device_desc();
+			device_desc.platform_desc_ptr = dx_device_desc.get();
+			device = rhi_create_device(device_desc);
+		}
+		else {
+			device = rhi_create_device(device_desc);
+		}		
 
 		RHI_COMMAND_QUEUE_DESC queue_desc(*device);
 		command_queue = rhi_command_queue_create_for_render(queue_desc);
 		
 		RHI_COMMAND_BUFFER_DESC command_buffer_desc(*device, *command_queue);
-		command_buffer = rhi_command_buffer_create(command_buffer_desc);
+		command_buffer = rhi_command_buffer_create_for_render(command_buffer_desc);
 
 		RHI_SWAP_CHAIN_DESC swap_chain_desc(*device, *command_queue, window);
 		swap_chain_desc.width = 800;

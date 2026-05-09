@@ -16,11 +16,10 @@ void test_graphics_api() {
 	device_desc.features = device_features_raytracing;
 	auto dev = rhi_create_device(device_desc);
 
-	RHI_COMMAND_QUEUE_DESC queue_desc;
-	queue_desc.device = *dev;
+	RHI_COMMAND_QUEUE_DESC queue_desc(*dev);
 	auto queue = rhi_command_queue_create_for_render(queue_desc);
 
-	RHI_SWAP_CHAIN_DESC swap_chain_desc;
+	RHI_SWAP_CHAIN_DESC swap_chain_desc(*dev);
 	swap_chain_desc.width = 800;
 	swap_chain_desc.height = 600;
 	swap_chain_desc.allow_tearing = false;

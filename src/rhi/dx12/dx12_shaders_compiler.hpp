@@ -4,7 +4,7 @@
 #include "dx12_rhi.hpp"
 
 void dx12_shaders_compiler_set_folder(const char* const folder);
-std::unique_ptr<RHI_SHADER_BUFFER> dx12_shaders_compiler_compile(const char* const file,
+std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> dx12_shaders_compiler_compile(const char* const file,
 	const char* const entry,
 	const char* const target);
 

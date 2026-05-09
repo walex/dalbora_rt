@@ -32,5 +32,6 @@ std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC
 	if (FAILED(hr) || !i_texture) {
 		throw std::exception("Failed to create D3D12 2D texture");
 	}
-	return std::make_unique<DX_TEXTURE_2D>(i_texture, desc.width, desc.height);
+	return std::make_unique<DX_TEXTURE_2D>(i_texture, desc.base_state, 
+		desc.format, desc.width, desc.height, desc.stride);
 }

@@ -27,7 +27,9 @@ inline std::unique_ptr<RHI_COMMAND_QUEUE>(*rhi_command_queue_create_for_copy)(co
 inline void (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE& command_queue, bool wait_completion, fptr_command_queue_on_execute callback);
 
 // command buffer
-inline std::unique_ptr<RHI_COMMAND_BUFFER>(*rhi_command_buffer_create)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
+inline std::unique_ptr<RHI_COMMAND_BUFFER>(*rhi_command_buffer_create_for_copy)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
+inline std::unique_ptr<RHI_COMMAND_BUFFER>(*rhi_command_buffer_create_for_compute)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
+inline std::unique_ptr<RHI_COMMAND_BUFFER>(*rhi_command_buffer_create_for_render)(const RHI_COMMAND_BUFFER_DESC& cb_desc);
 inline void (*rhi_command_buffer_record)(RHI_COMMAND_BUFFER& command_buffer,
 	fptr_command_buffer_on_record callback);
 inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& vb, RHI_BUFFER* ib);
@@ -37,20 +39,17 @@ inline std::unique_ptr<RHI_BUFFER>(*rhi_buffers_create_raw)(const RHI_BUFFER_DES
 inline std::unique_ptr<RHI_BUFFER>(*rhi_vertex_buffer_create)(const RHI_VERTEX_BUFFER_DESC& desc);
 inline std::unique_ptr<RHI_BUFFER>(*rhi_index_buffer_create)(const RHI_INDEX_BUFFER_DESC& desc);
 inline std::unique_ptr<RHI_DEPTH_BUFFER>(*rhi_buffers_create_depth)(const RHI_DEPTH_BUFFER_DESC& desc);
-inline void (*rhi_buffers_copy_buffer)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& src_buffer,
-	RHI_BUFFER& dest_buffer);
-inline void (*rhi_buffers_copy_buffer_region)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& src_buffer,
-	 	size_t offset_src, RHI_BUFFER& dest_buffer, size_t offset_dest,
-	 	size_t length);
-inline void (*rhi_buffers_gpu_write_region)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer,
+inline std::unique_ptr<RHI_CONSTANT_BUFFER>(*rhi_buffers_create_constant)(const RHI_BUFFER_DESC& desc);
+
+inline void (*rhi_buffers_gpu_upload_region)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer,
 	RHI_BUFFER& gpu_buffer, size_t offset_src, size_t offset_dest, size_t length);
-inline void (*rhi_buffers_gpu_write)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer, RHI_BUFFER& gpu_buffer);
-inline void (*rhi_buffers_gpu_read_region)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer,
+inline void (*rhi_buffers_gpu_upload)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer, RHI_BUFFER& gpu_buffer);
+inline void (*rhi_buffers_gpu_download_region)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer,
 	RHI_BUFFER& gpu_buffer, size_t offset_src, size_t offset_dest, size_t length);
-inline void (*rhi_buffers_gpu_read)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer, RHI_BUFFER& gpu_buffer);
-inline void (*rhi_buffers_cpu_write)(RHI_BUFFER& cpu_buffer, RHI_VOID_PTR data,
+inline void (*rhi_buffers_gpu_download)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer, RHI_BUFFER& gpu_buffer);
+inline void (*rhi_buffers_map_write)(RHI_BUFFER& cpu_buffer, RHI_VOID_PTR data,
 	 	size_t offset, size_t length);
-inline void (*rhi_buffers_cpu_read)(RHI_BUFFER& cpu_buffer, RHI_VOID_PTR& data,
+inline void (*rhi_buffers_map_read)(RHI_BUFFER& cpu_buffer, RHI_VOID_PTR& data,
 	size_t offset, size_t length);
 
 inline std::unique_ptr<RHI_TEXTURE_2D>(*rhi_texture_2d_create)(const RHI_TEXTURE_2D_DESC& tex_desc);
@@ -65,13 +64,11 @@ inline std::unique_ptr<RHI_RASTER_PIPELINE>(*rhi_raster_pipeline_create)(const R
 
 // pipeline layout
 inline std::unique_ptr<RHI_PIPELINE_LAYOUT>(*rhi_pipeline_layout_create)(const RHI_PIPELINE_LAYOUT_DESC& desc);
-inline std::unique_ptr<RHI_SHADER_BUFFER>(*rhi_shaders_compiler_compile)(const char* const file, const char* const entry, const char* const target);
+inline std::unique_ptr<RHI_COMPILED_SHADER_BUFFER>(*rhi_shaders_compiler_compile)(const char* const file, const char* const entry, const char* const target);
 inline void (*rhi_shaders_compiler_set_folder)(const char* const folder);
 
 // render pass api
 inline std::unique_ptr<RHI_RENDER_PASS>(*rhi_render_pass_create)(const RHI_RENDER_PASS_DESC& desc);
 inline void (*rhi_render_pass_execute)(RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer,
 			fptr_render_pass_on_execute);
-inline void (*rhi_render_pass_set_depth_buffer)(RHI_RENDER_PASS& render_pass, RHI_DEPTH_BUFFER* depth_buffer);
-
 #endif

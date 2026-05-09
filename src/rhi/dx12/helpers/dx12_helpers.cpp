@@ -59,7 +59,7 @@ dx12_helpers_create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_
 
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = type;
-    heapDesc.NumDescriptors = slot_count;
+    heapDesc.NumDescriptors = static_cast<UINT>(slot_count);
     heapDesc.Flags = flags;
     heapDesc.NodeMask = 0;
 

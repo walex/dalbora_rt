@@ -19,6 +19,10 @@ using fptr_render_pass_on_execute = std::function<void()>;
 #include "observer_ptr"
 #endif
 
+enum rhi_api {
+	rhi_api_dx12
+};
+
 enum device_type {
 	device_type_none = 0,
 	device_type_dx12
@@ -61,14 +65,6 @@ enum buffer_type {
 	buffer_type_image_3d = 4
 };
 
-enum buffer_resource_flags {
-
-	buffer_resource_flags_none = 0,
-	buffer_resource_flags_rt,
-	buffer_resource_flags_depth,
-	buffer_resource_flags_uav,
-};
-
 enum buffer_memory_type {
 	buffer_memory_type_default = 0,
 	buffer_memory_type_gpu_only = 0,
@@ -102,6 +98,8 @@ enum resource_state {
 	resource_state_present,
 	resource_state_rt_bvh,
 	resource_state_constant_buffer,
+	resource_state_vertex_buffer,
+	resource_state_index_buffer,
 	resource_state_generic_read
 };
 
@@ -120,6 +118,11 @@ enum raster_pipeline_shader_type {
 	shader_type_pixel = 5,
 	shader_type_amplification = 6,
 	shader_type_mesh = 7
+};
+
+enum pipeline_type {
+	pipeline_type_raster = 0,
+	pipeline_type_rt
 };
 
 constexpr __int64 device_features_none = 0x0;
@@ -145,11 +148,7 @@ operator T() { return static_cast<T>(this->get_native_handle()); } \
 protected: \
 virtual RHI_VOID_PTR get_native_handle() = 0; \
 name __VA_ARGS__ \
-public:
-
-#define RHI_STRUCT(name, ...) struct name { \
-	RHI_STRUCT_BASE_INFO(name, __VA_ARGS__) \
-}; 
+public: 
 
 
 #endif

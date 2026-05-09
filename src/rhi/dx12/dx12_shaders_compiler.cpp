@@ -6,7 +6,7 @@ void dx12_shaders_compiler_set_folder(const char* const folder) {
     g_shaders_folder = folder;
 }
 
-std::unique_ptr<RHI_SHADER_BUFFER> dx12_shaders_compiler_compile(const char* const file,
+std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> dx12_shaders_compiler_compile(const char* const file,
 	const char* const entry, 
 	const char* const target) {
 

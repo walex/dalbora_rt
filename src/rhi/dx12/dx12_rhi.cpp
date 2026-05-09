@@ -38,18 +38,20 @@ void dx12_rhi_init() {
 	rhi_command_queue_create_for_render = &dx12_command_queue_create_for_render;
 	rhi_command_queue_create_for_compute = &dx12_command_queue_create_for_compute;
 	rhi_command_queue_create_for_copy = &dx12_command_queue_create_for_copy;
-	rhi_command_queue_execute = &dx12_command_queue_exec;
+	rhi_command_queue_execute = &dx12_command_queue_execute;
 
 	// command buffer
-	rhi_command_buffer_create = &dx12_command_buffer_create;
+	rhi_command_buffer_create_for_copy = &dx12_command_buffer_create_for_copy;
+	rhi_command_buffer_create_for_compute = &dx12_command_buffer_create_for_compute;
+	rhi_command_buffer_create_for_render = &dx12_command_buffer_create_for_render;
 	rhi_command_buffer_record = &dx12_command_buffer_record;
-	rhi_buffers_gpu_write_region = &dx12_buffers_gpu_write_region;
-	rhi_buffers_gpu_write = &dx12_buffers_gpu_write;
-	rhi_buffers_cpu_write = &dx12_buffers_cpu_write;
-	rhi_buffers_cpu_read = &dx12_buffers_cpu_read;
+	rhi_buffers_gpu_upload_region = &dx12_buffers_gpu_upload_region;
+	rhi_buffers_gpu_upload = &dx12_buffers_gpu_upload;
+	rhi_buffers_map_write = &dx12_buffers_map_write;
+	rhi_buffers_map_read = &dx12_buffers_map_read;
 	rhi_command_buffer_draw_triangle_list = dx12_command_buffer_draw_triangle_list;
 
-	// pipeline layout
+	// pipeline
 	rhi_pipeline_layout_create = &dx12_pipeline_layout_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
 
@@ -58,14 +60,14 @@ void dx12_rhi_init() {
 	rhi_vertex_buffer_create = &dx12_vertex_buffer_create;
 	rhi_index_buffer_create = &dx12_index_buffer_create;
 	rhi_buffers_create_depth = &dx12_buffers_create_depth;
-	rhi_buffers_copy_buffer = &dx12_buffers_copy_buffer;
-	rhi_buffers_copy_buffer_region = &dx12_buffers_copy_buffer_region;
-	rhi_buffers_gpu_write_region = &dx12_buffers_gpu_write_region;
-	rhi_buffers_gpu_write = &dx12_buffers_gpu_write;
-	rhi_buffers_gpu_read_region = &dx12_buffers_gpu_read_region;
-	rhi_buffers_gpu_read = &dx12_buffers_gpu_read;
-	rhi_buffers_cpu_write = &dx12_buffers_cpu_write;
-	rhi_buffers_cpu_read = &dx12_buffers_cpu_read;
+	rhi_buffers_create_constant = &dx12_buffers_create_constant;
+
+	rhi_buffers_gpu_upload_region = &dx12_buffers_gpu_upload_region;
+	rhi_buffers_gpu_upload = &dx12_buffers_gpu_upload;
+	rhi_buffers_gpu_download_region = &dx12_buffers_gpu_download_region;
+	rhi_buffers_gpu_download = &dx12_buffers_gpu_download;
+	rhi_buffers_map_write = &dx12_buffers_map_write;
+	rhi_buffers_map_read = &dx12_buffers_map_read;
 
 	rhi_texture_2d_create = &dx12_texture_2d_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
@@ -76,7 +78,6 @@ void dx12_rhi_init() {
 	// render pass
 	rhi_render_pass_create = &dx12_render_pass_create;
 	rhi_render_pass_execute = &dx12_render_pass_execute;
-	rhi_render_pass_set_depth_buffer = &dx12_render_pass_set_depth_buffer;
 }
 
 void dx12_rhi_end() {

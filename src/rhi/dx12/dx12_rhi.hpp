@@ -21,6 +21,11 @@ struct DX_DEVICE_DESC {
 	DX_HEAP_DESC samples_heap_desc;
 };
 
+struct DX_BUFFER_DESC {
+	
+	size_t heap_slot;
+};
+
 template<typename T>
 struct DX_NATIVE_HANDLE: public Microsoft::WRL::ComPtr<T> {
 
@@ -45,7 +50,7 @@ using DX_COMMAND_ALLOCATOR = DX_NATIVE_HANDLE<ID3D12CommandAllocator>;
 #define HANDLE_CONSTRUCTOR(name, iface, ...) name(iface* ptr) : name##_HANDLE(ptr) { __VA_ARGS__ }
 #define IMPLEMENT_GET_NATIVE_HANDLE(iface) RHI_VOID_PTR get_native_handle() override { return static_cast<iface*>(*this); }
 
-struct DX_HEAP : public DX_HEAP_HANDLE {
+struct DX_HEAP: public DX_HEAP_HANDLE {
 
 	HANDLE_CONSTRUCTOR(DX_HEAP, ID3D12DescriptorHeap)
 };
@@ -77,11 +82,13 @@ struct DX_SWAP_CHAIN: public RHI_SWAP_CHAIN, public DX_SWAP_CHAIN_HANDLE {
 
 struct DX_RASTER_PIPELINE: public RHI_RASTER_PIPELINE, public DX_RASTER_PIPELINE_HANDLE{
 	
-	HANDLE_CONSTRUCTOR(DX_RASTER_PIPELINE, ID3D12PipelineState)
-	IMPLEMENT_GET_NATIVE_HANDLE(IDXGISwapChain3)
+	DX_RASTER_PIPELINE(ID3D12PipelineState* i_pipelune_state, RHI_PIPELINE_LAYOUT& layout)
+		: DX_RASTER_PIPELINE_HANDLE(i_pipelune_state)
+		, RHI_RASTER_PIPELINE(layout) {}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12PipelineState)
 };
 
-struct DX_RT_PIPELINE : public RHI_RT_PIPELINE, public DX_RT_PIPELINE_HANDLE {
+struct DX_RT_PIPELINE: public RHI_RT_PIPELINE, public DX_RT_PIPELINE_HANDLE {
 
 	HANDLE_CONSTRUCTOR(DX_RT_PIPELINE, ID3D12StateObject)
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12StateObject)
@@ -93,13 +100,13 @@ struct DX_FENCE: public RHI_FENCE, public DX_FENCE_HANDLE{
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Fence)
 };
 
-struct DX_SHADER_BUFFER: public RHI_SHADER_BUFFER, public DX_SHADER_BUFFER_HANDLE{
+struct DX_SHADER_BUFFER: public RHI_COMPILED_SHADER_BUFFER, public DX_SHADER_BUFFER_HANDLE{
 
 	HANDLE_CONSTRUCTOR(DX_SHADER_BUFFER, IDxcBlob)
 	IMPLEMENT_GET_NATIVE_HANDLE(IDxcBlob)
 };
 
-struct DX_PIPELINE_LAYOUT : public RHI_PIPELINE_LAYOUT, public DX_PIPELINE_LAYOUT_HANDLE {
+struct DX_PIPELINE_LAYOUT: public RHI_PIPELINE_LAYOUT, public DX_PIPELINE_LAYOUT_HANDLE {
 
 	HANDLE_CONSTRUCTOR(DX_PIPELINE_LAYOUT, ID3D12RootSignature)
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12RootSignature)
@@ -127,14 +134,17 @@ struct DX_COMMAND_QUEUE : public RHI_COMMAND_QUEUE, public DX_COMMAND_QUEUE_HAND
 
 struct DX_BUFFER: public RHI_BUFFER, public DX_RESOURCE {
 
-	DX_BUFFER(ID3D12Resource* resource, size_t length, size_t stride)
+	DX_BUFFER(ID3D12Resource* resource,
+		resource_state base_state,
+		resource_format resource_format, size_t width, 
+		size_t height, size_t stride)
 		: DX_RESOURCE(resource)
-		, RHI_BUFFER(length, stride) {
+		, RHI_BUFFER(base_state, resource_format, width, height, stride) {
 	}
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
 };
 
-struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_NATIVE_HANDLE<ID3D12CommandList> {
+struct DX_COMMAND_BUFFER: public RHI_COMMAND_BUFFER, public DX_NATIVE_HANDLE<ID3D12CommandList> {
 
 	DX_COMMAND_BUFFER(ID3D12CommandList* command_buffer, ID3D12CommandAllocator* allocator)
 		: DX_NATIVE_HANDLE<ID3D12CommandList>(command_buffer)
@@ -148,7 +158,7 @@ struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_NATIVE_HANDLE<ID
 	DX_COMMAND_ALLOCATOR command_allocator;
 };
 
-struct DX_RESOURCE_DESCRIPTOR : public DX_RESOURCE {
+struct DX_RESOURCE_DESCRIPTOR: public DX_RESOURCE {
 
 	DX_RESOURCE_DESCRIPTOR(ID3D12Resource* render_target, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
 		: DX_RESOURCE(render_target)
@@ -162,28 +172,41 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
 };
 
-struct DX_DEPTH_BUFFER : public DX_RESOURCE_DESCRIPTOR, public RHI_DEPTH_BUFFER {
+struct DX_DEPTH_BUFFER: public DX_RESOURCE_DESCRIPTOR, public RHI_DEPTH_BUFFER {
 
 	DX_DEPTH_BUFFER(ID3D12Resource* i_depth_buffer, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
-					size_t length, size_t stride) 
+		resource_state base_state, resource_format resource_format,
+		size_t width, size_t height, size_t stride)
 		: DX_RESOURCE_DESCRIPTOR(i_depth_buffer, cpu_handle)
-		, RHI_DEPTH_BUFFER(length, stride) {}
+		, RHI_DEPTH_BUFFER(base_state, resource_format, width, height, stride) {}
 	
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
 };
 
-struct DX_TEXTURE_2D : public DX_RESOURCE, RHI_TEXTURE_2D {
+struct DX_CONSTANT_BUFFER : public DX_RESOURCE_DESCRIPTOR, public RHI_CONSTANT_BUFFER {
 
-	DX_TEXTURE_2D(ID3D12Resource* i_texture,
-		size_t width, size_t height)
-		: DX_RESOURCE(i_texture)
-		, RHI_TEXTURE_2D(width, height) {
+	DX_CONSTANT_BUFFER(ID3D12Resource* i_depth_buffer, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
+		resource_state base_state, resource_format resource_format,
+		size_t width, size_t height, size_t stride)
+		: DX_RESOURCE_DESCRIPTOR(i_depth_buffer, cpu_handle)
+		, RHI_CONSTANT_BUFFER(base_state, resource_format, width, height, stride) {
 	}
 
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
 };
 
-struct DX_RENDER_PASS : public DX_RESOURCE_DESCRIPTOR, public RHI_RENDER_PASS {
+struct DX_TEXTURE_2D: public DX_RESOURCE, RHI_TEXTURE_2D {
+	DX_TEXTURE_2D(ID3D12Resource* i_texture,
+		resource_state base_state, resource_format format, size_t width,
+		size_t height, size_t stride)
+		: DX_RESOURCE(i_texture)
+		, RHI_TEXTURE_2D(base_state, format, width, height, stride) {
+	}
+
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
+};
+
+struct DX_RENDER_PASS: public DX_RESOURCE_DESCRIPTOR, public RHI_RENDER_PASS {
 
 	DX_RENDER_PASS(RHI_DEVICE& device, std::shared_ptr<RHI_TEXTURE_2D> render_target,
 					D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle )
@@ -216,14 +239,6 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
 	D3D12_RESOURCE_DIMENSION_TEXTURE3D		// buffer_type_image_3d
 };
 
-constexpr D3D12_RESOURCE_FLAGS buffer_resource_flags_type[] = {
-
-	D3D12_RESOURCE_FLAG_NONE,						// buffer_resource_flags_undef,
-	D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,		// buffer_resource_flags_rt,
-	D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,		// buffer_resource_flags_depth,
-	D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS		// buffer_resource_flags_uav,
-};
-
 constexpr DXGI_FORMAT dx12_resource_format_type[] = {
 	DXGI_FORMAT_UNKNOWN, // resource_format_none
 	DXGI_FORMAT_R16_UINT, // resource_format_uint16
@@ -251,6 +266,8 @@ constexpr D3D12_RESOURCE_STATES dx12_resource_state_type[] = {
 	D3D12_RESOURCE_STATE_PRESENT, // resource_state_present
 	D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, // resource_state_rt_bvh
 	D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, // resource_state_constant_buffer
+	D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, // resource_vertex_buffer
+	D3D12_RESOURCE_STATE_INDEX_BUFFER, // resource_index_buffer
 	D3D12_RESOURCE_STATE_GENERIC_READ // resource_state_generic_read
 };
 

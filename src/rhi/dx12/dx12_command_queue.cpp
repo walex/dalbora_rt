@@ -57,7 +57,7 @@ void dx12_command_queue_wait(RHI_COMMAND_QUEUE& command_queue) {
 	
 }
 
-void dx12_command_queue_exec(RHI_COMMAND_QUEUE& command_queue, bool wait_completion, fptr_command_queue_on_execute callback) {
+void dx12_command_queue_execute(RHI_COMMAND_QUEUE& command_queue, bool wait_completion, fptr_command_queue_on_execute callback) {
 
 	std::vector<RHI_COMMAND_BUFFER*> command_buffer_list;
 	ID3D12CommandQueue* i_cmd_queue = static_cast<ID3D12CommandQueue*>(command_queue);

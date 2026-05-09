@@ -85,7 +85,9 @@ std::shared_ptr<RHI_TEXTURE_2D> dx12_swap_chain_get_surface(RHI_SWAP_CHAIN& swap
 		throw std::exception("Error getting surface");
 	}
 	D3D12_RESOURCE_DESC desc = i_surface->GetDesc();
-	return std::make_shared<DX_TEXTURE_2D>(i_surface, static_cast<size_t>(desc.Width), static_cast<size_t>(desc.Height));
+	return std::make_shared<DX_TEXTURE_2D>(i_surface, resource_state_none, 
+							resource_format_R8G8B8A8_norm, static_cast<size_t>(desc.Width), 
+							static_cast<size_t>(desc.Height), static_cast<size_t>(desc.Width));
 }
 
 unsigned int dx12_swap_chain_get_current_buffer_id(RHI_SWAP_CHAIN& swap_chain) {

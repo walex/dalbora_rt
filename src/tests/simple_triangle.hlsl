@@ -1,27 +1,36 @@
-cbuffer Transform : register(b0)
+#pragma enable_d3d11_debug_symbols
+
+cbuffer CameraBuffer : register(b0)
 {
-    float4x4 rotation;
-    float4 color;
+    float4x4 view;
+    float4x4 projection;
+};
+
+cbuffer ObjectBuffer : register(b1)
+{
+    float4x4 world;
 };
 
 struct VSInput
 {
-    float3 pos : POSITION;
+    float3 position : POSITION;
 };
 
 struct VSOutput
 {
-    float4 pos : SV_POSITION;
+    float4 position : SV_POSITION;
 };
 
 VSOutput VSMain(VSInput input)
 {
-    VSOutput output;
-    output.pos = mul(rotation, float4(input.pos, 1.0));
-    return output;
+    VSOutput o;
+
+    //o.position = mul(world, float4(input.position, 1.0));
+ o.position = mul(float4(input.position, 1.0), world);
+    return o;
 }
 
 float4 PSMain() : SV_TARGET
 {
-    return color;
+    return float4(0.0, 1.0, 0.0, 1.0);
 }

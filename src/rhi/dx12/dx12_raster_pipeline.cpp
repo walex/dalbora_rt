@@ -6,7 +6,7 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
 	constexpr D3D12_RASTERIZER_DESC rasterizer_desc_default = {
 		D3D12_FILL_MODE_SOLID,
-		D3D12_CULL_MODE_BACK,
+		D3D12_CULL_MODE_NONE,
 		FALSE,
 		D3D12_DEFAULT_DEPTH_BIAS,
 		D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
@@ -43,11 +43,11 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 	};
 
 	D3D12_INPUT_LAYOUT_DESC input_layout;
-	std::vector<D3D12_INPUT_ELEMENT_DESC> layout_element_descs(desc.layouts.size());
-	input_layout.NumElements = (UINT)desc.layouts.size();
-	for (int i = 0; i < desc.layouts.size(); i++) {
+	std::vector<D3D12_INPUT_ELEMENT_DESC> layout_element_descs(desc.layouts_desc.size());
+	input_layout.NumElements = (UINT)desc.layouts_desc.size();
+	for (int i = 0; i < desc.layouts_desc.size(); i++) {
 		auto& ele_desc = layout_element_descs.at(i);
-		auto& gen_layout = desc.layouts.at(i);
+		auto& gen_layout = desc.layouts_desc.at(i);
 		ele_desc.SemanticName = gen_layout.name.c_str();
 		ele_desc.SemanticIndex = 0;
 		ele_desc.Format = dx12_resource_format_type[(int)gen_layout.format];
@@ -61,7 +61,6 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 	// Define a simple graphics pipeline state description
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = static_cast<ID3D12RootSignature*>(const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).layout.get());
-	//psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	if (desc.vertex_shader) {
 		IDxcBlob* buffer = static_cast<IDxcBlob*>(*const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).vertex_shader.get());
 		psoDesc.VS.pShaderBytecode = buffer->GetBufferPointer();
@@ -72,10 +71,13 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 		psoDesc.PS.pShaderBytecode = buffer->GetBufferPointer();
 		psoDesc.PS.BytecodeLength = buffer->GetBufferSize();
 	}
-//	psoDesc.BlendState = belnd_desc_default;
+	psoDesc.BlendState = belnd_desc_default;
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.RasterizerState = rasterizer_desc_default;
-	//psoDesc.DepthStencilState = deep_stencil_desc_default;
+	if (desc.depth_buffer_format != resource_format_none) {
+		psoDesc.DepthStencilState = deep_stencil_desc_default;
+		psoDesc.DSVFormat = dx12_resource_format_type[desc.depth_buffer_format];
+	}
 	psoDesc.InputLayout = input_layout;
 	psoDesc.PrimitiveTopologyType = dx12_primitive_topology_type[(int)desc.topology];
 	psoDesc.NumRenderTargets = 1;
@@ -86,5 +88,5 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 	if (FAILED(hr) || !pipelineState) {
 		throw std::exception("Failed to create D3D12 graphics pipeline state");
 	}
-	return std::make_unique<DX_RASTER_PIPELINE>(pipelineState);
+	return std::make_unique<DX_RASTER_PIPELINE>(pipelineState, desc.layout.get());
 }
