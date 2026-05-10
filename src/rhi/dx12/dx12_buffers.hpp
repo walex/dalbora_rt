@@ -7,6 +7,11 @@ std::unique_ptr<RHI_BUFFER> dx12_buffers_create_raw(const RHI_BUFFER_DESC& desc)
 std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC& desc);
 std::unique_ptr<RHI_CONSTANT_BUFFER> dx12_buffers_create_constant(const RHI_BUFFER_DESC& desc);
 
+RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER& cpu_buffer, size_t offset,
+	size_t length);
+void dx12_buffers_map_close(RHI_BUFFER& cpu_buffer, size_t offset,
+	size_t length);
+
 void dx12_buffers_copy_buffer(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& src_buffer,
 	RHI_BUFFER& dest_buffer);
 void dx12_buffers_copy_buffer_region(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& src_buffer,

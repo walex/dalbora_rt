@@ -40,6 +40,10 @@ inline std::unique_ptr<RHI_BUFFER>(*rhi_vertex_buffer_create)(const RHI_VERTEX_B
 inline std::unique_ptr<RHI_BUFFER>(*rhi_index_buffer_create)(const RHI_INDEX_BUFFER_DESC& desc);
 inline std::unique_ptr<RHI_DEPTH_BUFFER>(*rhi_buffers_create_depth)(const RHI_DEPTH_BUFFER_DESC& desc);
 inline std::unique_ptr<RHI_CONSTANT_BUFFER>(*rhi_buffers_create_constant)(const RHI_BUFFER_DESC& desc);
+inline RHI_VOID_PTR(*rhi_buffers_map_open)(RHI_BUFFER& cpu_buffer, size_t offset,
+	size_t length);
+inline void (*rhi_buffers_map_close)(RHI_BUFFER& cpu_buffer, size_t offset,
+	size_t length);
 
 inline void (*rhi_buffers_gpu_upload_region)(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer,
 	RHI_BUFFER& gpu_buffer, size_t offset_src, size_t offset_dest, size_t length);

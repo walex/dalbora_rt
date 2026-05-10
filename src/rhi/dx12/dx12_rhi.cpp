@@ -61,6 +61,8 @@ void dx12_rhi_init() {
 	rhi_index_buffer_create = &dx12_index_buffer_create;
 	rhi_buffers_create_depth = &dx12_buffers_create_depth;
 	rhi_buffers_create_constant = &dx12_buffers_create_constant;
+	rhi_buffers_map_open = &dx12_buffers_map_open;
+	rhi_buffers_map_close = &dx12_buffers_map_close;
 
 	rhi_buffers_gpu_upload_region = &dx12_buffers_gpu_upload_region;
 	rhi_buffers_gpu_upload = &dx12_buffers_gpu_upload;

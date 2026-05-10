@@ -20,7 +20,12 @@ std::unique_ptr<RHI_BUFFER> dx12_buffers_create_raw(const RHI_BUFFER_DESC& desc)
 	}
 	else {
 		flags = D3D12_RESOURCE_FLAG_NONE;
-		resource_initial_state = D3D12_RESOURCE_STATE_COMMON;
+		if (desc.memory_type == buffer_memory_type_cpu_to_gpu)
+			resource_initial_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+		else if (desc.memory_type == buffer_memory_type_gpu_to_cpu)
+			resource_initial_state = D3D12_RESOURCE_STATE_COPY_DEST;
+		else
+			resource_initial_state = D3D12_RESOURCE_STATE_COMMON;
 	}
 	
 	D3D12_HEAP_PROPERTIES heapProps = {};
@@ -106,7 +111,10 @@ std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFF
 std::unique_ptr<RHI_CONSTANT_BUFFER> dx12_buffers_create_constant(const RHI_BUFFER_DESC& desc) {
 	
 	DX_DEVICE& device_impl = reinterpret_cast<DX_DEVICE&>(desc.device.get());
-	DX_HEAP* heap_impl = device_impl.get_resources_heap();
+	DX_BUFFER_DESC* dx_desc= reinterpret_cast<DX_BUFFER_DESC*>(desc.platform_desc_ptr);
+	DX_HEAP* heap_impl = nullptr;
+	if (dx_desc != nullptr)
+		heap_impl = dx_desc->heap;
 	if (heap_impl == nullptr) {
 		throw std::exception("NO heap found for dsv.");
 	}
@@ -238,34 +246,61 @@ void dx12_buffers_gpu_download(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& c
 	i_cmd_list->ResourceBarrier(1, &barrier);
 }
 
+RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER& cpu_buffer, size_t offset,
+	size_t length) {
+
+	ID3D12Resource* i_shared_buffer = static_cast<ID3D12Resource*>(cpu_buffer);
+	D3D12_RANGE range{
+		.Begin = offset,
+		.End = length
+	};
+
+	RHI_VOID_PTR mapped;
+	if (FAILED(i_shared_buffer->Map(0, &range, &mapped))) {
+		throw std::exception("Error cannot map resource");
+	}
+	return mapped;
+}
+
+void dx12_buffers_map_close(RHI_BUFFER& cpu_buffer, size_t offset,
+	size_t length) {
+
+	ID3D12Resource* i_shared_buffer = static_cast<ID3D12Resource*>(cpu_buffer);
+	D3D12_RANGE range{
+		.Begin = offset,
+		.End = length
+	};
+	i_shared_buffer->Unmap(0, &range);
+}
+
 void dx12_buffers_map_write(RHI_BUFFER& cpu_buffer, 
 							RHI_VOID_PTR data, size_t offset,
 							size_t length) {
-	ID3D12Resource* i_cpu_buffer = static_cast<ID3D12Resource*>(cpu_buffer);
+	ID3D12Resource* i_shared_buffer = static_cast<ID3D12Resource*>(cpu_buffer);
 	D3D12_RANGE range{
 		.Begin = offset,
 		.End = length
 	};
 	void* mapped;
-	if (FAILED(i_cpu_buffer->Map(0, &range, &mapped))) {
+	if (FAILED(i_shared_buffer->Map(0, &range, &mapped))) {
 		throw std::exception("Error cannot map resource");
 	}
 	memcpy(mapped, data, length);
-	i_cpu_buffer->Unmap(0, &range);
+	i_shared_buffer->Unmap(0, &range);
 }
 
 void dx12_buffers_map_read(RHI_BUFFER& cpu_buffer, RHI_VOID_PTR& data,
 							size_t offset, size_t length) {
 
-	ID3D12Resource* i_cpu_buffer = static_cast<ID3D12Resource*>(cpu_buffer);
+	ID3D12Resource* i_shared_buffer = static_cast<ID3D12Resource*>(cpu_buffer);
 	D3D12_RANGE range{
 		.Begin = offset,
 		.End = length
 	};
 	void* mapped;
-	if (FAILED(i_cpu_buffer->Map(0, &range, &mapped))) {
+	if (FAILED(i_shared_buffer->Map(0, &range, &mapped))) {
 		throw std::exception("Error cannot map resource");
 	}
 	memcpy(data, mapped, length);
-	i_cpu_buffer->Unmap(0, &range);
+	i_shared_buffer->Unmap(0, &range);
 }

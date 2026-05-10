@@ -21,8 +21,10 @@ struct DX_DEVICE_DESC {
 	DX_HEAP_DESC samples_heap_desc;
 };
 
+struct DX_HEAP;
 struct DX_BUFFER_DESC {
 	
+	DX_HEAP* heap = nullptr;
 	size_t heap_slot;
 };
 
@@ -190,6 +192,7 @@ struct DX_CONSTANT_BUFFER : public DX_RESOURCE_DESCRIPTOR, public RHI_CONSTANT_B
 		size_t width, size_t height, size_t stride)
 		: DX_RESOURCE_DESCRIPTOR(i_depth_buffer, cpu_handle)
 		, RHI_CONSTANT_BUFFER(base_state, resource_format, width, height, stride) {
+
 	}
 
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
