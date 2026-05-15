@@ -1,47 +1,38 @@
 #include "dx12_rt_pipeline.hpp"
-#include "dx12_shaders_compiler.hpp"
 
 std::unique_ptr<RHI_RT_PIPELINE> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC& desc) {
 
-	/*
-	auto device = com_query_interface<ID3D12Device5>(desc.device());
+/*
+	ID3D12Device* i_device_0 = static_cast<ID3D12Device*>(desc.device.get());
+	ID3D12CommandList* i_command_buffer_0 = static_cast<ID3D12CommandList*>(reinterpret_cast<DX_COMMAND_BUFFER&>(desc.command_buffer.get()));
 
-	D3D12_FEATURE_DATA_SHADER_MODEL SM;
-	device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM));
-	if (SM.HighestShaderModel < D3D_SHADER_MODEL_6_9) {
-		throw std::exception("Device doesn't support Shader Model 6.9 or higher\n\n");
-	}
+	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
+	i_device_0->QueryInterface(IID_PPV_ARGS(&i_device));
 
-	// TODO: Check for reording shader support when sdk available
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
+	i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer));
 
 	// root signature creation
-	auto rootSignature = dx12_helpers_create_global_root_signature(device.get());
+	auto rootSignature = dx12_helpers_create_global_root_signature(i_device_0);
 
-	// get DXIL library
-	auto dxilLib_h = dx12_shaders_compiler_compile("neural_pbr.hlsl", "", "lib_6_9");
-	IDxcBlob* dxilLib = dxilLib_h->handle<DX_SHADER_BUFFER_HANDLE>();
-	
+	IDxcBlob* i_buffer = static_cast<IDxcBlob*>(reinterpret_cast<DX_COMPILED_SHADER_BUFFER&>(desc.shader.get()));
+
 	// export shaders
-	D3D12_EXPORT_DESC exports[3] = {};
+	std::vector<D3D12_EXPORT_DESC> exports(desc.shader.entry_points.size();
+	for (size_t i = 0; i < desc.shader.entry_points.size(); i++) {
 
-	exports[0].Name = L"RayGen";
-	exports[0].ExportToRename = nullptr;
-	exports[0].Flags = D3D12_EXPORT_FLAG_NONE;
-
-	exports[1].Name = L"Miss";
-	exports[1].ExportToRename = nullptr;
-	exports[1].Flags = D3D12_EXPORT_FLAG_NONE;
-
-	exports[2].Name = L"ClosestHit";
-	exports[2].ExportToRename = nullptr;
-	exports[2].Flags = D3D12_EXPORT_FLAG_NONE;
+		RHI_SHADER_ENTRY_POINT& ep = desc.shader.entry_points.at(i);
+		exports[i].Name = ep.name.c_str(); // L"RayGen"; Miss; ClosestHit
+		exports[i].ExportToRename = nullptr;
+		exports[i].Flags = D3D12_EXPORT_FLAG_NONE;
+	}
 
 	// DXIL Library
 	D3D12_DXIL_LIBRARY_DESC dxilLibDesc = {};
-	dxilLibDesc.DXILLibrary.pShaderBytecode = dxilLib->GetBufferPointer();
-	dxilLibDesc.DXILLibrary.BytecodeLength = dxilLib->GetBufferSize();
-	dxilLibDesc.NumExports = 3;
-	dxilLibDesc.pExports = exports;
+	dxilLibDesc.DXILLibrary.pShaderBytecode = i_buffer->GetBufferPointer();
+	dxilLibDesc.DXILLibrary.BytecodeLength = i_buffer->GetBufferSize();
+	dxilLibDesc.NumExports = exports.size();
+	dxilLibDesc.pExports = exports.data();
 
 	D3D12_STATE_SUBOBJECT dxilSubobject = {};
 	dxilSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
@@ -99,18 +90,18 @@ std::unique_ptr<RHI_RT_PIPELINE> dx12_rt_pipeline_create(const RHI_RT_PIPELINE_D
 	stateObjectDesc.NumSubobjects = _countof(subobjects);
 	stateObjectDesc.pSubobjects = subobjects;
 
-	ID3D12StateObject* rtStateObject = nullptr;
+	ID3D12StateObject* i_state_object = nullptr;
 
-	HRESULT hr = device->CreateStateObject(
+	HRESULT hr = i_device->CreateStateObject(
 		&stateObjectDesc,
-		IID_PPV_ARGS(&rtStateObject)
+		IID_PPV_ARGS(&i_state_object)
 	);
-	if (FAILED(hr) || !rtStateObject) {
+	if (FAILED(hr) || !i_state_object) {
 		throw std::exception("Failed to create D3D12 raytracing pipeline state object");
 	}
 
-	return std::make_unique<RHI_OBJECT>(new DX_RT_PIPELINE_HANDLE(rtStateObject));
+	return std::make_unique<RHI_RT_PIPELINE>(new DX_RT_PIPELINE(i_state_object));
+	
 	*/
-
 	return nullptr;
 }

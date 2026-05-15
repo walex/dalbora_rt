@@ -3,8 +3,9 @@
 
 std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& desc) {
 
-	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
-	ID3D12CommandQueue* i_command_queue = static_cast<ID3D12CommandQueue*>(desc.command_queue.get());
+	DX_DEVICE& device_impl = static_cast<DX_DEVICE&>(desc.device.get());
+	ID3D12Device* i_device = device_impl;
+	ID3D12CommandQueue* i_command_queue = static_cast<DX_COMMAND_QUEUE&>(desc.command_queue.get());
 	IDXGIFactory5* i_factory = dx12_factory_get();
 	HWND hwnd = static_cast<HWND>(static_cast<RHI_VOID_PTR>(desc.window.get()));
 	if (!i_device || !i_command_queue || !i_factory) {
@@ -67,7 +68,73 @@ std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC
 			i_swap_chain_3->Release();
 		throw std::exception("Failed to acquire IDXGISwapChain3");
 	}
-	return std::make_unique<DX_SWAP_CHAIN>(i_swap_chain_3);
+
+	DX_HEAP* heap_impl = device_impl.get_rtv_heap();
+	if (heap_impl == nullptr) {
+		throw std::exception("NO heap found for rtv.");
+	}
+	ID3D12DescriptorHeap* i_heap = static_cast<ID3D12DescriptorHeap*>(*heap_impl);
+	auto swap_chain_impl = std::make_unique<DX_SWAP_CHAIN>(i_swap_chain_3);
+
+	for (size_t i = 0; i < bufferCount; i++) {
+		ID3D12Resource* i_buffer;
+		if (FAILED(i_swap_chain_3->GetBuffer(i, IID_PPV_ARGS(&i_buffer)))) {
+			throw std::exception("unable to get swap chin buffer %d", i);
+		}
+		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+		rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		rtv_desc.Format = dx12_resource_format_type[(int)desc.color_format];
+		std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, i);
+		i_device->CreateRenderTargetView(i_buffer, &rtv_desc, *rtvHandle);
+
+		DXGI_SWAP_CHAIN_DESC swp_desc;
+		i_swap_chain_3->GetDesc(&swp_desc);
+		UINT mip_count = 1;
+		D3D12_RESOURCE_DESC texDesc = {};
+		texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		texDesc.Alignment = 0;
+		texDesc.Width = swp_desc.BufferDesc.Width;
+		texDesc.Height = swp_desc.BufferDesc.Height;
+		texDesc.DepthOrArraySize = 1;
+		texDesc.MipLevels = mip_count;
+		texDesc.SampleDesc.Count = 1;
+		texDesc.SampleDesc.Quality = 0;
+		texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		texDesc.Format = swp_desc.BufferDesc.Format;
+
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>
+			layouts(mip_count);
+		std::vector<UINT> num_rows(mip_count);
+		std::vector<UINT64> row_sizes(mip_count);
+		UINT64 totalUploadSize = 0;
+		i_device->GetCopyableFootprints(
+			&texDesc,
+			0,
+			1,
+			0,
+			layouts.data(),
+			num_rows.data(),
+			row_sizes.data(),
+			&totalUploadSize);
+
+		std::vector<RHI_TEXTURE_MIPS> mips(mip_count);
+		for (UINT i = 0; i < mip_count; i++) {
+			mips[i].offset = static_cast<size_t>(layouts[i].Offset);
+			mips[i].num_rows = static_cast<size_t>(num_rows[i]);
+			mips[i].pitch = static_cast<size_t>(layouts[i].Footprint.RowPitch);
+			mips[i].width = static_cast<size_t>(layouts[i].Footprint.Width);
+			mips[i].height = static_cast<size_t>(layouts[i].Footprint.Height);
+			mips[i].depth = static_cast<size_t>(layouts[i].Footprint.Depth);
+			mips[i].format = dx12_helpers_resource_format_from_dxgi_format(layouts[i].Footprint.Format);
+		}
+
+		swap_chain_impl->add_render_target(std::make_shared<DX_TEXTURE_2D>(i_buffer, *rtvHandle,
+			resource_state_render_target, desc.color_format,
+			desc.width, desc.height, static_cast<size_t>(totalUploadSize), std::move(mips)));
+	}
+
+	return swap_chain_impl;
 }
 
 void dx12_swap_chain_present(RHI_SWAP_CHAIN& swap_chain) {
@@ -79,15 +146,8 @@ std::shared_ptr<RHI_TEXTURE_2D> dx12_swap_chain_get_surface(RHI_SWAP_CHAIN& swap
 
 	ID3D12Resource* i_surface = nullptr;
 	IDXGISwapChain3* i_swap_chain = static_cast<IDXGISwapChain3*>(swap_chain);
-	if (surface_index < 0)
-		surface_index = (int)i_swap_chain->GetCurrentBackBufferIndex();
-	if (FAILED(i_swap_chain->GetBuffer(surface_index, IID_PPV_ARGS(&i_surface)))) {
-		throw std::exception("Error getting surface");
-	}
-	D3D12_RESOURCE_DESC desc = i_surface->GetDesc();
-	return std::make_shared<DX_TEXTURE_2D>(i_surface, resource_state_none, 
-							resource_format_R8G8B8A8_norm, static_cast<size_t>(desc.Width), 
-							static_cast<size_t>(desc.Height), static_cast<size_t>(desc.Width));
+	surface_index = (int)i_swap_chain->GetCurrentBackBufferIndex();
+	return swap_chain.get_render_target(surface_index);
 }
 
 unsigned int dx12_swap_chain_get_current_buffer_id(RHI_SWAP_CHAIN& swap_chain) {

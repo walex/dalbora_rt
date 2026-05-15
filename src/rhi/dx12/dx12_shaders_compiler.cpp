@@ -74,5 +74,5 @@ std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> dx12_shaders_compiler_compile(const 
         throw std::runtime_error("Failed to get compiled shader blob");
 	}
 
-	return std::make_unique<DX_SHADER_BUFFER>(shader);
+	return std::make_unique<DX_COMPILED_SHADER_BUFFER>(shader);
 }

@@ -3,7 +3,7 @@
 std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC& desc) {
 
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
-	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
+	ID3D12Device* i_device = static_cast<DX_DEVICE&>(desc.device.get());
 	constexpr D3D12_RASTERIZER_DESC rasterizer_desc_default = {
 		D3D12_FILL_MODE_SOLID,
 		D3D12_CULL_MODE_NONE,
@@ -60,14 +60,14 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 
 	// Define a simple graphics pipeline state description
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.pRootSignature = static_cast<ID3D12RootSignature*>(const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).layout.get());
+	psoDesc.pRootSignature = const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).layout.get();
 	if (desc.vertex_shader) {
-		IDxcBlob* buffer = static_cast<IDxcBlob*>(*const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).vertex_shader.get());
+		IDxcBlob* buffer = *const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).vertex_shader.get();
 		psoDesc.VS.pShaderBytecode = buffer->GetBufferPointer();
 		psoDesc.VS.BytecodeLength = buffer->GetBufferSize();
 	}
 	if (desc.pixel_shader) {
-		IDxcBlob* buffer = static_cast<IDxcBlob*>(*const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).pixel_shader.get());
+		IDxcBlob* buffer = *const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).pixel_shader.get();
 		psoDesc.PS.pShaderBytecode = buffer->GetBufferPointer();
 		psoDesc.PS.BytecodeLength = buffer->GetBufferSize();
 	}

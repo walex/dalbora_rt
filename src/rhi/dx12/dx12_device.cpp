@@ -11,16 +11,24 @@ bool dx12_device_check_rt_support(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
-bool dx12_device_check_device_features(ID3D12Device* device, const __int64 features) {
+void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 features) {
 
 	bool result = true;
 
 	auto feats = features;
 	if (feats & device_features_raytracing) {
-		result |= dx12_device_check_rt_support(device);
+		result |= dx12_device_check_rt_support(i_device);
 		feats ^= device_features_raytracing;
 	}
-	return result;
+	else {
+		throw std::exception("Device doesn't support RT\n\n");
+	}
+	D3D12_FEATURE_DATA_SHADER_MODEL SM = {};
+	SM.HighestShaderModel = D3D_HIGHEST_SHADER_MODEL;
+	i_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM));
+	if (SM.HighestShaderModel < D3D_SHADER_MODEL_6_0) {
+		throw std::exception("Device doesn't support Shader Model 6.9 or higher\n\n");
+	}
 }
 
 IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
@@ -47,9 +55,17 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 		ID3D12Device* testDevice = nullptr;
 		hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&testDevice));
 		if (SUCCEEDED(hr)) {
-			bool device_ok = dx12_device_check_device_features(testDevice, features);
+			bool use_it = true;
+			try {
+				dx12_device_check_device_features(testDevice, features);
+			}
+			catch (std::exception& ex) {
+				
+				use_it = false;
+					
+			}
 			if (testDevice) testDevice->Release();
-			if (device_ok == false)
+			if (use_it == false)
 				continue;
 			chosenAdapter = adapter; // keep reference (don't release)
 			break;
@@ -82,8 +98,14 @@ std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 	if (FAILED(hr)) {
 		throw std::exception("Failed to create D3D12 device with feature level 12_0");
 	}
-	if (check_features == true && dx12_device_check_device_features(i_device, desc.features) == false) {
-		throw std::exception("D3D12 device does not support required features");
+	if (check_features == true) {
+
+		try {
+			dx12_device_check_device_features(i_device, desc.features);
+		}
+		catch (std::exception& ex) {
+			throw ex;
+		}
 	}
 	// Release adapter and factory references we no longer need
 	DXGI_ADAPTER_DESC ad;
@@ -111,8 +133,9 @@ std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 			printf("rtv\n");
 			dx_device->set_rtv_heap(std::move(dx12_heap_create(i_device, device_desc->rtv_heap_desc)));
 		}
-		if (device_desc->samples_heap_desc.enable == true) {
-			// TODO
+		if (device_desc->sampler_heap_desc.enable == true) {
+			printf("sampler\n");
+			dx_device->set_sampler_heap(std::move(dx12_heap_create(i_device, device_desc->sampler_heap_desc)));
 		}
 	}
 

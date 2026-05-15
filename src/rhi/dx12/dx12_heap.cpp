@@ -6,11 +6,6 @@ std::unique_ptr<DX_HEAP> dx12_heap_create(ID3D12Device* i_device, const DX_HEAP_
 
 	D3D12_DESCRIPTOR_HEAP_TYPE type;
 	switch (desc.resource_type) {
-		case resource_type_texture_read_only:
-		case resource_type_texture_writable:
-		case resource_type_buffer_read_only:
-		case resource_type_buffer_writable:
-		case resource_type_constant_buffer:
 		case resource_type_generic_rw_buffer:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			break;

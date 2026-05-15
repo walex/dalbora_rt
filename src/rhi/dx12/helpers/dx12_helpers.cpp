@@ -1,8 +1,8 @@
 #include "dx12_helpers.hpp"
 #include "dx12_api_params.hpp"
+#include "dx12_rhi.hpp"
 
-
-std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, size_t slot) {
+std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_rw_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, size_t slot) {
 
     D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
     if (slot + 1 > (int)desc.NumDescriptors) {
@@ -15,6 +15,18 @@ std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_descriptor_heap_ha
     return std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(h);
 }
 
+std::unique_ptr<D3D12_GPU_DESCRIPTOR_HANDLE> dx12_helpers_get_read_only_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, size_t slot) {
+
+    D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+    if (slot + 1 > (int)desc.NumDescriptors) {
+        throw std::exception("Max descriptors reached for type %d", desc.Type);
+    }
+    UINT rtvDescriptorSize =
+        device->GetDescriptorHandleIncrementSize(desc.Type);
+    auto h = heap->GetGPUDescriptorHandleForHeapStart();
+    h.ptr += (slot * rtvDescriptorSize);
+    return std::make_unique<D3D12_GPU_DESCRIPTOR_HANDLE>(h);
+}
 
 Microsoft::WRL::ComPtr<ID3D12RootSignature> dx12_helpers_create_global_root_signature(ID3D12Device* device) {
 
@@ -69,4 +81,15 @@ dx12_helpers_create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_
         throw std::exception("Cannot create CBV_SRV_UAV descriptor heap");
     }
     return unifiedHeap;
+}
+
+resource_format dx12_helpers_resource_format_from_dxgi_format(DXGI_FORMAT format) {
+
+    std::span<const DXGI_FORMAT> s(dx12_resource_format_type);
+    auto it = std::find(s.begin(), s.end(), format);
+    if (it == s.end())
+    {
+        throw std::exception("texture format no supported");
+    }
+    return static_cast<resource_format>(std::distance(s.begin(), it));
 }

@@ -26,14 +26,21 @@ std::unique_ptr<DX_DEVICE_DESC> configure_dx12_device_desc() {
 	dsv_heap_desc.shader_visibility = false;
 	dsv_heap_desc.enable = true;
 
+	// sampler
+	DX_HEAP_DESC& sampler_heap_desc = dx_device_desc->sampler_heap_desc;
+	sampler_heap_desc.resource_type = resource_type_sampler;
+	sampler_heap_desc.slot_count = 1;
+	sampler_heap_desc.shader_visibility = true;
+	sampler_heap_desc.enable = true;
+
 	return dx_device_desc;
 }
 
-void test_swap_chain(test_swap_chain_on_init on_init
-	, test_swap_chain_on_before_draw on_before_draw
-	, test_swap_chain_on_draw on_draw
-	, test_swap_chain_on_after_draw on_after_draw
-	, test_swap_chain_on_end on_end) {
+void test_swap_chain(fptr_test_on_init on_init
+	, fptr_test_on_before_draw on_before_draw
+	, fptr_test_on_draw on_draw
+	, fptr_test_on_after_draw on_after_draw
+	, fptr_test_on_end on_end) {
 
 	std::unique_ptr<RHI_DEVICE> device;
 	std::unique_ptr<RHI_COMMAND_QUEUE> command_queue;
@@ -70,13 +77,22 @@ void test_swap_chain(test_swap_chain_on_init on_init
 		swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
 		swap_chain = rhi_swap_chain_create(swap_chain_desc);
 
-		for (int i = 0; i < kSwapChainBufferCount; i++) {
+		RHI_VIEWPORT vp;
+		vp.x = 0;
+		vp.y = 0;
+		vp.width = 800;
+		vp.height = 600;
+		vp.min_z = 0.0f;
+		vp.max_z = 1.0f;
 
-			auto back_buffer = rhi_swap_chain_get_surface(*swap_chain, i);
-			RHI_RENDER_PASS_DESC render_pass_desc(*device, back_buffer);
+		for (size_t i = 0; i < swap_chain->get_render_target_count(); i++) {
+
+			auto rt = swap_chain->get_render_target(i);
+			RHI_RENDER_PASS_DESC render_pass_desc(*device, rt);
 			render_pass_desc.buffer_index = i;
 			render_pass_desc.synchronized = true;
 			auto render_pass = rhi_render_pass_create(render_pass_desc);
+			render_pass->set_view_port(vp);
 			render_passes.emplace_back(render_pass.release());
 		}
 		if (on_init)

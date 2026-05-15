@@ -1,0 +1,1 @@
+call compile_msvc.bat debug

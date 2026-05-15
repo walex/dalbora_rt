@@ -4,12 +4,23 @@
 #include "rhi_defs.hpp"
 #include <Eigen/Dense>
 
+struct RHI_TEXTURE_2D;
 struct RHI_DEVICE {
 	RHI_STRUCT_BASE_INFO(RHI_DEVICE, () {})
 };
 
 struct RHI_SWAP_CHAIN {
 	RHI_STRUCT_BASE_INFO(RHI_SWAP_CHAIN, () {})
+	void add_render_target(std::shared_ptr<RHI_TEXTURE_2D> rt) {
+		m_render_targets.push_back(rt);
+	}
+	std::shared_ptr<RHI_TEXTURE_2D> get_render_target(size_t index) {
+
+		return m_render_targets.at(index);
+	}
+	size_t get_render_target_count() { return m_render_targets.size(); }
+private:
+	std::vector<std::shared_ptr<RHI_TEXTURE_2D>> m_render_targets;
 };
 
 struct RHI_FENCE {
@@ -70,18 +81,18 @@ private:
 struct RHI_RESOURCE {
 	RHI_STRUCT_BASE_INFO(RHI_RESOURCE, RHI_STRUCT_BASE_PARAMS(
 
-		(resource_state base_state, resource_format resource_format)
-		: current_state(resource_state_none), base_state(base_state), format(resource_format) {
+		(resource_state default_state, resource_format resource_format)
+		: current_state(resource_state_none), default_state(default_state), format(resource_format) {
 	}
 	))
 public:
 	DEFINE_SETTER(current_state);
 	DEFINE_GETTER(current_state);
-	DEFINE_GETTER(base_state);
+	DEFINE_GETTER(default_state);
 	DEFINE_GETTER(format);
 private:
 	resource_state current_state;
-	resource_state base_state;
+	resource_state default_state;
 	resource_format format;
 };
 
@@ -89,43 +100,85 @@ struct RHI_BUFFER: public RHI_RESOURCE {
 
 	RHI_STRUCT_BASE_INFO(RHI_BUFFER, RHI_STRUCT_BASE_PARAMS(
 
-		(resource_state base_state, resource_format resource_format, size_t width, size_t height, size_t stride)
+		(resource_state base_state, resource_format resource_format, size_t length)
 		: RHI_RESOURCE(base_state, resource_format)
-		, width(width)
-		, height(height)
-		, stride(stride) {
+		, length(length) {
 	}
 	))
 public:
-	DEFINE_SETTER(width);
-	DEFINE_GETTER(width);
-	DEFINE_SETTER(height);
-	DEFINE_GETTER(height);
-	DEFINE_SETTER(stride);
-	DEFINE_GETTER(stride);
+	DEFINE_SETTER(length);
+	DEFINE_GETTER(length);
 private:
-	size_t width;
-	size_t height;
-	size_t stride;
+	size_t length;
 };
 	   	
+struct RHI_TEXTURE_MIPS {
+	size_t width;
+	size_t height;
+	size_t offset;
+	size_t num_rows;
+	size_t pitch;
+	size_t depth;
+	resource_format format;
+};
+
+struct RHI_VERTEX_BUFFER : public RHI_BUFFER {
+
+	RHI_VERTEX_BUFFER(resource_state base_state, resource_format resource_format,
+		size_t length, size_t stride)
+		: RHI_BUFFER(base_state, resource_format, length)
+		, stride(stride) {
+	}
+	DEFINE_GETTER(stride);
+private:
+	size_t stride;
+};
+
+struct RHI_INDEX_BUFFER : public RHI_BUFFER {
+
+	RHI_INDEX_BUFFER(resource_state base_state, resource_format resource_format,
+		size_t length, size_t stride)
+		: RHI_BUFFER(base_state, resource_format, length)
+		, stride(stride) {
+	}
+	DEFINE_GETTER(stride);
+private:
+	size_t stride;
+};
+
 struct RHI_TEXTURE_2D : public RHI_BUFFER {
+
 	RHI_TEXTURE_2D(resource_state base_state, resource_format resource_format,
-		size_t width, size_t height, size_t stride)
-		: RHI_BUFFER(base_state, resource_format, width, height, stride) {}
+		size_t width, size_t height, size_t phisycal_size,
+		std::vector<RHI_TEXTURE_MIPS>&& mips)
+		: RHI_BUFFER(base_state, resource_format, phisycal_size)
+		, width(width)
+		, height(height)
+		, mipmaps(std::move(mips)) {
+	}
+	std::vector<RHI_TEXTURE_MIPS>& get_mips() { return mipmaps; };
+	DEFINE_GETTER(width);
+	DEFINE_GETTER(height);
+private:
+	size_t width, height;
+	std::vector<RHI_TEXTURE_MIPS> mipmaps;
 };
 
 struct RHI_CONSTANT_BUFFER : public RHI_BUFFER {
 
 	RHI_CONSTANT_BUFFER(resource_state base_state, resource_format resource_format,
-		size_t width, size_t height, size_t stride) : RHI_BUFFER(base_state, resource_format, width, height, stride) {
+		size_t length) : RHI_BUFFER(base_state, resource_format, length) {
 	}
 };
 
 struct RHI_DEPTH_BUFFER : public RHI_BUFFER {
 
 	RHI_DEPTH_BUFFER(resource_state base_state, resource_format resource_format,
-		size_t width, size_t height, size_t stride) : RHI_BUFFER(base_state, resource_format, width, height, stride) {}
+		size_t width, size_t height) : RHI_BUFFER(base_state, resource_format, width * height) {}
+	DEFINE_GETTER(width);
+	DEFINE_GETTER(height);
+private:
+	size_t width, height;
 };
 
 struct RHI_VIEWPORT {
@@ -141,13 +194,13 @@ struct RHI_RENDER_PASS {
 
 	RHI_STRUCT_BASE_INFO(RHI_RENDER_PASS, RHI_STRUCT_BASE_PARAMS(
 
-		(RHI_DEVICE& device, std::shared_ptr<RHI_TEXTURE_2D> render_target)
-		: device(device), render_target(render_target), depth_buffer(nullptr) {
+		(RHI_DEVICE& device, std::shared_ptr<RHI_TEXTURE_2D> rt)
+		: device(device), render_target(rt), depth_buffer(nullptr) {
 	}
 	))
 
 	operator RHI_DEVICE& () { return device.get(); }
-	operator RHI_TEXTURE_2D& () { return *render_target.get(); }
+	operator RHI_TEXTURE_2D& () { return *render_target; }
 	operator RHI_DEPTH_BUFFER* () { return depth_buffer.get(); }
 	operator RHI_GRAPHICS_PIPELINE* () { return pipeline.get(); }
 	operator RHI_VIEWPORT& () { return view_port; }
@@ -175,6 +228,15 @@ struct RHI_WINDOW {
 private:
 	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks;
 	RHI_VOID_PTR handle;
+};
+
+struct RHI_RT_BVH {
+
+	virtual ~RHI_RT_BVH() = default;
+};
+
+struct RHI_SAMPLER {
+	virtual ~RHI_SAMPLER() = default;
 };
 
 #endif

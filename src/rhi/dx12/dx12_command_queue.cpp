@@ -3,7 +3,7 @@
 
 std::unique_ptr<RHI_COMMAND_QUEUE> dx12_create_command_queue(const RHI_COMMAND_QUEUE_DESC& desc, queue_type type) {
 	
-	ID3D12Device* i_device = static_cast<ID3D12Device*>(desc.device.get());
+	ID3D12Device* i_device = desc.device.get();
 	// Create a direct command queue
 	ID3D12CommandQueue* i_cmd_queue = nullptr;
 	{
@@ -43,9 +43,8 @@ void dx12_command_queue_wait(RHI_COMMAND_QUEUE& command_queue) {
 	if (!eventHandle) {
 		throw std::exception("Failed to create event for command queue wait");
 	}
-	auto& command_queue_impl = static_cast<DX_COMMAND_QUEUE&>(command_queue);
-	ID3D12CommandQueue* i_cmd_queue = static_cast<ID3D12CommandQueue*>(command_queue_impl);
-	ID3D12Fence* i_fence = static_cast<ID3D12Fence*>(command_queue_impl);
+	ID3D12CommandQueue* i_cmd_queue = static_cast<DX_COMMAND_QUEUE&>(command_queue);
+	ID3D12Fence* i_fence = static_cast<DX_COMMAND_QUEUE&>(command_queue);
 	auto fc = command_queue.increment_fence_counter();
 	i_cmd_queue->Signal(i_fence, fc);
 	if (i_fence->GetCompletedValue() < fc) {
@@ -60,13 +59,13 @@ void dx12_command_queue_wait(RHI_COMMAND_QUEUE& command_queue) {
 void dx12_command_queue_execute(RHI_COMMAND_QUEUE& command_queue, bool wait_completion, fptr_command_queue_on_execute callback) {
 
 	std::vector<RHI_COMMAND_BUFFER*> command_buffer_list;
-	ID3D12CommandQueue* i_cmd_queue = static_cast<ID3D12CommandQueue*>(command_queue);
+	ID3D12CommandQueue* i_cmd_queue = command_queue;
 	callback(static_cast<RHI_VOID_PTR>(i_cmd_queue), command_buffer_list);
 	size_t list_size = command_buffer_list.size();
 	if (list_size > 0) {
 		std::vector<ID3D12CommandList*> native_list(list_size);
 		for (int i = 0; i < list_size; i++) {
-			ID3D12GraphicsCommandList* i_cmd_list = reinterpret_cast<ID3D12GraphicsCommandList*>(static_cast<ID3D12CommandList*>(*command_buffer_list[i]));
+			ID3D12GraphicsCommandList* i_cmd_list = *command_buffer_list[i];
 			native_list[i] = i_cmd_list;
 		}
 		i_cmd_queue->ExecuteCommandLists(1, native_list.data());
