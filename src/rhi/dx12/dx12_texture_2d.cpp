@@ -15,23 +15,42 @@ std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC
 	ID3D12Resource *i_texture = static_cast<DX_BUFFER &>(*buffer);
 	i_texture->AddRef();
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = dx12_resource_format_type[desc.format];
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Shader4ComponentMapping =
-		D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Texture2D.MipLevels = static_cast<UINT>(desc.mips);
-	srvDesc.Texture1D.MostDetailedMip = 0;
+	
 	size_t heap_slot = desc.resource_slot;
 
 	ID3D12DescriptorHeap *i_heap = *heap_impl;
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
 
-	i_device->CreateShaderResourceView(
-		i_texture,
-		&srvDesc,
-		*srv_handle);
-	
+	if (desc.default_state == resource_state_rt_render_target) {
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav = {};
+
+		uav.Format =
+			dx12_resource_format_type[desc.format];
+
+		uav.ViewDimension =
+			D3D12_UAV_DIMENSION_TEXTURE2D;
+
+		i_device->CreateUnorderedAccessView(
+			i_texture,
+			nullptr,
+			&uav,
+			*srv_handle
+		);
+	}
+	else {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = dx12_resource_format_type[desc.format];
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Shader4ComponentMapping =
+			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Texture2D.MipLevels = static_cast<UINT>(desc.mips);
+		srvDesc.Texture1D.MostDetailedMip = 0;
+		i_device->CreateShaderResourceView(
+			i_texture,
+			&srvDesc,
+			*srv_handle);
+	}
+
 	const UINT mip_count = static_cast<UINT>(desc.mips);
 	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>
 		layouts(mip_count);
@@ -84,13 +103,15 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& 
 	ID3D12GraphicsCommandList* i_command_buffer = command_buffer;
 	ID3D12Resource* i_texture = static_cast<DX_TEXTURE_2D&>(texture);
 
+	resource_state old_state = texture.get_current_state();
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Transition.pResource = i_texture;
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+	barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	i_command_buffer->ResourceBarrier(1, &barrier);
+	texture.set_current_state(resource_state_copy_dest);
 
 	auto& mips = texture.get_mips();
 	for (size_t i = 0; i < mips.size(); ++i)
@@ -122,8 +143,9 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& 
 		);
 
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+		barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
 		i_command_buffer->ResourceBarrier(1, &barrier);
+		texture.set_current_state(old_state);
 	}
 
 }

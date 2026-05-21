@@ -6,7 +6,7 @@ std::unique_ptr<RHI_INDEX_BUFFER> dx12_index_buffer_create(const RHI_INDEX_BUFFE
     // overwrite desc to match must have index buffer requeriments
 	RHI_INDEX_BUFFER_DESC ib_desc_mutable = const_cast<RHI_INDEX_BUFFER_DESC&>(desc);
 	ib_desc_mutable.memory_type = buffer_memory_type_gpu_only;
-    ib_desc_mutable.default_state = resource_state_index_buffer;
+    ib_desc_mutable.default_state = resource_state_none;
     ib_desc_mutable.type = buffer_type_raw;
     auto ib_impl = dx12_buffers_create_raw(ib_desc_mutable);
     ID3D12Resource* i_ib = static_cast<DX_BUFFER&>(*ib_impl);

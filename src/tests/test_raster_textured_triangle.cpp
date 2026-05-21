@@ -115,7 +115,8 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
     std::unique_ptr<RHI_SAMPLER> sampler;
 
     test_raster_triangle(
-        [&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue, RHI_COMMAND_BUFFER &command_buffer)
+        [&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
+            RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain))
         {
             RHI_RT_SAMPLER_DESC sampler_desc(device);
             sampler_desc.resource_slot = 0;
@@ -150,7 +151,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                             shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
                             shared_buffer_desc.type = buffer_type_raw;
                             shared_buffer_desc.format = texture_desc.format;
-                            shared_buffer_desc.initial_state = resource_state_generic_read;
+                            shared_buffer_desc.default_state = resource_state_generic_read;
                             auto shared_texture_buffer = rhi_buffers_create_raw(shared_buffer_desc);
                             RHI_VOID_PTR buff_ptr = rhi_buffers_map_open(*shared_texture_buffer, 0, texture->get_length());
                             
@@ -163,13 +164,15 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                     command_buffer_list.push_back(&command_buffer);
                 });
         },
-        [&](RHI_RENDER_PASS &render_pass, RHI_COMMAND_BUFFER &command_buffer) {
-            rhi_command_buffer_reset_resource_state(command_buffer, *texture);
+        [&](RHI_DEVICE& device, RHI_RENDER_PASS &render_pass, RHI_COMMAND_BUFFER &command_buffer) {
+           // rhi_command_buffer_reset_resource_state(command_buffer, *texture);
         },
         [&](RHI_DEVICE &device) {},
         [&](std::vector<RHI_DESCRIPTOR_DESC>& descriptors, std::vector<RHI_INPUT_LAYOUT_DESC> &input_layouts, std::string &vertex_shader_path,
             std::string &pixel_shader_path, size_t &vertex_size, void **vertices_ptr)
         {
+            // on_layout
+            
             // descriptors
             RHI_DESCRIPTOR_DESC s_desc;
             s_desc.resource_type = resource_type_shader;

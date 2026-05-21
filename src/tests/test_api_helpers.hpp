@@ -14,6 +14,20 @@ struct alignas(256) CameraCB
 	Mat4 projection;
 };
 
+struct alignas(256) CameraCBRT
+{
+	Vec3 camera_pos;
+	float pad0;
+	Vec3 camera_forward;
+	float pad1;
+	Vec3 camera_right;
+	float pad2;
+	Vec3 camera_up;
+	float tanHalfFov;
+	float aspect;
+	float pad4[2];
+};
+
 struct alignas(256) ObjectCB
 {
 	Mat4 world = Mat4::Identity();

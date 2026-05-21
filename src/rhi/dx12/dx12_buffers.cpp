@@ -18,27 +18,19 @@ std::unique_ptr<RHI_BUFFER> dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC &des
 		clear_value->Format = dx12_resource_format_type[(int)desc.format];
 		clear_value->DepthStencil.Depth = 1.0f;
 		clear_value->DepthStencil.Stencil = 0;
-		resource_initial_state = dx12_resource_state_type[desc.initial_state];
 		buffer_type = buffer_type_image_2d;
 	}
-	else
-	{
-		if (buffer_type == buffer_type_rt_bvh)
-		{
-			flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-			resource_initial_state = dx12_resource_state_type[desc.initial_state];
-		}
-		else
-		{
-			if (desc.memory_type == buffer_memory_type_shared_rw)
-				resource_initial_state = dx12_resource_state_type[desc.initial_state];
-			else if (desc.memory_type == buffer_memory_type_shared_read_only)
-				resource_initial_state = D3D12_RESOURCE_STATE_COPY_DEST;
-			else
-				resource_initial_state = D3D12_RESOURCE_STATE_COMMON;
-		}
+	else if (buffer_type == buffer_type_rt_bvh
+		|| desc.default_state == resource_state_rt_render_target) {
+		flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	}
-	resource_initial_state = dx12_resource_state_type[desc.initial_state];
+
+	if (desc.default_state == resource_state_rt_render_target
+		|| desc.default_state == resource_state_raster_render_target) {
+
+		flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	}
+	resource_initial_state = dx12_resource_state_type[desc.default_state];
 	D3D12_HEAP_PROPERTIES heapProps = {};
 	heapProps.Type = dx12_heap_type[desc.memory_type];
 	heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -86,7 +78,6 @@ std::unique_ptr<RHI_BUFFER> dx12_buffers_create_raw(const RHI_BUFFER_DESC &desc)
 	desc_2d.mips = desc.mips;
 	desc_2d.default_state = desc.default_state;
 	desc_2d.memory_type = desc.memory_type;
-	desc_2d.initial_state = desc.initial_state;
 	desc_2d.format = desc.format;
 	desc_2d.type = desc.type;
 	desc_2d.width = desc.length;
@@ -108,7 +99,7 @@ std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFF
 	if (db_desc_mutable.format < resource_format_d32_float_s8_uint || db_desc_mutable.format > resource_format_d16_norm)
 		throw std::exception("Invalid depth buffer format");
 	db_desc_mutable.memory_type = buffer_memory_type_default;
-	db_desc_mutable.initial_state = resource_state_depth_write;
+	db_desc_mutable.default_state = resource_state_depth_write;
 	db_desc_mutable.type = buffer_type_depth_stencil;
 	auto depth_buffer = dx12_buffers_create_2d(db_desc_mutable);
 
@@ -125,7 +116,7 @@ std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFF
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dsv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
 	i_device->CreateDepthStencilView(i_resource, &dsvDesc, *dsv_handle);
 	return std::make_unique<DX_DEPTH_BUFFER>(i_resource, *dsv_handle,
-											 desc.initial_state, desc.format,
+											 desc.default_state, desc.format,
 											 static_cast<size_t>(desc.width), static_cast<size_t>(desc.height));
 }
 
@@ -156,7 +147,7 @@ std::unique_ptr<RHI_CONSTANT_BUFFER> dx12_buffers_create_constant(const RHI_BUFF
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> cvb_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
 	i_device->CreateConstantBufferView(&cbv_desc, *cvb_handle);
 	return std::make_unique<DX_CONSTANT_BUFFER>(i_resource, *cvb_handle,
-												desc.initial_state, desc.format,
+												desc.default_state, desc.format,
 												desc.length);
 }
 
@@ -178,22 +169,24 @@ void dx12_buffers_gpu_upload_region(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFF
 									size_t offset_dest, size_t length)
 {
 
-	ID3D12GraphicsCommandList* i_cmd_list = command_buffer;
+	ID3D12GraphicsCommandList* i_command_buffer = command_buffer;
 	ID3D12Resource *i_dest_buffer = gpu_buffer;
 
-	D3D12_RESOURCE_STATES old_state = dx12_resource_state_type[gpu_buffer.get_current_state()];
+	auto old_state = gpu_buffer.get_current_state();
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Transition.pResource = i_dest_buffer;
-	barrier.Transition.StateBefore = old_state;
+	barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	i_cmd_list->ResourceBarrier(1, &barrier);
+	i_command_buffer->ResourceBarrier(1, &barrier);
+	gpu_buffer.set_current_state(resource_state_copy_dest);
 	dx12_buffers_copy_buffer_region(command_buffer, cpu_buffer,
 									offset_src, gpu_buffer, offset_dest, length);
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = old_state;
-	i_cmd_list->ResourceBarrier(1, &barrier);
+	barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
+	i_command_buffer->ResourceBarrier(1, &barrier);
+	gpu_buffer.set_current_state(old_state);
 }
 
 void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu_buffer,
@@ -203,18 +196,21 @@ void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu
 	ID3D12GraphicsCommandList* i_cmd_list = command_buffer;
 	ID3D12Resource *i_dest_buffer = gpu_buffer;
 
+	auto old_state = gpu_buffer.get_current_state();
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Transition.pResource = i_dest_buffer;
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+	barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	i_cmd_list->ResourceBarrier(1, &barrier);
+	gpu_buffer.set_current_state(resource_state_copy_dest);
 	dx12_buffers_copy_buffer(command_buffer, cpu_buffer,
 							 gpu_buffer);
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+	barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
 	i_cmd_list->ResourceBarrier(1, &barrier);
+	gpu_buffer.set_current_state(old_state);
 }
 
 void dx12_buffers_gpu_download_region(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu_buffer,

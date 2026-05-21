@@ -1,6 +1,7 @@
 #include "dx12_rt_bvh.hpp"
 #include "dx12_buffers.hpp"
 #include "dx12_command_queue.hpp"
+#include "dx12_command_buffer.hpp"
 
 std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
 {
@@ -50,18 +51,18 @@ std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
 		&blasInfo);
 
 	RHI_BUFFER_DESC buffer_desc(desc.device);
-	buffer_desc.initial_state = resource_state_rt_bvh;
+	buffer_desc.default_state = resource_state_rt_bvh;
 	buffer_desc.type = buffer_type_rt_bvh;
 	buffer_desc.format = desc.vertex_buffer.get().get_format();
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = blasInfo.ResultDataMaxSizeInBytes;
 	auto blas_buffer_impl = dx12_buffers_create_raw(buffer_desc);
 	buffer_desc.length = blasInfo.ScratchDataSizeInBytes;
-	buffer_desc.type = buffer_type_raw;
+	buffer_desc.type = buffer_type_rt_bvh;
+	buffer_desc.default_state = resource_state_none;
 	auto scratch_buffer_impl = dx12_buffers_create_raw(buffer_desc);
 
 	ID3D12Resource *i_blas_buffer = *blas_buffer_impl;
-	i_blas_buffer->AddRef();
 	ID3D12Resource *i_scratch_buffer = *scratch_buffer_impl;
 
 	// build
@@ -78,10 +79,13 @@ std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
 
 	i_command_buffer->ResourceBarrier(1, &blas_barrier);
 
+	i_blas_buffer->AddRef();
+	blas_buffer_impl->set_current_state(resource_state_rt_bvh);
+
 	return std::make_unique<DX_RT_BVH>(i_blas_buffer);
 }
 
-void dx12_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC &desc)
+std::unique_ptr<RHI_BUFFER> dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC &desc)
 {
 
 	ID3D12Resource *i_blas_buffer = static_cast<DX_RT_BVH &>(desc.parent_bvh.get());
@@ -92,15 +96,9 @@ void dx12_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC &desc)
 	RHI_BUFFER_DESC inputs_buffer_desc(device_impl);
 	inputs_buffer_desc.length = desc.transforms.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
 	inputs_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-	inputs_buffer_desc.initial_state = resource_state_generic_read;
+	inputs_buffer_desc.default_state = resource_state_generic_read;
 	auto tlas_inputs_buffer_impl = dx12_buffers_create_raw(inputs_buffer_desc);
 	ID3D12Resource *i_tlas_inputs_buffer = static_cast<DX_BUFFER &>(*tlas_inputs_buffer_impl);
-
-	// size_t mapped_size = buffer_desc.width * buffer_desc.height;
-	// void* mapped = nullptr;
-	// i_tlas_inputs_buffer->Map(0, nullptr, &mapped);
-	// memcpy(mapped, instances.data(), mapped_size);
-	// i_tlas_inputs_buffer->Unmap(0, nullptr);
 
 	D3D12_RAYTRACING_INSTANCE_DESC *instances = nullptr;
 	D3D12_RANGE readRange(0, 0);
@@ -154,26 +152,16 @@ void dx12_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC &desc)
 	i_device->GetRaytracingAccelerationStructurePrebuildInfo(&tlas_inputs, &tlas_info);
 
 	RHI_BUFFER_DESC buffer_desc(desc.device);
-	buffer_desc.initial_state = resource_state_rt_bvh;
+	buffer_desc.default_state = resource_state_rt_bvh;
 	buffer_desc.type = buffer_type_rt_bvh;
 	// buffer_desc.format = desc.vertex_buffer.get().get_format();
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = tlas_info.ResultDataMaxSizeInBytes;
 	auto tlas_buffer_impl = dx12_buffers_create_raw(buffer_desc);
 	buffer_desc.length = tlas_info.ScratchDataSizeInBytes;
-	buffer_desc.type = buffer_type_raw;
+	buffer_desc.type = buffer_type_rt_bvh;
+	buffer_desc.default_state = resource_state_none;
 	auto scratch_buffer_impl = dx12_buffers_create_raw(buffer_desc);
-
-	//////////////////////////////////////////////
-
-	// buffer_desc.base_state = resource_state_none;
-	// buffer_desc.memory_type = buffer_memory_type_gpu_only;
-	// buffer_desc.width = tlas_info.ResultDataMaxSizeInBytes;
-	// auto tlas_buffer_impl = dx12_buffers_create_raw(buffer_desc);
-	// buffer_desc.width = tlas_info.ScratchDataSizeInBytes;
-	// auto scratch_buffer_impl = dx12_buffers_create_raw(buffer_desc);
-
-	///////////////////////////////////
 
 	ID3D12Resource *i_tlas_buffer = *tlas_buffer_impl;
 	ID3D12Resource *i_scratch_buffer = *scratch_buffer_impl;
@@ -194,4 +182,23 @@ void dx12_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC &desc)
 	tlas_barrier.UAV.pResource = i_tlas_buffer;
 
 	i_command_buffer->ResourceBarrier(1, &tlas_barrier);
+	
+	i_tlas_buffer->AddRef();
+	tlas_buffer_impl->set_current_state(resource_state_rt_bvh);
+	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device.Get(), *device_impl.get_resources_heap(), desc.resource_slot);
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+	srv.ViewDimension =
+		D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+	srv.Shader4ComponentMapping =
+		D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv.RaytracingAccelerationStructure.Location =
+		i_tlas_buffer->GetGPUVirtualAddress();
+	static_cast<ID3D12Device*>(device_impl)->CreateShaderResourceView(
+		nullptr,
+		&srv,
+		*srv_handle
+	);
+	return std::make_unique<DX_BVH_BUFFER>(i_tlas_buffer, *srv_handle, resource_state_rt_bvh,
+		resource_format_none, static_cast<size_t>(tlas_info.ResultDataMaxSizeInBytes));
 }

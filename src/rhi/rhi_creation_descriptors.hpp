@@ -23,7 +23,7 @@ struct RHI_BUFFER_DESC : public RHI_PLATFORM_DESC
 		, length(0)
 		, mips(1)
 		, memory_type(buffer_memory_type_gpu_only)
-		, initial_state(resource_state_none)
+		, default_state(resource_state_none)
 		, format(resource_format_none)
 		, type(buffer_type_raw)
 	{
@@ -31,7 +31,7 @@ struct RHI_BUFFER_DESC : public RHI_PLATFORM_DESC
 	std::reference_wrapper<RHI_DEVICE> device;
 	size_t length, mips, resource_slot;
 	buffer_memory_type memory_type;
-	resource_state initial_state, default_state;
+	resource_state default_state;
 	resource_format format;
 	buffer_type type;
 };
@@ -174,17 +174,35 @@ struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC : public RHI_PLATFORM_DESC
 	primitive_topology topology;
 };
 
+struct RHI_RT_SHADER_UNIT {
+
+	std::string name_id;	// id
+	std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> blob;				// blob buffer
+};
+
+struct RHI_RT_HIT_GROUP_DESC {
+	
+	std::string group_id;
+	RHI_RT_SHADER_UNIT closest_hit; // ClosestHit
+	RHI_RT_SHADER_UNIT any_hit;	// AnyHit
+	RHI_RT_SHADER_UNIT intersection; // Intersection
+	
+};
+
+
 struct RHI_RT_PIPELINE_DESC : public RHI_PLATFORM_DESC
 {
 
-	RHI_RT_PIPELINE_DESC(RHI_DEVICE &dev, RHI_COMMAND_BUFFER &cmd_buffer,
-						 RHI_COMPILED_SHADER_BUFFER &shader_buffer)
-		: device(dev), command_buffer(cmd_buffer), shader(shader_buffer)
-	{
+	RHI_RT_PIPELINE_DESC(RHI_DEVICE &dev, RHI_PIPELINE_LAYOUT& p_layout)
+		: device(dev)
+		, layout(p_layout) {
 	}
+	
 	std::reference_wrapper<RHI_DEVICE> device;
-	std::reference_wrapper<RHI_COMMAND_BUFFER> command_buffer;
-	std::reference_wrapper<RHI_COMPILED_SHADER_BUFFER> shader;
+	std::reference_wrapper<RHI_PIPELINE_LAYOUT> layout;
+	std::vector<RHI_RT_HIT_GROUP_DESC> hit_groups;
+	std::vector<RHI_RT_SHADER_UNIT> miss_shaders;
+	RHI_RT_SHADER_UNIT ray_gen;
 };
 
 struct RHI_DESCRIPTOR_DESC : public RHI_PLATFORM_DESC
@@ -241,6 +259,7 @@ struct RHI_RT_BVH_DESC : public RHI_PLATFORM_DESC
 	std::reference_wrapper<RHI_COMMAND_BUFFER> command_buffer;
 	std::reference_wrapper<RHI_BUFFER> vertex_buffer;
 	std::observer_ptr<RHI_BUFFER> index_buffer;
+	
 };
 
 struct RT_GEOMETRY_INSTANCES_DESC : public RHI_PLATFORM_DESC
@@ -255,19 +274,19 @@ struct RT_GEOMETRY_INSTANCES_DESC : public RHI_PLATFORM_DESC
 	std::reference_wrapper<RHI_COMMAND_BUFFER> command_buffer;
 	std::reference_wrapper<RHI_RT_BVH> parent_bvh;
 	std::vector<Eigen::Matrix4f> transforms;
+	size_t resource_slot;
 };
 
 struct RHI_RENDER_PASS_DESC : public RHI_PLATFORM_DESC
 {
 
 	RHI_RENDER_PASS_DESC(RHI_DEVICE &device, std::shared_ptr<RHI_TEXTURE_2D> buffer)
-		: device(device), render_target(buffer), format(resource_format_none), buffer_index(-1), synchronized(false)
+		: device(device), render_target(buffer), format(resource_format_none), synchronized(false)
 	{
 	}
 	std::shared_ptr<RHI_TEXTURE_2D> render_target;
 	std::reference_wrapper<RHI_DEVICE> device;
 	resource_format format;
-	int buffer_index;
 	bool synchronized;
 };
 
@@ -280,6 +299,13 @@ struct RHI_RT_SAMPLER_DESC {
 	}
 	std::reference_wrapper<RHI_DEVICE> device;
 	size_t resource_slot;
+};
+
+struct RHI_RT_SBT_DESC {
+
+	std::vector<std::string> ray_gen_ids;
+	std::vector<std::string> miss_ids;
+	std::vector<std::string> hit_group_ids;
 };
 
 #endif

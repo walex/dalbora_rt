@@ -39,7 +39,7 @@ std::unique_ptr<DX_DEVICE_DESC> configure_dx12_device_desc() {
 void test_swap_chain(fptr_test_on_init on_init
 	, fptr_test_on_before_draw on_before_draw
 	, fptr_test_on_draw on_draw
-	, fptr_test_on_after_draw on_after_draw
+	, fptr_test_on_before_present on_before_present
 	, fptr_test_on_end on_end) {
 
 	std::unique_ptr<RHI_DEVICE> device;
@@ -89,14 +89,13 @@ void test_swap_chain(fptr_test_on_init on_init
 
 			auto rt = swap_chain->get_render_target(i);
 			RHI_RENDER_PASS_DESC render_pass_desc(*device, rt);
-			render_pass_desc.buffer_index = i;
 			render_pass_desc.synchronized = true;
 			auto render_pass = rhi_render_pass_create(render_pass_desc);
 			render_pass->set_view_port(vp);
 			render_passes.emplace_back(render_pass.release());
 		}
 		if (on_init)
-			on_init(*device, *command_queue, *command_buffer);
+			on_init(*device, *command_queue, *command_buffer, *swap_chain);
 		});
 
 	callbacks.get()->main_loop = ([&](RHI_WINDOW& UNUSED_PARAM(window)) {
@@ -115,17 +114,17 @@ void test_swap_chain(fptr_test_on_init on_init
 				rhi_command_buffer_record(*command_buffer,
 					[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
 						// begin pass
-						rhi_render_pass_execute(*render_pass, *command_buffer, [&] {
+						rhi_render_pass_execute_raster_mode(*render_pass, *command_buffer, [&] {
 
 							if (on_draw)
-								on_draw(*render_pass, *command_buffer);
+								on_draw(*device, *render_pass, *command_buffer);
 
 						});
 				});
 				command_buffer_list.push_back(command_buffer.get());
 		});
-		if (on_after_draw)
-			on_after_draw(*render_pass);
+		if (on_before_present)
+			on_before_present(*render_pass, *swap_chain, *command_buffer);
 
 		// present
 		rhi_swap_chain_present(*swap_chain);

@@ -8,7 +8,6 @@
 #include "dx12_index_buffer.hpp"
 #include "dx12_vertex_buffer.hpp"
 #include "dx12_raster_pipeline.hpp"
-#include "dx12_rt_pipeline.hpp"
 #include "dx12_texture_2d.hpp"
 #include "dx12_shaders_compiler.hpp"
 #include "dx12_render_pass.hpp"
@@ -16,6 +15,8 @@
 #include "dx12_heap.hpp"
 #include "dx12_buffers.hpp"
 #include "dx12_sampler.hpp"
+#include "dx12_rt_pipeline.hpp"
+#include "dx12_rt_bvh.hpp"
 
 void dx12_rhi_init()
 {
@@ -48,12 +49,14 @@ void dx12_rhi_init()
 	rhi_command_buffer_create_for_render = &dx12_command_buffer_create_for_render;
 	rhi_command_buffer_record = &dx12_command_buffer_record;
 	rhi_command_buffer_reset_resource_state = &dx12_command_buffer_reset_resource_state;
+	rhi_command_buffer_ray_trace = &dx12_command_buffer_ray_trace;
+	rhi_command_buffer_copy_texture = &dx12_command_buffer_copy_texture;
 
 	rhi_buffers_gpu_upload_region = &dx12_buffers_gpu_upload_region;
 	rhi_buffers_gpu_upload = &dx12_buffers_gpu_upload;
 	rhi_buffers_map_write = &dx12_buffers_map_write;
 	rhi_buffers_map_read = &dx12_buffers_map_read;
-	rhi_command_buffer_draw_triangle_list = dx12_command_buffer_draw_triangle_list;
+	rhi_command_buffer_draw_triangle_list = &dx12_command_buffer_draw_triangle_list;
 
 	// pipeline
 	rhi_pipeline_layout_create = &dx12_pipeline_layout_create;
@@ -79,13 +82,21 @@ void dx12_rhi_init()
 	rhi_texture_2d_create = &dx12_texture_2d_create;
 	rhi_sampler_create = &dx12_sampler_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
-	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
 	rhi_shaders_compiler_compile = &dx12_shaders_compiler_compile;
-	rhi_shaders_compiler_set_folder = dx12_shaders_compiler_set_folder;
+	rhi_shaders_compiler_set_folder = &dx12_shaders_compiler_set_folder;
 
 	// render pass
 	rhi_render_pass_create = &dx12_render_pass_create;
-	rhi_render_pass_execute = &dx12_render_pass_execute;
+	rhi_render_pass_execute_raster_mode = &dx12_render_pass_execute_raster_mode;
+	rhi_render_pass_execute_rt_mode = &dx12_render_pass_execute_rt_mode;
+
+	// rt
+	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
+	rhi_rt_bvh_create = &dx12_rt_bvh_create;
+	rhi_rt_bvh_build_geometry_instances = &dx12_rt_bvh_build_geometry_instances;
+	rhi_rt_pipeline_create_sbt = &dx12_rt_pipeline_create_sbt;
+
+	
 }
 
 void dx12_rhi_end()

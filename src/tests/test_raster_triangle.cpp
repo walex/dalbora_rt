@@ -49,7 +49,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	const std::filesystem::path shaders_folder(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests)");
 
 	test_swap_chain([&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
-						RHI_COMMAND_BUFFER &command_buffer)
+						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)
 					{
 
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
@@ -114,7 +114,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_BUFFER_DESC shared_camera_buffer_desc(device);
 			shared_camera_buffer_desc.length = sizeof(CameraCB);
 			shared_camera_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			shared_camera_buffer_desc.initial_state = resource_state_generic_read;
+			shared_camera_buffer_desc.default_state = resource_state_generic_read;
 			shared_camera_buffer_desc.resource_slot = 0;
 			shared_camera_constant_buffer = rhi_buffers_create_constant(shared_camera_buffer_desc);
 			camera_constant_buffer_ptr = rhi_buffers_map_open(*shared_camera_constant_buffer, 0, sizeof(CameraCB));
@@ -123,7 +123,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_BUFFER_DESC shared_object_buffer_desc(device);
 			shared_object_buffer_desc.length = sizeof(ObjectCB);
 			shared_object_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			shared_object_buffer_desc.initial_state = resource_state_generic_read;
+			shared_object_buffer_desc.default_state = resource_state_generic_read;
 			shared_object_buffer_desc.resource_slot = 1;
 			shared_object_constant_buffer = rhi_buffers_create_constant(shared_object_buffer_desc); // rhi_buffers_create_raw(cpu_object_buffer_desc);
 			object_constant_buffer_ptr = rhi_buffers_map_open(*shared_object_constant_buffer, 0, sizeof(ObjectCB));
@@ -150,7 +150,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 						RHI_BUFFER_DESC shared_buffer_desc(device);
 						shared_buffer_desc.length = vb_desc.length;
 						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-						shared_buffer_desc.initial_state = resource_state_generic_read;
+						shared_buffer_desc.default_state = resource_state_generic_read;
 						auto shared_vertex_buffer = rhi_buffers_create_raw(shared_buffer_desc);
 						rhi_buffers_map_write(*shared_vertex_buffer, vertices_ptr, 0, shared_buffer_desc.length);
 						rhi_buffers_gpu_upload(*copy_command_buffer, *shared_vertex_buffer, *vertex_buffer);
@@ -161,7 +161,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 						RHI_BUFFER_DESC shared_buffer_desc(device);
 						shared_buffer_desc.length = ib_desc.length;
 						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-						shared_buffer_desc.initial_state = resource_state_generic_read;
+						shared_buffer_desc.default_state = resource_state_generic_read;
 						auto shared_index_buffer = rhi_buffers_create_raw(shared_buffer_desc);
 						rhi_buffers_map_write(*shared_index_buffer, &indices[0], 0, shared_buffer_desc.length);
 						rhi_buffers_gpu_upload(*copy_command_buffer, *shared_index_buffer, *index_buffer);
@@ -179,7 +179,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			db_desc.format = resource_format_d24_norm_s8_uint;
 			db_desc.type = buffer_type_depth_stencil;
 			db_desc.resource_slot = 0;
-			db_desc.initial_state = resource_state_depth_write;
+			db_desc.default_state = resource_state_depth_write;
 			depth_buffer = rhi_buffers_create_depth(db_desc);
 
 			// create pipeline
@@ -191,46 +191,46 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			// on init
 			if (on_init)
-				on_init(device, command_queue, command_buffer); },
+				on_init(device, command_queue, command_buffer, swap_chain); 
+			},
 
-					[&](RHI_RENDER_PASS &render_pass)
-					{
-						// on before draw
-						render_pass.set_depth_buffer(depth_buffer.get());
-						render_pass.set_pipeline(triangle_raster_pipeline.get());
-						render_pass.set_constant_buffers(constants_buffer_array);
-					},
-					[&](RHI_RENDER_PASS& render_pass,
-						RHI_COMMAND_BUFFER &command_buffer)
-					{
-						// on draw
+			[&](RHI_RENDER_PASS &render_pass)
+			{
+				// on before draw
+				render_pass.set_depth_buffer(depth_buffer.get());
+				render_pass.set_pipeline(triangle_raster_pipeline.get());
+			},
+			[&](RHI_DEVICE& device, RHI_RENDER_PASS& render_pass,
+				RHI_COMMAND_BUFFER &command_buffer)
+			{
+				// on draw
 
-						float dt = get_delta_time();
-						triangle_transforms.world = rotate_triangle(dt);
+				float dt = get_delta_time();
+				triangle_transforms.world = rotate_triangle(dt);
 
-						// upload shaders constants
-						memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCB));
-						memcpy(object_constant_buffer_ptr, &triangle_transforms, sizeof(ObjectCB));
+				// upload shaders constants
+				memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCB));
+				memcpy(object_constant_buffer_ptr, &triangle_transforms, sizeof(ObjectCB));
 
-						rhi_command_buffer_reset_resource_state(command_buffer, *vertex_buffer);
-						rhi_command_buffer_reset_resource_state(command_buffer, *index_buffer);
+				rhi_command_buffer_reset_resource_state(command_buffer, *vertex_buffer);
+				rhi_command_buffer_reset_resource_state(command_buffer, *index_buffer);
 
-						if (on_draw)
-							on_draw(render_pass, command_buffer);
-						rhi_command_buffer_draw_triangle_list(command_buffer, *vertex_buffer, index_buffer.get());
-					},
-					[&](RHI_RENDER_PASS &UNUSED_PARAM(render_pass))
-					{
-						// on after draw
-					},
-					[&](RHI_DEVICE &UNUSED_PARAM(device))
-					{
-						// if (on_end)
-						//	on_end(device);
+				if (on_draw)
+					on_draw(device, render_pass, command_buffer);
+				rhi_command_buffer_draw_triangle_list(command_buffer, *vertex_buffer, index_buffer.get());
+			},
+			[&](RHI_RENDER_PASS &UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& (swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer))
+			{
+				// on after draw
+			},
+			[&](RHI_DEVICE &UNUSED_PARAM(device))
+			{
+				// if (on_end)
+				//	on_end(device);
 
-						// on end
-						rhi_buffers_map_close(*shared_camera_constant_buffer, 0, sizeof(CameraCB));
-						rhi_buffers_map_close(*shared_object_constant_buffer, 0, sizeof(ObjectCB));
-					});
+				// on end
+				rhi_buffers_map_close(*shared_camera_constant_buffer, 0, sizeof(CameraCB));
+				rhi_buffers_map_close(*shared_object_constant_buffer, 0, sizeof(ObjectCB));
+			});
 	return;
 }

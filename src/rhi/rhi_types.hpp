@@ -59,7 +59,16 @@ private:
 };
 
 struct RHI_RT_PIPELINE : public RHI_GRAPHICS_PIPELINE {
-	RHI_RT_PIPELINE() : RHI_GRAPHICS_PIPELINE(pipeline_type_rt) {}
+	RHI_RT_PIPELINE(RHI_PIPELINE_LAYOUT& layout, std::unique_ptr<RHI_SHADER_TABLE_ENTIRES> sbt)
+		: RHI_GRAPHICS_PIPELINE(pipeline_type_rt)
+		, layout(layout)
+		, shader_table(std::move(sbt)) {
+	}
+	operator RHI_PIPELINE_LAYOUT& () { return layout.get(); }
+	operator RHI_SHADER_TABLE_ENTIRES& () { return  *shader_table; }
+private:
+	std::reference_wrapper<RHI_PIPELINE_LAYOUT> layout;
+	std::unique_ptr<RHI_SHADER_TABLE_ENTIRES> shader_table;
 };
 
 struct RHI_COMMAND_QUEUE {
@@ -82,7 +91,7 @@ struct RHI_RESOURCE {
 	RHI_STRUCT_BASE_INFO(RHI_RESOURCE, RHI_STRUCT_BASE_PARAMS(
 
 		(resource_state default_state, resource_format resource_format)
-		: current_state(resource_state_none), default_state(default_state), format(resource_format) {
+		: current_state(default_state), default_state(default_state), format(resource_format) {
 	}
 	))
 public:
@@ -100,8 +109,8 @@ struct RHI_BUFFER: public RHI_RESOURCE {
 
 	RHI_STRUCT_BASE_INFO(RHI_BUFFER, RHI_STRUCT_BASE_PARAMS(
 
-		(resource_state base_state, resource_format resource_format, size_t length)
-		: RHI_RESOURCE(base_state, resource_format)
+		(resource_state default_state, resource_format resource_format, size_t length)
+		: RHI_RESOURCE(default_state, resource_format)
 		, length(length) {
 	}
 	))
@@ -208,7 +217,6 @@ struct RHI_RENDER_PASS {
 	void set_depth_buffer(RHI_DEPTH_BUFFER* db) { depth_buffer = std::observer_ptr<RHI_DEPTH_BUFFER>(db); }
 	void set_pipeline(RHI_GRAPHICS_PIPELINE* pl) { pipeline = std::observer_ptr<RHI_GRAPHICS_PIPELINE>(pl); }
 	void set_view_port(const RHI_VIEWPORT& vp) { view_port = vp; }
-	void set_constant_buffers(std::vector<RHI_CONSTANT_BUFFER*>& buffers) { constant_buffers = buffers; }
 private:
 	std::reference_wrapper<RHI_DEVICE> device;
 	std::shared_ptr<RHI_TEXTURE_2D> render_target;
@@ -237,6 +245,10 @@ struct RHI_RT_BVH {
 
 struct RHI_SAMPLER {
 	virtual ~RHI_SAMPLER() = default;
+};
+
+struct RHI_RT_HIT_GROUP {
+	virtual ~RHI_RT_HIT_GROUP() = default;
 };
 
 #endif

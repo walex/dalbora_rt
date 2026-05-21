@@ -130,7 +130,7 @@ std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC
 		}
 
 		swap_chain_impl->add_render_target(std::make_shared<DX_TEXTURE_2D>(i_buffer, *rtvHandle,
-			resource_state_render_target, desc.color_format,
+			resource_state_present, desc.color_format,
 			desc.width, desc.height, static_cast<size_t>(totalUploadSize), std::move(mips)));
 	}
 
@@ -146,7 +146,8 @@ std::shared_ptr<RHI_TEXTURE_2D> dx12_swap_chain_get_surface(RHI_SWAP_CHAIN& swap
 
 	ID3D12Resource* i_surface = nullptr;
 	IDXGISwapChain3* i_swap_chain = static_cast<IDXGISwapChain3*>(swap_chain);
-	surface_index = (int)i_swap_chain->GetCurrentBackBufferIndex();
+	if (surface_index == -1)
+		surface_index = (int)i_swap_chain->GetCurrentBackBufferIndex();
 	return swap_chain.get_render_target(surface_index);
 }
 
@@ -154,3 +155,4 @@ unsigned int dx12_swap_chain_get_current_buffer_id(RHI_SWAP_CHAIN& swap_chain) {
 
 	return (unsigned int)static_cast<IDXGISwapChain3*>(swap_chain)->GetCurrentBackBufferIndex();
 }
+

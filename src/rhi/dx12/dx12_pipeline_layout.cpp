@@ -180,7 +180,5 @@ std::unique_ptr<RHI_PIPELINE_LAYOUT> dx12_pipeline_layout_create(const RHI_PIPEL
 	if (FAILED(hr)) {
 		throw std::exception("Failed creating root signature");
 	}
-	auto layout = std::make_unique<DX_PIPELINE_LAYOUT>(i_root_signature);
-	//layout.set_descriptor_ranges(descriptor_ranges);
-	return layout;
+	return std::make_unique<DX_PIPELINE_LAYOUT>(i_root_signature);
 }

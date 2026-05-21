@@ -75,12 +75,12 @@ dx12_helpers_create_descriptor_heap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_
     heapDesc.Flags = flags;
     heapDesc.NodeMask = 0;
 
-    ID3D12DescriptorHeap* unifiedHeap = nullptr;
-    auto hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&unifiedHeap));
+    ID3D12DescriptorHeap* i_heap = nullptr;
+    auto hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&i_heap));
     if (FAILED(hr)) {
         throw std::exception("Cannot create CBV_SRV_UAV descriptor heap");
     }
-    return unifiedHeap;
+    return i_heap;
 }
 
 resource_format dx12_helpers_resource_format_from_dxgi_format(DXGI_FORMAT format) {

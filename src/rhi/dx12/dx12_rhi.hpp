@@ -131,13 +131,47 @@ struct DX_BUFFER : public RHI_BUFFER, public DX_RESOURCE
 {
 
 	DX_BUFFER(ID3D12Resource *resource,
-			  resource_state base_state,
+			  resource_state default_state,
 			  resource_format resource_format, size_t length)
-		: DX_RESOURCE(resource), RHI_BUFFER(base_state, resource_format, length)
+		: DX_RESOURCE(resource), RHI_BUFFER(default_state, resource_format, length)
 	{
 	}
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
 };
+
+struct DX_SBT_BUFFER : public DX_BUFFER
+{
+
+	DX_SBT_BUFFER(ID3D12Resource* resource,
+		resource_state base_state,
+		resource_format resource_format, size_t length,
+		size_t ray_gen_offset, size_t miss_offset, size_t hit_group_offset,
+		size_t ray_gen_size, size_t miss_size, size_t hit_group_size,
+		size_t record_size)
+		: DX_BUFFER(resource, base_state, resource_format, length)
+		, ray_gen_offset(ray_gen_offset)
+		, miss_offset(miss_offset)
+		, hit_group_offset(hit_group_offset)
+		, ray_gen_size(ray_gen_size)
+		, miss_size(miss_size)
+		, hit_group_size(hit_group_size)
+		, record_size(record_size)
+
+	{
+	}
+	DEFINE_GETTER(ray_gen_offset)
+	DEFINE_GETTER(miss_offset)
+	DEFINE_GETTER(hit_group_offset)
+	DEFINE_GETTER(ray_gen_size)
+	DEFINE_GETTER(miss_size)
+	DEFINE_GETTER(hit_group_size)
+	DEFINE_GETTER(record_size)
+private:
+	size_t ray_gen_offset, miss_offset, hit_group_offset;
+	size_t ray_gen_size, miss_size, hit_group_size;
+	size_t record_size;
+};
+
 
 struct DX_INDEX_BUFFER : public RHI_INDEX_BUFFER, public DX_RESOURCE {
 
@@ -182,8 +216,8 @@ struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_NATIVE_HANDLE<ID
 struct DX_RESOURCE_DESCRIPTOR : public DX_RESOURCE
 {
 
-	DX_RESOURCE_DESCRIPTOR(ID3D12Resource *render_target, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
-		: DX_RESOURCE(render_target), cpu_handle(cpu_handle)
+	DX_RESOURCE_DESCRIPTOR(ID3D12Resource *resource, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle)
+		: DX_RESOURCE(resource), cpu_handle(cpu_handle)
 	{
 	}
 	operator D3D12_CPU_DESCRIPTOR_HANDLE &()
@@ -223,16 +257,28 @@ struct DX_TEXTURE_2D : public DX_RESOURCE_DESCRIPTOR, public RHI_TEXTURE_2D
 {
 
 	DX_TEXTURE_2D(ID3D12Resource *i_buffer, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
-				  resource_state base_state, resource_format resource_format,
+				  resource_state default_state, resource_format resource_format,
 				  size_t width, size_t height, size_t physical_size,
 				  std::vector<RHI_TEXTURE_MIPS>&& mips)
-		: DX_RESOURCE_DESCRIPTOR(i_buffer, cpu_handle), RHI_TEXTURE_2D(base_state, resource_format, width, height, physical_size, std::move(mips))
+		: DX_RESOURCE_DESCRIPTOR(i_buffer, cpu_handle), RHI_TEXTURE_2D(default_state, resource_format, width, height, physical_size, std::move(mips))
 	{
 	}
 
 	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
 };
 
+struct DX_BVH_BUFFER : public DX_RESOURCE_DESCRIPTOR, public RHI_BUFFER
+{
+
+	DX_BVH_BUFFER(ID3D12Resource* i_buffer, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
+		resource_state default_state, resource_format resource_format, 
+		size_t length)
+		: DX_RESOURCE_DESCRIPTOR(i_buffer, cpu_handle), 
+		RHI_BUFFER(default_state, resource_format, length)
+	{
+	}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12Resource)
+};
 struct DX_RENDER_PASS : public RHI_RENDER_PASS
 {
 
@@ -266,9 +312,13 @@ struct DX_RASTER_PIPELINE : public RHI_RASTER_PIPELINE, public DX_RASTER_PIPELIN
 
 struct DX_RT_PIPELINE : public RHI_RT_PIPELINE, public DX_RT_PIPELINE_HANDLE
 {
-
-	HANDLE_CONSTRUCTOR(DX_RT_PIPELINE, ID3D12StateObject)
-		IMPLEMENT_GET_NATIVE_HANDLE(ID3D12StateObject)
+	DX_RT_PIPELINE(ID3D12StateObject* i_pipelune_state, RHI_PIPELINE_LAYOUT& layout, std::unique_ptr<RHI_SHADER_TABLE_ENTIRES> sbt)
+		: DX_RT_PIPELINE_HANDLE(i_pipelune_state)
+		, RHI_RT_PIPELINE(layout, std::move(sbt)) {
+	}
+	IMPLEMENT_GET_NATIVE_HANDLE(ID3D12StateObject)
+	
+	operator DX_PIPELINE_LAYOUT& () { return static_cast<DX_PIPELINE_LAYOUT&>(static_cast<RHI_PIPELINE_LAYOUT&>(*this)); }
 };
 
 struct DX_SAMPLER : public RHI_SAMPLER
@@ -308,7 +358,7 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D, // buffer_type_image_2d
 	D3D12_RESOURCE_DIMENSION_TEXTURE3D, // buffer_type_image_3d
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_rt_bvh
-	D3D12_RESOURCE_DIMENSION_BUFFER		// buffer_type_depth_stencil
+	D3D12_RESOURCE_DIMENSION_BUFFER,		// buffer_type_depth_stencil
 };
 
 constexpr DXGI_FORMAT dx12_resource_format_type[] = {
@@ -341,13 +391,14 @@ constexpr D3D12_RESOURCE_STATES dx12_resource_state_type[] = {
 	D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,											 // resource_state_constant_buffer
 	D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,											 // resource_state_vertex_buffer
 	D3D12_RESOURCE_STATE_INDEX_BUFFER,															 // resource_index_buffer
-	D3D12_RESOURCE_STATE_GENERIC_READ															 // resource_state_generic_read
+	D3D12_RESOURCE_STATE_GENERIC_READ,															 // resource_state_generic_read
+	D3D12_RESOURCE_STATE_UNORDERED_ACCESS														// resource_state_rt_render_target
 };
 
 constexpr D3D12_HEAP_TYPE dx12_heap_type[] = {
-	D3D12_HEAP_TYPE_DEFAULT, // buffer_memory_type_gpu_only
-	D3D12_HEAP_TYPE_UPLOAD,	 // buffer_memory_type_cpu_to_gpu
-	D3D12_HEAP_TYPE_READBACK // buffer_memory_type_gpu_to_cpu
+	D3D12_HEAP_TYPE_DEFAULT, // buffer_memory_type_default / buffer_memory_type_gpu_only
+	D3D12_HEAP_TYPE_UPLOAD,	 // buffer_memory_type_shared_rw
+	D3D12_HEAP_TYPE_READBACK // buffer_memory_type_shared_read_only
 };
 
 void dx12_rhi_init();

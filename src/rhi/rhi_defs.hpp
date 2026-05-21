@@ -2,10 +2,13 @@
 #define __rhi_defs_hpp__
 
 #include <functional>
+#include <map>
+#include <string>
 struct RHI_WINDOW;
 struct RHI_COMMAND_BUFFER;
 
 using RHI_VOID_PTR = void *;
+using RHI_SHADER_TABLE_ENTIRES = std::map<std::string, RHI_VOID_PTR>;
 using fptr_window_main_loop_callback = std::function<void(RHI_WINDOW &window)>;
 using fptr_window_on_init = std::function<void(RHI_WINDOW &window)>;
 using fptr_window_on_end = std::function<void(RHI_WINDOW &window)>;
@@ -97,7 +100,7 @@ enum primitive_topology
 enum resource_state
 {
 	resource_state_none = 0,
-	resource_state_render_target,
+	resource_state_raster_render_target,
 	resource_state_depth_read,
 	resource_state_depth_write,
 	resource_state_shader_write,
@@ -109,7 +112,8 @@ enum resource_state
 	resource_state_constant_buffer,
 	resource_state_vertex_buffer,
 	resource_state_index_buffer,
-	resource_state_generic_read
+	resource_state_generic_read,
+	resource_state_rt_render_target,
 };
 
 enum fence_flags

@@ -304,4 +304,7 @@ namespace std
 void msg_box(void *parent_window, const char *title, const char *message);
 void set_thread_affinity(const std::vector<unsigned int> &cores);
 
+#define ALIGN(value, alignment) \
+    (((value) + ((alignment) - 1)) & ~((alignment) - 1))
+
 #endif
