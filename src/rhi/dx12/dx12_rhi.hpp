@@ -32,14 +32,16 @@ struct DX_HANDLE : public RHI_HANDLE, protected Microsoft::WRL::ComPtr<T>
 	RHI_VOID_PTR get_handle() const override { return static_cast<RHI_VOID_PTR>(this->Get()); }
 };
 
-#define RTV_HEAP_ID 0
-#define DSV_HEAP_ID 1
-#define RESOURCES_HEAP_ID 2
-#define SAMPLER_HEAP_ID 3
-#define HEAP_ID_COUNT 4
+enum heap_id_type {
+	heap_id_type_rtv,
+	heap_id_type_dsv,
+	heap_id_type_resources,
+	heap_id_type_sampler,
+	heap_id_type_count,
+};
 
 typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
-struct DX_RESOURCE_DESCRIPTOR
+struct DX_RESOURCE_HEAP_DESCRIPTOR
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor_handle;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handle;
@@ -50,7 +52,7 @@ struct DX_HEAP : public DX_HANDLE<ID3D12DescriptorHeap> {
 
 	size_t count = 0;
 	size_t max_count = 0;
-	DX_RESOURCE_DESCRIPTOR descriptor_handle;
+	DX_RESOURCE_HEAP_DESCRIPTOR descriptor_handle;
 };
 
 struct DX_DEVICE : public RHI_DEVICE, public DX_HANDLE<ID3D12Device>
@@ -116,7 +118,7 @@ struct DX_BVH_BUFFER : public RHI_BUFFER {
 struct DX_FENCE : public RHI_FENCE, public DX_HANDLE<ID3D12Fence> {
 };
 
-struct DX_VIEW : public RHI_VIEW, public DX_RESOURCE_DESCRIPTOR {
+struct DX_VIEW : public RHI_VIEW, public DX_RESOURCE_HEAP_DESCRIPTOR {
 
 	void set_handle(RHI_VOID_PTR handle) override {
 		memcpy(&descriptor_handle, 

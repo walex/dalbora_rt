@@ -3,20 +3,31 @@
 #include "dx12_command_queue.hpp"
 #include "dx12_command_buffer.hpp"
 
-std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
+RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 {
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->command_buffer);
+	ASSERT_NULL(desc->vertex_buffer);
 
-	ID3D12Device *i_device_0 = static_cast<DX_DEVICE&>(desc.device.get());
-	ID3D12CommandList *i_command_buffer_0 = static_cast<DX_COMMAND_BUFFER&>(desc.command_buffer.get());
-	DX_VERTEX_BUFFER& vb_impl = static_cast<DX_VERTEX_BUFFER&>(desc.vertex_buffer.get());
-	DX_INDEX_BUFFER* ib_impl = static_cast<DX_INDEX_BUFFER*>(desc.index_buffer.get());
-	ID3D12Resource* i_vb = vb_impl;
+	ID3D12Device* i_device_0 = *static_cast<DX_DEVICE*>(desc->device);
+	ASSERT_NULL(i_device_0);
+	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
+	ASSERT_NULL(i_command_buffer_0);
+	DX_VERTEX_BUFFER* vb_impl = static_cast<DX_VERTEX_BUFFER*>(desc->vertex_buffer);
+	ASSERT_NULL(vb_impl);
+	DX_INDEX_BUFFER* ib_impl = static_cast<DX_INDEX_BUFFER*>(desc->index_buffer);
+	
+	ID3D12Resource* i_vb = *vb_impl;
+	ASSERT_NULL(i_vb);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	i_device_0->QueryInterface(IID_PPV_ARGS(&i_device));
+	ASSERT_FAILED(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_NULL(i_device);
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
-	i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer));
+	ASSERT_FAILED(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_NULL(i_command_buffer);
 
 	// create blas
 	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc = {};
@@ -24,18 +35,18 @@ std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
 	geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 	geomDesc.Triangles.VertexBuffer.StartAddress =
 		i_vb->GetGPUVirtualAddress();
-	geomDesc.Triangles.VertexBuffer.StrideInBytes = vb_impl.get_stride();
-	geomDesc.Triangles.VertexCount = (UINT)(vb_impl.get_length() / vb_impl.get_stride());
-	geomDesc.Triangles.VertexFormat = dx12_resource_format_type[vb_impl.get_format()];
+	geomDesc.Triangles.VertexBuffer.StrideInBytes = static_cast<UINT64>(vb_impl->stride);
+	geomDesc.Triangles.VertexCount = static_cast<UINT>(vb_impl->length / vb_impl->stride);
+	geomDesc.Triangles.VertexFormat = dx12_resource_format_type[vb_impl->format];
 
 	if (ib_impl)
 	{
-
 		ID3D12Resource *i_ib = *ib_impl;
+		ASSERT_NULL(i_ib);
 		geomDesc.Triangles.IndexBuffer =
 			i_ib->GetGPUVirtualAddress();
-		geomDesc.Triangles.IndexCount = (UINT)(ib_impl->get_length() / ib_impl->get_stride());
-		geomDesc.Triangles.IndexFormat = dx12_resource_format_type[ib_impl->get_format()];
+		geomDesc.Triangles.IndexCount = static_cast<UINT>(ib_impl->length / ib_impl->stride);
+		geomDesc.Triangles.IndexFormat = dx12_resource_format_type[ib_impl->format];
 	}
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
@@ -50,20 +61,21 @@ std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
 		&inputs,
 		&blasInfo);
 
-	RHI_BUFFER_DESC buffer_desc(desc.device);
-	buffer_desc.default_state = resource_state_rt_bvh;
+	RHI_BUFFER_DESC buffer_desc;
 	buffer_desc.type = buffer_type_rt_bvh;
-	buffer_desc.format = desc.vertex_buffer.get().get_format();
+	buffer_desc.format = desc->vertex_buffer->format;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = blasInfo.ResultDataMaxSizeInBytes;
-	auto blas_buffer_impl = dx12_buffers_create_raw(buffer_desc);
+	std::unique_ptr<DX_BUFFER> blas_buffer_impl;
+	blas_buffer_impl.reset(dx12_buffers_create_raw<DX_BUFFER>(&buffer_desc));
 	buffer_desc.length = blasInfo.ScratchDataSizeInBytes;
-	buffer_desc.type = buffer_type_rt_bvh;
-	buffer_desc.default_state = resource_state_none;
-	auto scratch_buffer_impl = dx12_buffers_create_raw(buffer_desc);
+	std::unique_ptr<DX_BUFFER> scratch_buffer_impl;
+	scratch_buffer_impl.reset(dx12_buffers_create_raw<DX_BUFFER>(&buffer_desc));
 
 	ID3D12Resource *i_blas_buffer = *blas_buffer_impl;
+	ASSERT_NULL(i_blas_buffer);
 	ID3D12Resource *i_scratch_buffer = *scratch_buffer_impl;
+	ASSERT_NULL(i_blas_buffer);
 
 	// build
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC build_desc = {};
@@ -78,46 +90,61 @@ std::unique_ptr<RHI_RT_BVH> dx12_rt_bvh_create(const RHI_RT_BVH_DESC &desc)
 	blas_barrier.UAV.pResource = i_blas_buffer;
 
 	i_command_buffer->ResourceBarrier(1, &blas_barrier);
-
+	DX_RT_BVH* result = new DX_RT_BVH();
+	ASSERT_NULL(result);
 	i_blas_buffer->AddRef();
-	blas_buffer_impl->set_current_state(resource_state_rt_bvh);
-
-	return std::make_unique<DX_RT_BVH>(i_blas_buffer);
+	result->set_handle(i_blas_buffer);
+	return result;
 }
 
-std::unique_ptr<RHI_BUFFER> dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC &desc)
+RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC* const desc)
 {
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->command_buffer);
+	ASSERT_NULL(desc->parent_bvh);
 
-	ID3D12Resource *i_blas_buffer = static_cast<DX_RT_BVH &>(desc.parent_bvh.get());
-	DX_DEVICE &device_impl = reinterpret_cast<DX_DEVICE &>(desc.device.get());
+	DX_DEVICE* device_impl = *static_cast<DX_DEVICE*>(desc->device);
+	ID3D12Device* i_device_0 = *device_impl;
+	ASSERT_NULL(i_device_0);
+	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
+	ASSERT_FAILED(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_NULL(i_device);
+	ID3D12Resource* i_blas_buffer = *static_cast<DX_RT_BVH*>(desc->parent_bvh);
+	ASSERT_NULL(i_blas_buffer);
+	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
+	ASSERT_NULL(i_command_buffer_0);
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
+	ASSERT_FAILED(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_NULL(i_command_buffer);
 
 	// TLAS
-
-	RHI_BUFFER_DESC inputs_buffer_desc(device_impl);
-	inputs_buffer_desc.length = desc.transforms.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+	RHI_BUFFER_DESC inputs_buffer_desc;
+	inputs_buffer_desc.device = device_impl;
+	inputs_buffer_desc.length = desc->instance_count * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
 	inputs_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-	inputs_buffer_desc.default_state = resource_state_generic_read;
-	auto tlas_inputs_buffer_impl = dx12_buffers_create_raw(inputs_buffer_desc);
-	ID3D12Resource *i_tlas_inputs_buffer = static_cast<DX_BUFFER &>(*tlas_inputs_buffer_impl);
+	std::unique_ptr<DX_BUFFER> tlas_inputs_buffer_impl;
+	tlas_inputs_buffer_impl.reset(dx12_buffers_create_raw<DX_BUFFER>(&inputs_buffer_desc));
+	ID3D12Resource* i_tlas_inputs_buffer = *tlas_inputs_buffer_impl;
+	ASSERT_NULL(i_tlas_inputs_buffer);
 
-	D3D12_RAYTRACING_INSTANCE_DESC *instances = nullptr;
+	D3D12_RAYTRACING_INSTANCE_DESC* instances = nullptr;
 	D3D12_RANGE readRange(0, 0);
 
 	i_tlas_inputs_buffer->Map(
 		0,
 		nullptr,
-		reinterpret_cast<void **>(&instances));
+		reinterpret_cast<void**>(&instances));
 
 	UINT iid = 0;
-	for (size_t i = 0; i < desc.transforms.size(); i++)
+	for (size_t i = 0; i < desc->instance_count; i++)
 	{
-
-		D3D12_RAYTRACING_INSTANCE_DESC &instance = instances[i];
+		D3D12_RAYTRACING_INSTANCE_DESC& instance = instances[i];
 		instance.InstanceID = iid++;
 		instance.InstanceMask = 0xFF;
 		instance.AccelerationStructure = i_blas_buffer->GetGPUVirtualAddress();
 
-		auto &mat = desc.transforms[i];
+		auto& mat = desc->transforms[i];
 
 		// fila 0
 		instance.Transform[0][0] = mat(0, 0);
@@ -146,59 +173,56 @@ std::unique_ptr<RHI_BUFFER> dx12_rt_bvh_build_geometry_instances(const RT_GEOMET
 	tlas_inputs.NumDescs = 1;
 	tlas_inputs.InstanceDescs = i_tlas_inputs_buffer->GetGPUVirtualAddress();
 
-	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	static_cast<ID3D12Device *>(device_impl)->QueryInterface(IID_PPV_ARGS(&i_device));
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO tlas_info = {};
 	i_device->GetRaytracingAccelerationStructurePrebuildInfo(&tlas_inputs, &tlas_info);
 
-	RHI_BUFFER_DESC buffer_desc(desc.device);
-	buffer_desc.default_state = resource_state_rt_bvh;
+	RHI_BUFFER_DESC buffer_desc;
+	buffer_desc.device = desc->device;
 	buffer_desc.type = buffer_type_rt_bvh;
-	// buffer_desc.format = desc.vertex_buffer.get().get_format();
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = tlas_info.ResultDataMaxSizeInBytes;
-	auto tlas_buffer_impl = dx12_buffers_create_raw(buffer_desc);
+	std::unique_ptr<DX_BUFFER> tlas_buffer_impl;
+	tlas_buffer_impl.reset(dx12_buffers_create_raw<DX_BUFFER>(&buffer_desc));
 	buffer_desc.length = tlas_info.ScratchDataSizeInBytes;
-	buffer_desc.type = buffer_type_rt_bvh;
-	buffer_desc.default_state = resource_state_none;
-	auto scratch_buffer_impl = dx12_buffers_create_raw(buffer_desc);
+	std::unique_ptr<DX_BUFFER> scratch_buffer_impl;
+	scratch_buffer_impl.reset(dx12_buffers_create_raw<DX_BUFFER>(&buffer_desc));
 
-	ID3D12Resource *i_tlas_buffer = *tlas_buffer_impl;
-	ID3D12Resource *i_scratch_buffer = *scratch_buffer_impl;
+	ID3D12Resource* i_tlas_buffer = *tlas_buffer_impl;
+	ASSERT_NULL(i_tlas_buffer);
+	ID3D12Resource* i_scratch_buffer = *scratch_buffer_impl;
+	ASSERT_NULL(i_scratch_buffer);
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC tlasBuild = {};
 	tlasBuild.Inputs = tlas_inputs;
 	tlasBuild.DestAccelerationStructureData = i_tlas_buffer->GetGPUVirtualAddress();
 	tlasBuild.ScratchAccelerationStructureData = i_scratch_buffer->GetGPUVirtualAddress();
 
-	ID3D12CommandList *i_command_buffer_0 = reinterpret_cast<DX_COMMAND_BUFFER &>(desc.command_buffer.get());
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
-	i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer));
 	i_command_buffer->BuildRaytracingAccelerationStructure(&tlasBuild, 0, nullptr);
 
 	// UAV barrier TLAS
 	D3D12_RESOURCE_BARRIER tlas_barrier = {};
 	tlas_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 	tlas_barrier.UAV.pResource = i_tlas_buffer;
-
 	i_command_buffer->ResourceBarrier(1, &tlas_barrier);
-	
-	i_tlas_buffer->AddRef();
-	tlas_buffer_impl->set_current_state(resource_state_rt_bvh);
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device.Get(), *device_impl.get_resources_heap(), desc.resource_slot);
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-	srv.ViewDimension =
-		D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-	srv.Shader4ComponentMapping =
-		D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srv.RaytracingAccelerationStructure.Location =
-		i_tlas_buffer->GetGPUVirtualAddress();
-	static_cast<ID3D12Device*>(device_impl)->CreateShaderResourceView(
-		nullptr,
-		&srv,
-		*srv_handle
-	);
-	return std::make_unique<DX_BVH_BUFFER>(i_tlas_buffer, *srv_handle, resource_state_rt_bvh,
-		resource_format_none, static_cast<size_t>(tlas_info.ResultDataMaxSizeInBytes));
+	DX_RESOURCE_HEAP_DESCRIPTOR srv_handle = dx12_helpers_get_next_descriptor_heap_handle(device_impl, heap_id_type_resources);
+
+	// CREAR VIEW EN OTRO LADO
+	//D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+	//srv.ViewDimension =
+	//	D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+	//srv.Shader4ComponentMapping =
+	//	D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	//srv.RaytracingAccelerationStructure.Location =
+	//	i_tlas_buffer->GetGPUVirtualAddress();
+	//i_device->CreateShaderResourceView(
+	//	nullptr,
+	//	&srv,
+	//	srv_handle.cpu_descriptor_handle
+	//);
+	DX_BVH_BUFFER* result = new DX_BVH_BUFFER();
+	ASSERT_NULL(result);
+	i_tlas_buffer->AddRef();
+	result->set_handle(i_tlas_buffer);
+	return result;
 }

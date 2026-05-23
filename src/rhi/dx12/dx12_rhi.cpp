@@ -5,8 +5,6 @@
 #include "dx12_swap_chain.hpp"
 #include "dx12_window.hpp"
 #include "dx12_command_buffer.hpp"
-#include "dx12_index_buffer.hpp"
-#include "dx12_vertex_buffer.hpp"
 #include "dx12_raster_pipeline.hpp"
 #include "dx12_texture_2d.hpp"
 #include "dx12_shaders_compiler.hpp"

@@ -23,9 +23,12 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	ASSERT_NULL(render_pass->device);
 	ASSERT_NULL(render_pass->render_target);
 	ASSERT_NULL(render_pass->pipeline);
+	ASSERT_NULL(render_pass->pipeline->layout);
 	ASSERT_NULL(command_buffer);
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
+	ASSERT_NULL(device_impl->resources_heap);
+
 	DX_TEXTURE_2D* render_target_impl = static_cast<DX_TEXTURE_2D*>(render_pass->render_target);
 	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
@@ -43,10 +46,9 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 		true,
 		[&]() {
 
-			auto handle = dx12_helpers_get_read_only_descriptor_heap_handle(device_impl, *device_impl.get_resources_heap(), 0);
 			i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
-			i_command_buffer_5->SetComputeRootSignature(static_cast<DX_PIPELINE_LAYOUT&>(static_cast<DX_RT_PIPELINE&>(*pipeline_impl)));
-			i_command_buffer_5->SetComputeRootDescriptorTable(0, *handle.get());
+			i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
+			i_command_buffer_5->SetComputeRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);
 			i_command_buffer_5->SetPipelineState1(static_cast<DX_RT_PIPELINE&>(*pipeline_impl));
 			if (callback)
 				callback();
