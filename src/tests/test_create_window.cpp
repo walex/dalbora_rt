@@ -43,8 +43,8 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 	strcpy_s(window_desc.title, "pbr test create window");
 
 	// create window
-	auto window = rhi_create_window(window_desc);
+	std::unique_ptr<RHI_WINDOW> window(rhi_create_window(&window_desc));
 
 	// main loop
-	rhi_window_main_loop(*window);
+	rhi_window_main_loop(window.get());
 }

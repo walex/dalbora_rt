@@ -73,9 +73,9 @@ void test_swap_chain(fptr_test_on_init on_init
 		swap_chain_desc.width = 800;
 		swap_chain_desc.height = 600;
 		swap_chain_desc.allow_tearing = false;
-		swap_chain_desc.buffer_count = kSwapChainBufferCount;
+		swap_chain_desc.buffer_count = 3;
 		swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
-		swap_chain = rhi_swap_chain_create(swap_chain_desc);
+		swap_chain.reset(rhi_swap_chain_create(&swap_chain_desc));
 
 		RHI_VIEWPORT vp;
 		vp.x = 0;

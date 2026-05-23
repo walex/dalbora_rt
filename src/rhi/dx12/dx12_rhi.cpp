@@ -48,7 +48,6 @@ void dx12_rhi_init()
 	rhi_command_buffer_create_for_compute = &dx12_command_buffer_create_for_compute;
 	rhi_command_buffer_create_for_render = &dx12_command_buffer_create_for_render;
 	rhi_command_buffer_record = &dx12_command_buffer_record;
-	rhi_command_buffer_reset_resource_state = &dx12_command_buffer_reset_resource_state;
 	rhi_command_buffer_ray_trace = &dx12_command_buffer_ray_trace;
 	rhi_command_buffer_copy_texture = &dx12_command_buffer_copy_texture;
 
@@ -101,6 +100,4 @@ void dx12_rhi_init()
 
 void dx12_rhi_end()
 {
-	// destroy factory
-	dx12_factory_destroy();
 }

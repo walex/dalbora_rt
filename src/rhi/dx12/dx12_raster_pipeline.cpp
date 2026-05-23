@@ -1,9 +1,13 @@
 #include "dx12_raster_pipeline.hpp"
 
-std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC& desc) {
+RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC* const desc) {
+	
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->layout);
 
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
-	ID3D12Device* i_device = static_cast<DX_DEVICE&>(desc.device.get());
+	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
 	constexpr D3D12_RASTERIZER_DESC rasterizer_desc_default = {
 		D3D12_FILL_MODE_SOLID,
 		D3D12_CULL_MODE_NONE,
@@ -43,12 +47,13 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 	};
 
 	D3D12_INPUT_LAYOUT_DESC input_layout;
-	std::vector<D3D12_INPUT_ELEMENT_DESC> layout_element_descs(desc.layouts_desc.size());
-	input_layout.NumElements = (UINT)desc.layouts_desc.size();
-	for (int i = 0; i < desc.layouts_desc.size(); i++) {
-		auto& ele_desc = layout_element_descs.at(i);
-		auto& gen_layout = desc.layouts_desc.at(i);
-		ele_desc.SemanticName = gen_layout.name.c_str();
+	size_t element_count = desc->input_layouts_desc_count;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> layout_element_descs(element_count);
+	input_layout.NumElements = static_cast<UINT>(element_count);
+	for (int i = 0; i < element_count; i++) {
+		D3D12_INPUT_ELEMENT_DESC& ele_desc = layout_element_descs.at(i);
+		const RHI_INPUT_LAYOUT_DESC& gen_layout = desc->input_layouts_desc[i];
+		ele_desc.SemanticName = &gen_layout.name[0];
 		ele_desc.SemanticIndex = 0;
 		ele_desc.Format = dx12_resource_format_type[(int)gen_layout.format];
 		ele_desc.InputSlot = 0;
@@ -60,33 +65,37 @@ std::unique_ptr<RHI_RASTER_PIPELINE> dx12_raster_pipeline_create(const RHI_RASTE
 
 	// Define a simple graphics pipeline state description
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.pRootSignature = const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).layout.get();
-	if (desc.vertex_shader) {
-		IDxcBlob* buffer = *const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).vertex_shader.get();
+	psoDesc.pRootSignature = *static_cast<DX_PIPELINE_LAYOUT*>(desc->layout);
+	if (desc->vertex_shader) {
+		IDxcBlob* buffer = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->vertex_shader);
 		psoDesc.VS.pShaderBytecode = buffer->GetBufferPointer();
 		psoDesc.VS.BytecodeLength = buffer->GetBufferSize();
 	}
-	if (desc.pixel_shader) {
-		IDxcBlob* buffer = *const_cast<RHI_RASTER_PIPELINE_DESC&>(desc).pixel_shader.get();
+	if (desc->pixel_shader) {
+		IDxcBlob* buffer = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->pixel_shader);
 		psoDesc.PS.pShaderBytecode = buffer->GetBufferPointer();
 		psoDesc.PS.BytecodeLength = buffer->GetBufferSize();
 	}
 	psoDesc.BlendState = belnd_desc_default;
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.RasterizerState = rasterizer_desc_default;
-	if (desc.depth_buffer_format != resource_format_none) {
+	if (desc->depth_buffer_format != resource_format_none) {
 		psoDesc.DepthStencilState = deep_stencil_desc_default;
-		psoDesc.DSVFormat = dx12_resource_format_type[desc.depth_buffer_format];
+		psoDesc.DSVFormat = dx12_resource_format_type[desc->depth_buffer_format];
 	}
 	psoDesc.InputLayout = input_layout;
-	psoDesc.PrimitiveTopologyType = dx12_primitive_topology_type[(int)desc.topology];
+	psoDesc.PrimitiveTopologyType = dx12_primitive_topology_type[desc->topology];
 	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = dx12_resource_format_type[(int)desc.surface_format];
+	psoDesc.RTVFormats[0] = dx12_resource_format_type[(int)desc->surface_format];
 	psoDesc.SampleDesc.Count = 1;
+
 	ID3D12PipelineState* pipelineState = nullptr;
-	HRESULT hr = i_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
-	if (FAILED(hr) || !pipelineState) {
-		throw std::exception("Failed to create D3D12 graphics pipeline state");
-	}
-	return std::make_unique<DX_RASTER_PIPELINE>(pipelineState, desc.layout.get());
+	ASSERT_FAILED(i_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState)));
+	ASSERT_NULL(pipelineState);
+
+	DX_RASTER_PIPELINE* result = new DX_RASTER_PIPELINE();
+	ASSERT_NULL(result);
+	result->set_handle(pipelineState);
+	result->layout = desc->layout;
+	return result;
 }

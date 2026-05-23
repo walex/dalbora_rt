@@ -1,4 +1,4 @@
-# AI physically based render
+# Physically based neural renderer
 
 ------
 

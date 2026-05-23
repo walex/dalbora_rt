@@ -3,7 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_PIPELINE_LAYOUT> dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC& desc);
-
+RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC* const desc);
 
 #endif

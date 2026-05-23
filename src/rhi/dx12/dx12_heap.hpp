@@ -3,7 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<DX_HEAP> dx12_heap_create(ID3D12Device* i_device, const DX_HEAP_DESC& desc);
-
+DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, resource_type resource_type, const size_t slot_count, const bool shader_visible);
 
 #endif

@@ -75,33 +75,31 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 	return chosenAdapter;
 }
 
-std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
+RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
+
+	ASSERT_NULL(desc);
 
 	// Pick the best hardware adapter that supports D3D12
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	bool check_features = true;
-	if (desc.adapter_id != -1) {
+	if (desc->adapter_id != -1) {
 		// Try to get the adapter by index
-		HRESULT hr = dx12_factory_get()->EnumAdapters1(desc.adapter_id, &chosenAdapter);
-		if (FAILED(hr) || !chosenAdapter) {
-			throw std::exception("Failed to get specified adapter");
-		}
+		ASSERT_FAILED(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
+		ASSERT_NULL(chosenAdapter);
 	}
 	else {
-		chosenAdapter = dx12_device_pick_best_adapter(desc.features);
+		chosenAdapter = dx12_device_pick_best_adapter(desc->features);
 		check_features = false;
 	}
 
 	// Create D3D12 device (request ID3D12Device). Try feature level 12_0.
 	ID3D12Device* i_device = nullptr;
-	HRESULT hr = D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device));
-	if (FAILED(hr)) {
-		throw std::exception("Failed to create D3D12 device with feature level 12_0");
-	}
+	ASSERT_FAILED(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
+	ASSERT_NULL(i_device);
 	if (check_features == true) {
 
 		try {
-			dx12_device_check_device_features(i_device, desc.features);
+			dx12_device_check_device_features(i_device, desc->features);
 		}
 		catch (std::exception& ex) {
 			throw ex;
@@ -112,33 +110,43 @@ std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc) {
 	chosenAdapter->GetDesc(&ad);
 	chosenAdapter->Release();
 
-	printf("Using graphics device: %ls\n", ad.Description);
+	DX_DEVICE* dx_device = new DX_DEVICE;
+	ASSERT_NULL(dx_device);
+	dx_device->set_handle(i_device);
 
-	if (FAILED(hr) || !i_device) {
-		throw std::exception("Failed to create D3D12 device");
+	DX_DEVICE_HEAP_DESC heaps_desc;
+	// dx12_config_load_heap_config(&heaps_desc);
+	if (heaps_desc.resources_heap_enable == true) {
+		dx_device->resources_heap.reset(dx12_heap_create(dx_device, 
+			resource_type_generic_rw_buffer, 
+			heaps_desc.resources_heap_slot_count, true));
+		if(!dx_device->resources_heap.get())
+			throw std::exception("Failed to create resources heap");
 	}
-	auto dx_device = std::make_unique<DX_DEVICE>(i_device);
-	if (desc.platform_desc_ptr != nullptr) {
-
-		DX_DEVICE_DESC* device_desc = reinterpret_cast<DX_DEVICE_DESC*>(desc.platform_desc_ptr);
-		if (device_desc->resources_heap_desc.enable == true) {
-			printf("rs\n");
-			dx_device->set_resources_heap(std::move(dx12_heap_create(i_device, device_desc->resources_heap_desc)));
-		}
-		if (device_desc->dsv_heap_desc.enable == true) {
-			printf("dsv\n");
-			dx_device->set_dsv_heap(std::move(dx12_heap_create(i_device, device_desc->dsv_heap_desc)));
-		}
-		if (device_desc->rtv_heap_desc.enable == true) {
-			printf("rtv\n");
-			dx_device->set_rtv_heap(std::move(dx12_heap_create(i_device, device_desc->rtv_heap_desc)));
-		}
-		if (device_desc->sampler_heap_desc.enable == true) {
-			printf("sampler\n");
-			dx_device->set_sampler_heap(std::move(dx12_heap_create(i_device, device_desc->sampler_heap_desc)));
-		}
+	
+	if (heaps_desc.rtv_heap_enable == true) {
+		dx_device->rtv_heap.reset(dx12_heap_create(dx_device,
+			resource_type_render_target,
+			heaps_desc.rtv_heap_slot_count, true));
+		if(!dx_device->rtv_heap.get())
+			throw std::exception("Failed to create RTV heap");
 	}
 
+	if (heaps_desc.dsv_heap_enable == true) {
+		dx_device->dsv_heap.reset(dx12_heap_create(dx_device,
+			resource_type_depth_stencil_target,
+			heaps_desc.dsv_heap_slot_count, true));
+		if(!dx_device->dsv_heap.get())
+			throw std::exception("Failed to create DSV heap");
+	}
+
+	if (heaps_desc.sampler_heap_enable == true) {
+		dx_device->sampler_heap.reset(dx12_heap_create(dx_device,
+			resource_type_sampler,
+			heaps_desc.sampler_heap_slot_count, true));
+		if(!dx_device->sampler_heap.get())
+			throw std::exception("Failed to create sampler heap");
+	}
 	return dx_device;
 }
 

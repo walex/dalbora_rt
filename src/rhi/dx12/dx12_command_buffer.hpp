@@ -3,19 +3,20 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_COMMAND_BUFFER> dx12_command_buffer_create_for_copy(const RHI_COMMAND_BUFFER_DESC& desc);
-std::unique_ptr<RHI_COMMAND_BUFFER> dx12_command_buffer_create_for_compute(const RHI_COMMAND_BUFFER_DESC& desc);
-std::unique_ptr<RHI_COMMAND_BUFFER> dx12_command_buffer_create_for_render(const RHI_COMMAND_BUFFER_DESC& desc);
-void dx12_command_buffer_record(RHI_COMMAND_BUFFER& command_buffer,
+RHI_COMMAND_BUFFER* dx12_command_buffer_create_for_copy(const RHI_COMMAND_BUFFER_DESC* const desc);
+RHI_COMMAND_BUFFER* dx12_command_buffer_create_for_compute(const RHI_COMMAND_BUFFER_DESC* const desc);
+RHI_COMMAND_BUFFER* dx12_command_buffer_create_for_render(const RHI_COMMAND_BUFFER_DESC* const desc);
+void dx12_command_buffer_record(RHI_COMMAND_BUFFER* const command_buffer,
 								fptr_command_buffer_on_record callback);
-
-void dx12_command_buffer_draw_triangle_list(RHI_COMMAND_BUFFER& command_buffer, RHI_VERTEX_BUFFER& vb,
-	RHI_INDEX_BUFFER* ib);
-void dx12_command_buffer_ray_trace(RHI_DEVICE& device, RHI_COMMAND_BUFFER& command_buffer, RHI_TEXTURE_2D& render_target, RHI_RT_PIPELINE& pipeline, RHI_BUFFER& bvh_instances, RHI_BUFFER& sbt);
-
-
-void dx12_command_buffer_reset_resource_state(RHI_COMMAND_BUFFER& command_buffer, RHI_RESOURCE& resource);
-
-void dx12_command_buffer_copy_texture(RHI_COMMAND_BUFFER& command_buffer, RHI_TEXTURE_2D& dest_texture, RHI_TEXTURE_2D& src_texture);
-
+void dx12_command_buffer_draw_triangle_list(RHI_COMMAND_BUFFER* const command_buffer, const RHI_VERTEX_BUFFER* const vb,
+	const RHI_INDEX_BUFFER* const ib);
+void dx12_command_buffer_ray_trace(RHI_COMMAND_BUFFER* const command_buffer,
+	RHI_TEXTURE_2D* const render_target, const RHI_RT_PIPELINE* const pipeline,
+	const RHI_BUFFER* const bvh_instances, const RHI_SBT_TABLE* const sbt);
+void dx12_command_buffer_copy_texture(RHI_COMMAND_BUFFER* const command_buffer, RHI_TEXTURE_2D* const dest_texture, 
+	const RHI_TEXTURE_2D* const src_texture);
+void dx12_command_buffer_resource_transition_block(ID3D12GraphicsCommandList* const i_command_buffer,
+	DX_RESOURCE* const resource_impl,
+	D3D12_RESOURCE_STATES end_state,
+	bool restore, std::function<void()> cb);
 #endif

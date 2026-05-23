@@ -6,21 +6,14 @@
 #include <string>
 struct RHI_WINDOW;
 struct RHI_COMMAND_BUFFER;
-
-using RHI_VOID_PTR = void *;
-using RHI_SHADER_TABLE_ENTIRES = std::map<std::string, RHI_VOID_PTR>;
-using fptr_window_main_loop_callback = std::function<void(RHI_WINDOW &window)>;
-using fptr_window_on_init = std::function<void(RHI_WINDOW &window)>;
-using fptr_window_on_end = std::function<void(RHI_WINDOW &window)>;
+typedef void* RHI_VOID_PTR;
+using fptr_window_main_loop_callback = std::function<void(const RHI_WINDOW &window)>;
+using fptr_window_on_init = std::function<void(const RHI_WINDOW &window)>;
+using fptr_window_on_end = std::function<void(const RHI_WINDOW &window)>;
 using fptr_command_queue_on_execute = std::function<void(RHI_VOID_PTR native_command_queue_impl,
 														 std::vector<RHI_COMMAND_BUFFER *> &command_buffer_list)>;
 using fptr_command_buffer_on_record = std::function<void(RHI_VOID_PTR native_command_buffer_impl)>;
 using fptr_render_pass_on_execute = std::function<void()>;
-
-#if defined(_MSC_VER)
-// remove once C++ 23 is available
-#include "observer_ptr"
-#endif
 
 enum rhi_api
 {
@@ -135,12 +128,6 @@ enum raster_pipeline_shader_type
 	shader_type_mesh = 7
 };
 
-enum pipeline_type
-{
-	pipeline_type_raster = 0,
-	pipeline_type_rt
-};
-
 constexpr __int64 device_features_none = 0x0;
 constexpr __int64 device_features_raytracing = 0x1;
 constexpr __int64 device_features_variable_rate_shading = 0x2;
@@ -153,20 +140,5 @@ struct RHI_WINDOW_CALLBACKS
 	fptr_window_main_loop_callback main_loop;
 	fptr_window_on_end on_end;
 };
-
-#define RHI_STRUCT_BASE_PARAMS(...) __VA_ARGS__
-#define DEFINE_SETTER(var_name) \
-	void set_##var_name(auto value) { var_name = value; }
-#define DEFINE_GETTER(var_name) \
-	auto get_##var_name() const { return var_name; }
-
-#define RHI_STRUCT_BASE_INFO(name, ...)                                \
-	virtual ~name() = default;                                         \
-	template <typename T>                                              \
-	operator T() { return static_cast<T>(this->get_native_handle()); } \
-                                                                       \
-protected:                                                             \
-	virtual RHI_VOID_PTR get_native_handle() = 0;                      \
-name __VA_ARGS__ public:
 
 #endif

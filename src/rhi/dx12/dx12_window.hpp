@@ -3,7 +3,7 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_WINDOW> dx12_window_create(const RHI_WINDOW_DESC& desc);
-void dx12_window_main_loop(RHI_WINDOW& window);
+RHI_WINDOW* dx12_window_create(const RHI_WINDOW_DESC* const desc);
+void dx12_window_main_loop(const RHI_WINDOW* const window);
 
 #endif

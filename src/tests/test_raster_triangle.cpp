@@ -125,7 +125,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			shared_object_buffer_desc.memory_type = buffer_memory_type_shared_rw;
 			shared_object_buffer_desc.default_state = resource_state_generic_read;
 			shared_object_buffer_desc.resource_slot = 1;
-			shared_object_constant_buffer = rhi_buffers_create_constant(shared_object_buffer_desc); // rhi_buffers_create_raw(cpu_object_buffer_desc);
+			shared_object_constant_buffer = rhi_buffers_create_constant(shared_object_buffer_desc);
 			object_constant_buffer_ptr = rhi_buffers_map_open(*shared_object_constant_buffer, 0, sizeof(ObjectCB));
 
 			constants_buffer_array = {shared_camera_constant_buffer.get(), shared_object_constant_buffer.get()};

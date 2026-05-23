@@ -79,7 +79,10 @@ LRESULT CALLBACK dx12_window_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-std::unique_ptr<RHI_WINDOW> dx12_window_create(const RHI_WINDOW_DESC& desc) {
+RHI_WINDOW* dx12_window_create(const RHI_WINDOW_DESC* const desc) {
+
+    ASSERT_NULL(desc);
+
 	// Create a simple window using the Win32 API
 	WNDCLASS wc = {};
 	wc.lpfnWndProc = dx12_window_proc;
@@ -89,9 +92,9 @@ std::unique_ptr<RHI_WINDOW> dx12_window_create(const RHI_WINDOW_DESC& desc) {
 	HWND hwnd = CreateWindowEx(
 		0,
 		"MyWindowClass",
-		desc.title,
+		desc->title,
 		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, (int)desc.width, (int)desc.height,
+		CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(desc->width), static_cast<int>(desc->height),
 		nullptr,
 		nullptr,
 		GetModuleHandle(nullptr),
@@ -101,21 +104,23 @@ std::unique_ptr<RHI_WINDOW> dx12_window_create(const RHI_WINDOW_DESC& desc) {
 		throw std::exception("Failed to create window");
 	}
 
-    return std::make_unique<DX_WINDOW>(hwnd, desc.callbacks);
+    return new DX_WINDOW(hwnd, desc->callbacks);
 }
 
 static std::atomic<bool> window_running;
 
-void dx12_window_main_loop(RHI_WINDOW& window) {
+void dx12_window_main_loop(const RHI_WINDOW* const window) {
 
-    auto wnd_handle = reinterpret_cast<HWND>(static_cast<RHI_VOID_PTR>((window)));
+    ASSERT_NULL(window);
+
+    auto wnd_handle = reinterpret_cast<HWND>(static_cast<const RHI_VOID_PTR>(*window));
     ShowWindow(wnd_handle, SW_SHOW);
 
     MSG msg = {};
 
-    auto& callback = static_cast<RHI_WINDOW_CALLBACKS&>(window);
+    auto& callback = static_cast<RHI_WINDOW_CALLBACKS&>(*window);
     window_running.store(true);
-    callback.on_init(window);
+    callback.on_init(*window);
     while (window_running.load() == true)
     {
         // Procesar todos los mensajes pendientes
@@ -134,9 +139,9 @@ void dx12_window_main_loop(RHI_WINDOW& window) {
         if (!window_running)
             break;
 
-        callback.main_loop(window);
+        callback.main_loop(*window);
     }
-    callback.on_end(window);
+    callback.on_end(*window);
 }
 
 #else

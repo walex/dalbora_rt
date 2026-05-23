@@ -3,6 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_DEVICE> dx12_device_create(const RHI_DEVICE_DESC& desc);
+RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc);
 
 #endif

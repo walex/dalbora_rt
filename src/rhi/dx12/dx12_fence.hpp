@@ -3,6 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_FENCE> dx12_fence_create(const RHI_FENCE_DESC& desc);
+RHI_FENCE* dx12_fence_create(const RHI_FENCE_DESC* const desc);
 
 #endif

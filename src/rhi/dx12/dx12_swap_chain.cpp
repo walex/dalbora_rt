@@ -1,22 +1,24 @@
 #include "dx12_swap_chain.hpp"
 #include "dx12_factory.hpp"
 
-std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC& desc) {
+RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
-	DX_DEVICE& device_impl = static_cast<DX_DEVICE&>(desc.device.get());
+	ASSERT_NULL(desc);
+
+	DX_DEVICE& device_impl = static_cast<DX_DEVICE&>(desc->device.get());
 	ID3D12Device* i_device = device_impl;
-	ID3D12CommandQueue* i_command_queue = static_cast<DX_COMMAND_QUEUE&>(desc.command_queue.get());
+	ID3D12CommandQueue* i_command_queue = static_cast<DX_COMMAND_QUEUE&>(desc->command_queue.get());
 	IDXGIFactory5* i_factory = dx12_factory_get();
-	HWND hwnd = static_cast<HWND>(static_cast<RHI_VOID_PTR>(desc.window.get()));
+	HWND hwnd = static_cast<HWND>(static_cast<RHI_VOID_PTR>(desc->window.get()));
 	if (!i_device || !i_command_queue || !i_factory) {
 		throw std::exception("Invalid device/queue/factory for swapchain creation");
 	}
 	// Extract parameters from desc with sensible defaults if fields are missing
-	UINT width = (UINT)((desc.width > 0) ? desc.width : 800);
-	UINT height = (UINT)((desc.height > 0) ? desc.height : 600);
-	UINT bufferCount = (UINT)((desc.buffer_count > 0) ? desc.buffer_count : 2);
-	DXGI_FORMAT format = (desc.color_format != resource_format_none)
-		?  dx12_resource_format_type[(int)desc.color_format]
+	UINT width = (UINT)((desc->width > 0) ? desc->width : 800);
+	UINT height = (UINT)((desc->height > 0) ? desc->height : 600);
+	UINT bufferCount = (UINT)((desc->buffer_count > 0) ? desc->buffer_count : 2);
+	DXGI_FORMAT format = (desc->color_format != resource_format_none)
+		?  dx12_resource_format_type[(int)desc->color_format]
 		: DXGI_FORMAT_R8G8B8A8_UNORM;
 	BOOL allowTearing = FALSE;
 
@@ -25,7 +27,7 @@ std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC
 		BOOL tearSupported = FALSE;
 		auto hrTear = i_factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearSupported, sizeof(tearSupported));
 		if (SUCCEEDED(hrTear) && tearSupported) {
-			allowTearing = desc.allow_tearing ? TRUE : FALSE;
+			allowTearing = desc->allow_tearing ? TRUE : FALSE;
 		}
 	}
 
@@ -74,7 +76,7 @@ std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC
 		throw std::exception("NO heap found for rtv.");
 	}
 	ID3D12DescriptorHeap* i_heap = static_cast<ID3D12DescriptorHeap*>(*heap_impl);
-	auto swap_chain_impl = std::make_unique<DX_SWAP_CHAIN>(i_swap_chain_3);
+	DX_SWAP_CHAIN* swap_chain_impl = new DX_SWAP_CHAIN(i_swap_chain_3);
 
 	for (size_t i = 0; i < bufferCount; i++) {
 		ID3D12Resource* i_buffer;
@@ -83,7 +85,7 @@ std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC
 		}
 		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
 		rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rtv_desc.Format = dx12_resource_format_type[(int)desc.color_format];
+		rtv_desc.Format = dx12_resource_format_type[(int)desc->color_format];
 		std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, i);
 		i_device->CreateRenderTargetView(i_buffer, &rtv_desc, *rtvHandle);
 
@@ -130,29 +132,32 @@ std::unique_ptr<RHI_SWAP_CHAIN> dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC
 		}
 
 		swap_chain_impl->add_render_target(std::make_shared<DX_TEXTURE_2D>(i_buffer, *rtvHandle,
-			resource_state_present, desc.color_format,
-			desc.width, desc.height, static_cast<size_t>(totalUploadSize), std::move(mips)));
+			resource_state_present, desc->color_format,
+			desc->width, desc->height, static_cast<size_t>(totalUploadSize), std::move(mips)));
 	}
 
 	return swap_chain_impl;
 }
 
-void dx12_swap_chain_present(RHI_SWAP_CHAIN& swap_chain) {
+void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 
-	static_cast<IDXGISwapChain3*>(swap_chain)->Present(1, 0);
+	ASSERT_NULL(swap_chain);
+	static_cast<IDXGISwapChain3*>(*const_cast<RHI_SWAP_CHAIN*>(swap_chain))->Present(1, 0);
 }
 
-std::shared_ptr<RHI_TEXTURE_2D> dx12_swap_chain_get_surface(RHI_SWAP_CHAIN& swap_chain, int surface_index) {
+const RHI_TEXTURE_2D* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const swap_chain, size_t surface_index) {
+
+	ASSERT_NULL(swap_chain);
 
 	ID3D12Resource* i_surface = nullptr;
-	IDXGISwapChain3* i_swap_chain = static_cast<IDXGISwapChain3*>(swap_chain);
-	if (surface_index == -1)
-		surface_index = (int)i_swap_chain->GetCurrentBackBufferIndex();
-	return swap_chain.get_render_target(surface_index);
+	IDXGISwapChain3* i_swap_chain = static_cast<IDXGISwapChain3*>(*const_cast<RHI_SWAP_CHAIN*>(swap_chain));
+	if (surface_index < 0)
+		surface_index = static_cast<uint32_t>(i_swap_chain->GetCurrentBackBufferIndex());
+	return swap_chain->get_render_target(surface_index);
 }
 
-unsigned int dx12_swap_chain_get_current_buffer_id(RHI_SWAP_CHAIN& swap_chain) {
+uint32_t dx12_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_chain) {
 
-	return (unsigned int)static_cast<IDXGISwapChain3*>(swap_chain)->GetCurrentBackBufferIndex();
+	return static_cast<uint32_t>(static_cast<IDXGISwapChain3*>(*const_cast<RHI_SWAP_CHAIN*>(swap_chain))->GetCurrentBackBufferIndex());
 }
 

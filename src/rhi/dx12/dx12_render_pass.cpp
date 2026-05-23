@@ -2,61 +2,58 @@
 #include "dx12_command_buffer.hpp"
 #include "dx12_command_queue.hpp"
 
-std::unique_ptr<RHI_RENDER_PASS> dx12_render_pass_create(const RHI_RENDER_PASS_DESC& desc) {
+RHI_RENDER_PASS* dx12_render_pass_create(const RHI_RENDER_PASS_DESC* const desc) {
 
-	return std::make_unique<DX_RENDER_PASS>(
-		desc.device,
-		desc.render_target
-	);
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->render_target);
+
+	DX_RENDER_PASS* result = new DX_RENDER_PASS();
+	ASSERT_NULL(result);
+	result->device = desc->device;
+	result->render_target = desc->render_target;
+
+	return result;
 }
 
-void dx12_render_pass_execute_rt_mode(RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer,
+void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, RHI_COMMAND_BUFFER* const command_buffer,
 	fptr_render_pass_on_execute callback) {
 
-	RHI_DEPTH_BUFFER* depth_buffer_impl = render_pass;
-	RHI_GRAPHICS_PIPELINE* pipeline_impl = render_pass;
-	RHI_TEXTURE_2D& render_target_impl = render_pass;
-	DX_DEVICE& device_impl = static_cast<DX_DEVICE&>(static_cast<RHI_DEVICE&>(render_pass));
-	ID3D12GraphicsCommandList* i_command_buffer = command_buffer;
-	DX_RT_PIPELINE& dx_pipeline_impl = static_cast<DX_RT_PIPELINE&>(*pipeline_impl);
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
+	ASSERT_NULL(render_pass);
+	ASSERT_NULL(render_pass->device);
+	ASSERT_NULL(render_pass->render_target);
+	ASSERT_NULL(render_pass->pipeline);
+	ASSERT_NULL(command_buffer);
 
-	resource_state old_state = render_target_impl.get_current_state();
-	D3D12_RESOURCE_BARRIER barrier = {};
-	if (old_state != resource_state_rt_render_target) {
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = render_target_impl;
-		barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		i_command_buffer->ResourceBarrier(1, &barrier);
-		render_target_impl.set_current_state(resource_state_rt_render_target);
-	}
-	i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5));
+	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
+	DX_TEXTURE_2D* render_target_impl = static_cast<DX_TEXTURE_2D*>(render_pass->render_target);
+	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
+	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
+	ASSERT_FAILED(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
+	ASSERT_NULL(i_command_buffer_5);
 	ID3D12DescriptorHeap* heaps[] =
 	{
-		*device_impl.get_resources_heap()
+		*device_impl->resources_heap.get()
 	};
 
-	auto handle = dx12_helpers_get_read_only_descriptor_heap_handle(device_impl, *device_impl.get_resources_heap(), 0);
-	i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
-	i_command_buffer_5->SetComputeRootSignature(static_cast<DX_PIPELINE_LAYOUT&>(static_cast<DX_RT_PIPELINE&>(*pipeline_impl)));
-	i_command_buffer_5->SetComputeRootDescriptorTable(0, *handle.get());
-	i_command_buffer_5->SetPipelineState1(static_cast<DX_RT_PIPELINE&>(*pipeline_impl));
+	dx12_command_buffer_resource_transition_block(i_command_buffer,
+		render_target_impl,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		true,
+		[&]() {
 
-	if (callback)
-		callback();
-
-	if (old_state != resource_state_rt_render_target) {
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-		barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		i_command_buffer->ResourceBarrier(1, &barrier);
-		render_target_impl.set_current_state(old_state);
-	}
+			auto handle = dx12_helpers_get_read_only_descriptor_heap_handle(device_impl, *device_impl.get_resources_heap(), 0);
+			i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
+			i_command_buffer_5->SetComputeRootSignature(static_cast<DX_PIPELINE_LAYOUT&>(static_cast<DX_RT_PIPELINE&>(*pipeline_impl)));
+			i_command_buffer_5->SetComputeRootDescriptorTable(0, *handle.get());
+			i_command_buffer_5->SetPipelineState1(static_cast<DX_RT_PIPELINE&>(*pipeline_impl));
+			if (callback)
+				callback();
+		});
 }
 
-void dx12_render_pass_execute_raster_mode(RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer,
+void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass, RHI_COMMAND_BUFFER* const command_buffer,
 	fptr_render_pass_on_execute callback) {
 	
 	static float clearColor[] = { 0.1f, 0.2f, 0.4f, 1.0f }; // RGBA

@@ -1,50 +1,45 @@
 #include "dx12_buffers.hpp"
 #include "dx12_command_buffer.hpp"
-#include "dx12_command_queue.hpp"
 
-std::unique_ptr<RHI_BUFFER> dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC &desc)
+template <typename T>
+T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 {
+	ASSERT_NULL(desc);
 
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
 	std::unique_ptr<D3D12_CLEAR_VALUE> clear_value;
-	D3D12_RESOURCE_STATES resource_initial_state;
-	buffer_type buffer_type = desc.type;
-	if (buffer_type == buffer_type_depth_stencil)
-	{
-
+	buffer_type buffer_type = desc->type;
+	if (buffer_type == buffer_type_depth_stencil) {
 		flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 		clear_value = std::make_unique<D3D12_CLEAR_VALUE>();
-		clear_value->Format = dx12_resource_format_type[(int)desc.format];
+		clear_value->Format = dx12_resource_format_type[desc->format];
 		clear_value->DepthStencil.Depth = 1.0f;
 		clear_value->DepthStencil.Stencil = 0;
-		buffer_type = buffer_type_image_2d;
-	}
-	else if (buffer_type == buffer_type_rt_bvh
-		|| desc.default_state == resource_state_rt_render_target) {
+	} else if (buffer_type == buffer_type_rt_bvh) {
+		flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	} 
+	if (desc->memory_type == buffer_memory_type_shared_rw) {
 		flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	}
-
-	if (desc.default_state == resource_state_rt_render_target
-		|| desc.default_state == resource_state_raster_render_target) {
-
+	if (desc->is_render_target == true) {
 		flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	}
-	resource_initial_state = dx12_resource_state_type[desc.default_state];
+	
 	D3D12_HEAP_PROPERTIES heapProps = {};
-	heapProps.Type = dx12_heap_type[desc.memory_type];
+	heapProps.Type = dx12_heap_type[desc->memory_type];
 	heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 	heapProps.CreationNodeMask = 1;
 	heapProps.VisibleNodeMask = 1;
 
 	D3D12_RESOURCE_DESC bufferDesc = {};
-	bufferDesc.Dimension = dx12_buffer_type[(int)buffer_type];
+	bufferDesc.Dimension = dx12_buffer_type[buffer_type];
 	bufferDesc.Alignment = 0;
-	bufferDesc.Width = static_cast<UINT>(desc.width);
-	bufferDesc.Height = static_cast<UINT>(desc.height);
+	bufferDesc.Width = static_cast<UINT>(desc->width);
+	bufferDesc.Height = static_cast<UINT>(desc->height);
 	bufferDesc.DepthOrArraySize = 1;
-	bufferDesc.MipLevels = static_cast<UINT>(desc.mips);
+	bufferDesc.MipLevels = static_cast<UINT>(desc->mips);
 	bufferDesc.SampleDesc.Count = 1;
 	bufferDesc.SampleDesc.Quality = 0;
 	if (bufferDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -53,266 +48,364 @@ std::unique_ptr<RHI_BUFFER> dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC &des
 		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	bufferDesc.Flags = flags;
 	bufferDesc.Format = (bufferDesc.Dimension > D3D12_RESOURCE_DIMENSION_BUFFER)
-							? dx12_resource_format_type[(int)desc.format]
-							: DXGI_FORMAT_UNKNOWN;
-	ID3D12Resource *i_resource = nullptr;
-	ID3D12Device *i_device = desc.device.get();
+		? dx12_resource_format_type[desc->format]
+		: DXGI_FORMAT_UNKNOWN;
+	ID3D12Resource* i_resource = nullptr;
+	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
 	HRESULT hr = i_device->CreateCommittedResource(
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
 		&bufferDesc,
-		resource_initial_state,
+		D3D12_RESOURCE_STATE_COMMON,
 		clear_value.get(),
 		IID_PPV_ARGS(&i_resource));
-	if (FAILED(hr) || !i_resource)
-	{
-		throw std::exception("Failed to create D3D12 resource");
-	}
-	return std::make_unique<DX_BUFFER>(i_resource, desc.default_state, desc.format, desc.length);
+
+	ASSERT_FAILED(hr);
+	ASSERT_NULL(i_resource);
+
+	T* buffer_impl = new T();
+	ASSERT_NULL(buffer_impl);
+	buffer_impl->length = desc->length;
+	buffer_impl->format = desc->format;
+	buffer_impl->current_state = D3D12_RESOURCE_STATE_COMMON;
+	buffer_impl->set_handle(i_resource);
+
+	return buffer_impl;
 }
 
-std::unique_ptr<RHI_BUFFER> dx12_buffers_create_raw(const RHI_BUFFER_DESC &desc)
-{
-	RHI_BUFFER_2D_DESC desc_2d(desc.device);
-	desc_2d.length = desc.length;
-	desc_2d.mips = desc.mips;
-	desc_2d.default_state = desc.default_state;
-	desc_2d.memory_type = desc.memory_type;
-	desc_2d.format = desc.format;
-	desc_2d.type = desc.type;
-	desc_2d.width = desc.length;
+template <typename T>
+T* dx12_buffers_create_raw(const RHI_BUFFER_DESC* const desc) {
+
+	ASSERT_NULL(desc);
+
+	RHI_BUFFER_2D_DESC desc_2d;
+	desc_2d.length = desc->length;
+	desc_2d.mips = desc->mips;
+	desc_2d.memory_type = desc->memory_type;
+	desc_2d.format = desc->format;
+	desc_2d.type = desc->type;
+	desc_2d.width = desc->length;
 	desc_2d.height = 1;
-	return dx12_buffers_create_2d(desc_2d);
+	return dx12_buffers_create_2d<T>(&desc_2d);
 }
 
-std::unique_ptr<RHI_DEPTH_BUFFER> dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC &desc)
+RHI_DEPTH_BUFFER* dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC* const desc)
 {
+	ASSERT_NULL(desc);
+	ASSERT_EXPR(desc->format >= resource_format_d32_float_s8_uint
+		&& desc->format < resource_format_d16_norm);
 
-	DX_DEVICE &device_impl = reinterpret_cast<DX_DEVICE &>(desc.device.get());
-	DX_HEAP *heap_impl = device_impl.get_dsv_heap();
-	if (heap_impl == nullptr)
-	{
-		throw std::exception("NO heap found for dsv.");
-	}
 	// overwrite desc to match must have depth buffer requeriments
-	RHI_DEPTH_BUFFER_DESC db_desc_mutable = const_cast<RHI_DEPTH_BUFFER_DESC &>(desc);
-	if (db_desc_mutable.format < resource_format_d32_float_s8_uint || db_desc_mutable.format > resource_format_d16_norm)
-		throw std::exception("Invalid depth buffer format");
+	RHI_DEPTH_BUFFER_DESC db_desc_mutable = *desc;	
 	db_desc_mutable.memory_type = buffer_memory_type_default;
-	db_desc_mutable.default_state = resource_state_depth_write;
 	db_desc_mutable.type = buffer_type_depth_stencil;
-	auto depth_buffer = dx12_buffers_create_2d(db_desc_mutable);
-
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format = dx12_resource_format_type[(int)db_desc_mutable.format];
-	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-
-	ID3D12Resource *i_resource = *depth_buffer.get();
-	i_resource->AddRef();
-	ID3D12Device *i_device = device_impl;
-	ID3D12DescriptorHeap *i_heap = *heap_impl;
-	size_t heap_slot = desc.resource_slot;
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dsv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
-	i_device->CreateDepthStencilView(i_resource, &dsvDesc, *dsv_handle);
-	return std::make_unique<DX_DEPTH_BUFFER>(i_resource, *dsv_handle,
-											 desc.default_state, desc.format,
-											 static_cast<size_t>(desc.width), static_cast<size_t>(desc.height));
+	return dx12_buffers_create_2d<DX_DEPTH_BUFFER>(&db_desc_mutable);
 }
 
-std::unique_ptr<RHI_CONSTANT_BUFFER> dx12_buffers_create_constant(const RHI_BUFFER_DESC &desc)
+RHI_CONSTANT_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc)
 {
-
-	DX_DEVICE &device_impl = reinterpret_cast<DX_DEVICE &>(desc.device.get());
-	DX_HEAP *heap_impl = device_impl.get_resources_heap();
-	if (heap_impl == nullptr)
-	{
-		throw std::exception("NO heap found for dsv.");
-	}
-	auto buffer_impl = dx12_buffers_create_raw(desc);
-
-	ID3D12Device *i_device = device_impl;
-	ID3D12DescriptorHeap *i_heap = *heap_impl;
-
-	// set heap offset
-	size_t heap_slot = desc.resource_slot;
-	// keep resource alive
-	ID3D12Resource *i_resource = *buffer_impl;
-	i_resource->AddRef();
-
-	// create view
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
-	cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
-	cbv_desc.SizeInBytes = static_cast<UINT>(desc.length); // MUST BE ALIGNED
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> cvb_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
-	i_device->CreateConstantBufferView(&cbv_desc, *cvb_handle);
-	return std::make_unique<DX_CONSTANT_BUFFER>(i_resource, *cvb_handle,
-												desc.default_state, desc.format,
-												desc.length);
+	return dx12_buffers_create_raw<RHI_CONSTANT_BUFFER>(desc);
 }
 
-void dx12_buffers_copy_buffer(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &src_buffer, RHI_BUFFER &dest_buffer)
-{
-	static_cast<ID3D12GraphicsCommandList*>(command_buffer)->CopyResource(dest_buffer, src_buffer);
+void dx12_buffers_copy_buffer(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
+	RHI_BUFFER* const dest_buffer) {
+	
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
+
+//	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+//	ID3D12Resource* src = *static_cast<const DX_BUFFER*>(src_buffer);
+//	ID3D12Resource* dest = *static_cast<DX_BUFFER*>(dest_buffer);
+	static_cast<ID3D12GraphicsCommandList*>(
+		*static_cast<DX_COMMAND_BUFFER*>(command_buffer))->CopyResource(
+			*static_cast<DX_BUFFER*>(dest_buffer),
+			*static_cast<const DX_BUFFER*>(src_buffer)
+		);
 }
 
-void dx12_buffers_copy_buffer_region(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &src_buffer,
-									 size_t offset_src, RHI_BUFFER &dest_buffer,
-									 size_t offset_dest, size_t length)
+void dx12_buffers_copy_buffer_region(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
+	size_t offset_src, RHI_BUFFER* const dest_buffer,
+	size_t offset_dest, size_t length)
 {
-	static_cast<ID3D12GraphicsCommandList*>(command_buffer)->CopyBufferRegion(dest_buffer, offset_dest,
-		src_buffer, offset_src, length);
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
+
+	//	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	//	ID3D12Resource* src = *static_cast<const DX_BUFFER*>(src_buffer);
+	//	ID3D12Resource* dest = *static_cast<DX_BUFFER*>(dest_buffer);
+	static_cast<ID3D12GraphicsCommandList*>(
+		*static_cast<DX_COMMAND_BUFFER*>(command_buffer))->CopyBufferRegion(
+			*static_cast<DX_BUFFER*>(dest_buffer), offset_dest, 
+			*static_cast<const DX_BUFFER*>(src_buffer), offset_src, length
+		);
 }
 
-void dx12_buffers_gpu_upload_region(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu_buffer,
-									RHI_BUFFER &gpu_buffer, size_t offset_src,
-									size_t offset_dest, size_t length)
+void dx12_buffers_gpu_upload_region(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
+	RHI_BUFFER* const dest_buffer, const size_t offset_src,
+	const size_t offset_dest, const size_t length)
 {
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
 
-	ID3D12GraphicsCommandList* i_command_buffer = command_buffer;
-	ID3D12Resource *i_dest_buffer = gpu_buffer;
+	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
+	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	auto old_state = gpu_buffer.get_current_state();
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Transition.pResource = i_dest_buffer;
-	barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	i_command_buffer->ResourceBarrier(1, &barrier);
-	gpu_buffer.set_current_state(resource_state_copy_dest);
-	dx12_buffers_copy_buffer_region(command_buffer, cpu_buffer,
-									offset_src, gpu_buffer, offset_dest, length);
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
-	i_command_buffer->ResourceBarrier(1, &barrier);
-	gpu_buffer.set_current_state(old_state);
+	dx12_command_buffer_resource_transition_block(i_command_buffer, 
+		dest,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		true,[&]() {
+			dx12_buffers_copy_buffer_region(command_buffer, *src,
+				offset_src, *dest, offset_dest, length);
+		});
 }
 
-void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu_buffer,
-							 RHI_BUFFER &gpu_buffer)
+void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer, 
+	RHI_BUFFER* const dest_buffer)
 {
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
 
-	ID3D12GraphicsCommandList* i_cmd_list = command_buffer;
-	ID3D12Resource *i_dest_buffer = gpu_buffer;
+	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
+	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	auto old_state = gpu_buffer.get_current_state();
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Transition.pResource = i_dest_buffer;
-	barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	i_cmd_list->ResourceBarrier(1, &barrier);
-	gpu_buffer.set_current_state(resource_state_copy_dest);
-	dx12_buffers_copy_buffer(command_buffer, cpu_buffer,
-							 gpu_buffer);
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
-	i_cmd_list->ResourceBarrier(1, &barrier);
-	gpu_buffer.set_current_state(old_state);
+	dx12_command_buffer_resource_transition_block(i_command_buffer, 
+		dest,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		true, [&]() {
+			dx12_buffers_copy_buffer(command_buffer, *src,
+				*dest);
+		});
 }
 
-void dx12_buffers_gpu_download_region(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu_buffer,
-									  RHI_BUFFER &gpu_buffer, size_t offset_src,
-									  size_t offset_dest, size_t length)
+void dx12_buffers_gpu_download_region(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
+	RHI_BUFFER* const dest_buffer, const size_t offset_src,
+	const size_t offset_dest, const size_t length)
 {
 
-	ID3D12GraphicsCommandList* i_cmd_list = command_buffer;
-	ID3D12Resource *i_src_buffer = gpu_buffer;
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
 
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Transition.pResource = i_src_buffer;
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	i_cmd_list->ResourceBarrier(1, &barrier);
-	dx12_buffers_copy_buffer_region(command_buffer, gpu_buffer,
-									offset_src, cpu_buffer, offset_dest, length);
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-	i_cmd_list->ResourceBarrier(1, &barrier);
+	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	DX_BUFFER* src = const_cast<DX_BUFFER*>(static_cast<const DX_BUFFER*>(src_buffer));
+	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
+	dx12_command_buffer_resource_transition_block(i_command_buffer, 
+		src,
+		D3D12_RESOURCE_STATE_COPY_SOURCE,
+		true, [&]() {
+			dx12_buffers_copy_buffer_region(command_buffer, *src,
+				offset_src, *dest, offset_dest, length);
+		});
 }
 
-void dx12_buffers_gpu_download(RHI_COMMAND_BUFFER &command_buffer, RHI_BUFFER &cpu_buffer,
-							   RHI_BUFFER &gpu_buffer)
+void dx12_buffers_gpu_download(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
+	RHI_BUFFER* const dest_buffer)
 {
 
-	ID3D12GraphicsCommandList* i_cmd_list = command_buffer;
-	ID3D12Resource *i_src_buffer = gpu_buffer;
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
 
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Transition.pResource = i_src_buffer;
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	i_cmd_list->ResourceBarrier(1, &barrier);
-	dx12_buffers_copy_buffer(command_buffer, gpu_buffer, cpu_buffer);
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-	i_cmd_list->ResourceBarrier(1, &barrier);
+	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	DX_BUFFER* src = const_cast<DX_BUFFER*>(static_cast<const DX_BUFFER*>(src_buffer));
+	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
+
+	dx12_command_buffer_resource_transition_block(i_command_buffer, 
+		src,
+		D3D12_RESOURCE_STATE_COPY_SOURCE,
+		true, [&]() {
+			dx12_buffers_copy_buffer(command_buffer, *src, *dest);
+		});
 }
 
-RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER &cpu_buffer, size_t offset,
-								   size_t length)
+RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset,
+	const size_t length)
 {
+	ASSERT_NULL(buffer);
 
-	ID3D12Resource *i_shared_buffer = cpu_buffer;
+	ID3D12Resource* i_buffer = *static_cast<const DX_BUFFER*>(buffer);
 	D3D12_RANGE range{
 		.Begin = offset,
 		.End = length};
 
-	RHI_VOID_PTR mapped;
-	if (FAILED(i_shared_buffer->Map(0, &range, &mapped)))
-	{
-		throw std::exception("Error cannot map resource");
-	}
+	RHI_VOID_PTR mapped = nullptr;	
+	ASSERT_FAILED(i_buffer->Map(0, &range, &mapped));
+	ASSERT_NULL(mapped);
+	
 	return mapped;
 }
 
-void dx12_buffers_map_close(RHI_BUFFER &cpu_buffer, size_t offset,
-							size_t length)
+void dx12_buffers_map_close(RHI_BUFFER* const buffer, const size_t offset,
+	const size_t length)
 {
 
-	ID3D12Resource *i_shared_buffer = cpu_buffer;
+	ASSERT_NULL(buffer);
+
+	ID3D12Resource* i_buffer = *static_cast<const DX_BUFFER*>(buffer);
 	D3D12_RANGE range{
 		.Begin = offset,
-		.End = length};
-	i_shared_buffer->Unmap(0, &range);
+		.End = length };
+
+	RHI_VOID_PTR mapped = nullptr;
+	i_buffer->Unmap(0, &range);
 }
 
-void dx12_buffers_map_write(RHI_BUFFER &shared_buffer,
-							RHI_VOID_PTR data, size_t offset,
-							size_t length)
+void dx12_buffers_map_write(RHI_BUFFER* const src_buffer, const RHI_VOID_PTR data,
+	const size_t offset, const size_t length)
 {
-	ID3D12Resource *i_shared_buffer = shared_buffer;
-	D3D12_RANGE range{
-		.Begin = offset,
-		.End = length};
-	void *mapped;
-	if (FAILED(i_shared_buffer->Map(0, &range, &mapped)))
-	{
-		throw std::exception("Error cannot map resource");
-	}
+	RHI_VOID_PTR mapped = dx12_buffers_map_open(src_buffer, offset,
+		length);
 	memcpy(mapped, data, length);
-	i_shared_buffer->Unmap(0, &range);
+	dx12_buffers_map_close(src_buffer, offset,
+		length);
 }
 
-void dx12_buffers_map_read(RHI_BUFFER &shared_buffer, RHI_VOID_PTR &data,
-						   size_t offset, size_t length)
+void dx12_buffers_map_read(RHI_BUFFER* const buffer, RHI_VOID_PTR* const data,
+	const size_t offset, const size_t length)
 {
-
-	ID3D12Resource *i_shared_buffer = shared_buffer;
-	D3D12_RANGE range{
-		.Begin = offset,
-		.End = length};
-	void *mapped;
-	if (FAILED(i_shared_buffer->Map(0, &range, &mapped)))
-	{
-		throw std::exception("Error cannot map resource");
-	}
+	RHI_VOID_PTR mapped = dx12_buffers_map_open(buffer, offset,
+		length);
 	memcpy(data, mapped, length);
-	i_shared_buffer->Unmap(0, &range);
+	dx12_buffers_map_close(buffer, offset,
+		length);
+}
+
+RHI_VIEW* d12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
+
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->buffer);
+
+	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
+	ASSERT_NULL(i_device);
+
+	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
+	ASSERT_NULL(i_resource);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = dx12_helpers_get_next_descriptor_heap_handle(desc->device, DSV_HEAP_ID);
+
+	RHI_VIEW* result = nullptr;
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = dx12_resource_format_type[desc->format];
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+	i_device->CreateDepthStencilView(i_resource, &dsvDesc, cpu_handle);
+
+	ASSERT_NULL(result);
+	return result;
+}
+
+RHI_VIEW* d12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
+
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->buffer);
+
+	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
+	ASSERT_NULL(i_device);
+
+	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
+	ASSERT_NULL(i_resource);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = dx12_helpers_get_next_descriptor_heap_handle(desc->device, RTV_HEAP_ID);
+
+	RHI_VIEW* result = nullptr;
+	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+	rtv_desc.Format = dx12_resource_format_type[desc->format];
+	rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	i_device->CreateRenderTargetView(i_resource, &rtv_desc, cpu_handle);
+
+	ASSERT_NULL(result);
+	return result;
+}
+
+RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
+
+	ASSERT_NULL(desc);
+	ASSERT_NULL(desc->device);
+	ASSERT_NULL(desc->buffer);
+
+	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
+	ASSERT_NULL(i_device);
+
+	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
+	ASSERT_NULL(i_resource);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = dx12_helpers_get_next_descriptor_heap_handle(desc->device, RESOURCES_HEAP_ID);
+
+	RHI_VIEW* result = nullptr;
+	if (desc->type == resource_type_constant_buffer) {
+		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
+		cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
+		cbv_desc.SizeInBytes = static_cast<UINT>(desc->buffer->length); // MUST BE ALIGNED
+		i_device->CreateConstantBufferView(&cbv_desc, cpu_handle);
+	}
+	else if (desc->type == resource_type_generic_rw_buffer) {
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+		uav_desc.Format = dx12_resource_format_type[desc->format];
+		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uav_desc.Buffer.FirstElement = 0;
+		uav_desc.Buffer.NumElements = static_cast<UINT>(desc->buffer->length);
+		uav_desc.Buffer.StructureByteStride = 0;
+		uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, cpu_handle);
+	}
+	else if (desc->type == resource_type_shader) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = dx12_resource_format_type[desc->format];
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srv_desc.Buffer.FirstElement = 0;
+		srv_desc.Buffer.NumElements = static_cast<UINT>(desc->buffer->length);
+		srv_desc.Buffer.StructureByteStride = 0;
+		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+		i_device->CreateShaderResourceView(i_resource, &srv_desc, cpu_handle);
+	}
+	result = new DX_VIEW();
+	ASSERT_NULL(result);
+	result->set_handle(&cpu_handle);
+	return result;
+}
+
+RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc) {
+
+	ASSERT_NULL(desc);
+
+	RHI_VIEW* result = nullptr;
+	if (desc->type == resource_type_depth_stencil_target)
+		result = d12_buffers_create_dsv(desc);
+	else if (desc->type == resource_type_render_target)
+		result = d12_buffers_create_rtv(desc);
+	else
+		result = d12_buffers_create_cbv_srv_uav(desc);
+
+	ASSERT_NULL(result);
+	return result;
+}
+
+RHI_INDEX_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc) {
+
+	ASSERT_NULL(desc);
+
+	RHI_BUFFER_DESC ib_desc;
+	ib_desc.length = desc->count * desc->stride;
+	ib_desc.memory_type = desc->memory_type;
+	ib_desc.type = desc->type;
+	ib_desc.format = desc->format;
+	return dx12_buffers_create_raw<RHI_INDEX_BUFFER>(&ib_desc);
+}
+
+RHI_VERTEX_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc) {
+	// overwrite desc to match must have index buffer requeriments
+	RHI_BUFFER_DESC vb_desc;
+	vb_desc.length = desc->count * desc->stride;
+	vb_desc.memory_type = desc->memory_type;
+	vb_desc.type = desc->type;
+	vb_desc.format = desc->format;
+	return dx12_buffers_create_raw<RHI_VERTEX_BUFFER>(&vb_desc);
 }

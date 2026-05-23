@@ -98,7 +98,7 @@ std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC
 										   static_cast<size_t>(totalUploadSize), std::move(mips));
 }
 
-void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& cpu_buffer, RHI_TEXTURE_2D& texture) {
+void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& shared_buffer, RHI_TEXTURE_2D& texture) {
 
 	ID3D12GraphicsCommandList* i_command_buffer = command_buffer;
 	ID3D12Resource* i_texture = static_cast<DX_TEXTURE_2D&>(texture);
@@ -119,7 +119,7 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& 
 		auto& mip = texture.get_mips()[i];
 
 		D3D12_TEXTURE_COPY_LOCATION src = {};
-		src.pResource = static_cast<DX_BUFFER&>(cpu_buffer);
+		src.pResource = static_cast<DX_BUFFER&>(shared_buffer);
 		src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		src.PlacedFootprint.Footprint.Format = dx12_resource_format_type[mip.format];
 		src.PlacedFootprint.Footprint.Width = mip.width;
