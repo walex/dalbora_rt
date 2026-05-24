@@ -1,57 +1,69 @@
 #include "dx12_texture_2d.hpp"
 #include "dx12_buffers.hpp"
+#include "dx12_command_buffer.hpp"
 
-std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC &desc)
+RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 {
-	DX_DEVICE &device_impl = reinterpret_cast<DX_DEVICE &>(desc.device.get());
-	ID3D12Device *i_device = device_impl;
-	DX_HEAP *heap_impl = device_impl.get_resources_heap();
-	if (heap_impl == nullptr)
-	{
-		throw std::exception("NO heap found for dsv.");
-	}
+	ASSERT_NULL(desc->device);
+	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
+	ID3D12Device *i_device = *device_impl;
+	ASSERT_NULL(i_device);
+	DX_HEAP* heap_impl = device_impl->resources_heap.get();
+	ASSERT_NULL(heap_impl);
+	ID3D12DescriptorHeap* i_heap = *heap_impl;
+	ASSERT_NULL(i_heap);
 
-	std::unique_ptr<RHI_BUFFER> buffer = dx12_buffers_create_2d(desc);
-	ID3D12Resource *i_texture = static_cast<DX_BUFFER &>(*buffer);
+	RHI_BUFFER_2D_DESC buff_desc = {};
+	buff_desc.device = desc->device;
+	buff_desc.format = desc->format;
+	buff_desc.width = desc->width;
+	buff_desc.height = desc->height;
+	buff_desc.is_render_target = desc->is_render_target;
+	buff_desc.mips = desc->mips;
+	buff_desc.type = buffer_type_image_2d;
+	std::unique_ptr<DX_BUFFER> buffer;
+	buffer.reset(dx12_buffers_create_2d<DX_BUFFER>(&buff_desc));
+	ASSERT_NULL(buffer.get());
+	ID3D12Resource *i_texture = *static_cast<DX_BUFFER*>(*buffer);
+	ASSERT_NULL(i_texture);
 	i_texture->AddRef();
 
-	
-	size_t heap_slot = desc.resource_slot;
 
-	ID3D12DescriptorHeap *i_heap = *heap_impl;
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
+	// CREATE VIEW SEPARATELY
+	//
+	//std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
 
-	if (desc.default_state == resource_state_rt_render_target) {
-		D3D12_UNORDERED_ACCESS_VIEW_DESC uav = {};
+	//if (desc.default_state == resource_state_rt_render_target) {
+	//	D3D12_UNORDERED_ACCESS_VIEW_DESC uav = {};
 
-		uav.Format =
-			dx12_resource_format_type[desc.format];
+	//	uav.Format =
+	//		dx12_resource_format_type[desc.format];
 
-		uav.ViewDimension =
-			D3D12_UAV_DIMENSION_TEXTURE2D;
+	//	uav.ViewDimension =
+	//		D3D12_UAV_DIMENSION_TEXTURE2D;
 
-		i_device->CreateUnorderedAccessView(
-			i_texture,
-			nullptr,
-			&uav,
-			*srv_handle
-		);
-	}
-	else {
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = dx12_resource_format_type[desc.format];
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Shader4ComponentMapping =
-			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Texture2D.MipLevels = static_cast<UINT>(desc.mips);
-		srvDesc.Texture1D.MostDetailedMip = 0;
-		i_device->CreateShaderResourceView(
-			i_texture,
-			&srvDesc,
-			*srv_handle);
-	}
+	//	i_device->CreateUnorderedAccessView(
+	//		i_texture,
+	//		nullptr,
+	//		&uav,
+	//		*srv_handle
+	//	);
+	//}
+	//else {
+	//	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	//	srvDesc.Format = dx12_resource_format_type[desc.format];
+	//	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	//	srvDesc.Shader4ComponentMapping =
+	//		D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	//	srvDesc.Texture2D.MipLevels = static_cast<UINT>(desc.mips);
+	//	srvDesc.Texture1D.MostDetailedMip = 0;
+	//	i_device->CreateShaderResourceView(
+	//		i_texture,
+	//		&srvDesc,
+	//		*srv_handle);
+	//}
 
-	const UINT mip_count = static_cast<UINT>(desc.mips);
+	const UINT mip_count = static_cast<UINT>(desc->mips);
 	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>
 		layouts(mip_count);
 	std::vector<UINT> num_rows(mip_count);
@@ -61,15 +73,15 @@ std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC
 	D3D12_RESOURCE_DESC texDesc = {};
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	texDesc.Alignment = 0;
-	texDesc.Width = static_cast<UINT>(desc.width);
-	texDesc.Height = static_cast<UINT>(desc.height);
+	texDesc.Width = static_cast<UINT>(desc->width);
+	texDesc.Height = static_cast<UINT>(desc->height);
 	texDesc.DepthOrArraySize = 1;
 	texDesc.MipLevels = mip_count;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	texDesc.Format = dx12_resource_format_type[(int)desc.format];
+	texDesc.Format = dx12_resource_format_type[(int)desc->format];
 
 	i_device->GetCopyableFootprints(
 		&texDesc,
@@ -92,60 +104,63 @@ std::unique_ptr<RHI_TEXTURE_2D> dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC
 		mips[i].format = dx12_helpers_resource_format_from_dxgi_format(layouts[i].Footprint.Format);
 	}
 
-	return std::make_unique<DX_TEXTURE_2D>(i_texture, *srv_handle,
-										   desc.default_state, desc.format,
-										   static_cast<size_t>(desc.width), static_cast<size_t>(desc.height),
-										   static_cast<size_t>(totalUploadSize), std::move(mips));
+	DX_TEXTURE_2D* result = new DX_TEXTURE_2D();
+	ASSERT_NULL(result);
+	result->set_handle(i_texture);
+	result->format = desc->format;
+	result->width = desc->width;
+	result->height = desc->height;
+	result->length = static_cast<size_t>(totalUploadSize);
+	memcpy(&result->mip_maps[0], mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
+	result->mip_maps_count = mip_count;
+	return result;
 }
 
-void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER& command_buffer, RHI_BUFFER& shared_buffer, RHI_TEXTURE_2D& texture) {
+void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
+	const RHI_BUFFER* const src_buffer,
+	RHI_TEXTURE_2D* const dest_buffer) {
 
-	ID3D12GraphicsCommandList* i_command_buffer = command_buffer;
-	ID3D12Resource* i_texture = static_cast<DX_TEXTURE_2D&>(texture);
+	ASSERT_NULL(command_buffer);
+	ASSERT_NULL(src_buffer);
+	ASSERT_NULL(dest_buffer);
 
-	resource_state old_state = texture.get_current_state();
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Transition.pResource = i_texture;
-	barrier.Transition.StateBefore = dx12_resource_state_type[old_state];
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	i_command_buffer->ResourceBarrier(1, &barrier);
-	texture.set_current_state(resource_state_copy_dest);
+	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
+	ASSERT_NULL(i_command_buffer);
+	ID3D12Resource* i_texture = *static_cast<DX_TEXTURE_2D*>(dest_buffer);
+	ASSERT_NULL(i_texture);
 
-	auto& mips = texture.get_mips();
-	for (size_t i = 0; i < mips.size(); ++i)
-	{
-		auto& mip = texture.get_mips()[i];
+	dx12_command_buffer_resource_transition_block(i_command_buffer,
+		*static_cast<DX_TEXTURE_2D*>(dest_buffer),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		true, [&]() {
 
-		D3D12_TEXTURE_COPY_LOCATION src = {};
-		src.pResource = static_cast<DX_BUFFER&>(shared_buffer);
-		src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		src.PlacedFootprint.Footprint.Format = dx12_resource_format_type[mip.format];
-		src.PlacedFootprint.Footprint.Width = mip.width;
-		src.PlacedFootprint.Footprint.Height = mip.height;
-		src.PlacedFootprint.Footprint.Depth = mip.depth;
-		src.PlacedFootprint.Footprint.RowPitch = mip.pitch;
-		src.PlacedFootprint.Offset = mip.offset;
+			for (size_t i = 0; i < dest_buffer->mip_maps_count; ++i)
+			{
+				auto& mip = dest_buffer->mip_maps[i];
 
-		D3D12_TEXTURE_COPY_LOCATION dst = {};
-		dst.pResource = i_texture;
-		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		dst.SubresourceIndex = i;
-		
-		i_command_buffer->CopyTextureRegion(
-			&dst,
-			0,
-			0,
-			0,
-			&src,
-			nullptr
-		);
+				D3D12_TEXTURE_COPY_LOCATION src = {};
+				src.pResource = *static_cast<const DX_BUFFER*>(src_buffer);
+				src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+				src.PlacedFootprint.Footprint.Format = dx12_resource_format_type[mip.format];
+				src.PlacedFootprint.Footprint.Width = mip.width;
+				src.PlacedFootprint.Footprint.Height = mip.height;
+				src.PlacedFootprint.Footprint.Depth = mip.depth;
+				src.PlacedFootprint.Footprint.RowPitch = mip.pitch;
+				src.PlacedFootprint.Offset = mip.offset;
 
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-		barrier.Transition.StateAfter = dx12_resource_state_type[old_state];
-		i_command_buffer->ResourceBarrier(1, &barrier);
-		texture.set_current_state(old_state);
-	}
+				D3D12_TEXTURE_COPY_LOCATION dst = {};
+				dst.pResource = i_texture;
+				dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				dst.SubresourceIndex = i;
 
+				i_command_buffer->CopyTextureRegion(
+					&dst,
+					0,
+					0,
+					0,
+					&src,
+					nullptr
+				);
+			}
+		});
 }

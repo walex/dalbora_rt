@@ -3,6 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-std::unique_ptr<RHI_SAMPLER> dx12_sampler_create(const RHI_RT_SAMPLER_DESC& desc);
+RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc);
 
 #endif

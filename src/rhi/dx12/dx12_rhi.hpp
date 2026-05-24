@@ -64,7 +64,7 @@ struct DX_DEVICE : public RHI_DEVICE, public DX_HANDLE<ID3D12Device>
 };
 
 struct DX_RESOURCE : public DX_HANDLE<ID3D12Resource> {
-	D3D12_RESOURCE_STATES current_state;
+	D3D12_RESOURCE_STATES current_state = D3D12_RESOURCE_STATE_COMMON;
 };
 
 struct DX_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
@@ -120,11 +120,6 @@ struct DX_FENCE : public RHI_FENCE, public DX_HANDLE<ID3D12Fence> {
 
 struct DX_VIEW : public RHI_VIEW, public DX_RESOURCE_HEAP_DESCRIPTOR {
 
-	void set_handle(RHI_VOID_PTR handle) override {
-		memcpy(&descriptor_handle, 
-			static_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(handle), 
-			sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
-	}
 };
 
 struct DX_RENDER_PASS : public RHI_RENDER_PASS {
@@ -148,6 +143,9 @@ struct DX_SAMPLER : public RHI_SAMPLER {
 
 struct DX_SBT_BUFFER : public RHI_SBT_TABLE, public DX_BUFFER
 {
+};
+
+struct DX_SWAP_CHAIN : public RHI_SWAP_CHAIN, public DX_HANDLE<IDXGISwapChain3> {
 };
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {

@@ -1,5 +1,4 @@
 #include "dx12_pipeline_layout.hpp"
-#include "dx12_helpers.hpp"
 
 RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC* const desc) {
 

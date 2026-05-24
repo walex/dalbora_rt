@@ -102,7 +102,7 @@ struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC  {
 #define MAX_RAY_GEN_GROUPS 1
 struct RHI_RT_SHADER_UNIT_DESC {
 	char name_id[MAX_SHADER_UNIT_NAME_LENGTH];
-	RHI_COMPILED_SHADER_BUFFER* blob = nullptr;;
+	RHI_COMPILED_SHADER_BUFFER* blob = nullptr;
 };
 
 struct RHI_RT_HIT_GROUP_DESC {
@@ -178,7 +178,7 @@ struct RHI_RT_SBT_DESC {
 	char** ray_gen_ids = nullptr;
 	size_t ray_gen_count = 0;
 	char** miss_ids = nullptr;
-	size_t miss_count = 0;
+	size_t miss_shader_count = 0;
 	char** hit_group_ids = nullptr;
 	size_t hit_group_count = 0;
 };

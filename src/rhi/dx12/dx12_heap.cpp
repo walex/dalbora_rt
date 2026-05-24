@@ -1,7 +1,25 @@
 #include "dx12_heap.hpp"
-#include "dx12_helpers.hpp"
 
-// bindless root signature
+ID3D12DescriptorHeap*
+dx12_heap_create_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESCRIPTOR_HEAP_TYPE type,
+	const size_t slot_count, const D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
+
+	ASSERT_NULL(device_impl);
+	ID3D12Device* i_device = *device_impl;
+	ASSERT_NULL(i_device);
+
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Type = type;
+	heapDesc.NumDescriptors = static_cast<UINT>(slot_count);
+	heapDesc.Flags = flags;
+	heapDesc.NodeMask = 0;
+
+	ID3D12DescriptorHeap* i_heap = nullptr;
+	ASSERT_FAILED(i_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&i_heap)));
+	ASSERT_NULL(i_heap);
+	return i_heap;
+}
+
 DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, resource_type resource_type, const size_t slot_count, const bool shader_visible) {
 
 	ASSERT_NULL(device_impl);
@@ -26,7 +44,7 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, resource_type reso
 			break;
 	}	
 
-	ID3D12DescriptorHeap* dh = dx12_helpers_create_descriptor_heap(device_impl, type,
+	ID3D12DescriptorHeap* dh = dx12_heap_create_descriptor(device_impl, type,
 		slot_count,
 		(shader_visible == true)
 		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
@@ -43,4 +61,36 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, resource_type reso
 	result->descriptor_handle.descriptor_size = i_device->GetDescriptorHandleIncrementSize(desc.Type);
 
 	return result;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE dx12_heap_next_handle(const DX_DEVICE* const device, const heap_id_type heap_id) {
+
+	ASSERT_NULL(device);
+	ASSERT_EXPR(heap_id < heap_id_type_count);
+
+	ID3D12Device* i_device = *device;
+	ASSERT_NULL(i_device);
+
+	DX_HEAP* heap_impl = nullptr;
+	switch (heap_id) {
+	case heap_id_type_resources:
+		heap_impl = device->resources_heap.get();
+		break;
+	case heap_id_type_sampler:
+		heap_impl = device->sampler_heap.get();
+		break;
+	case heap_id_type_rtv:
+		heap_impl = device->rtv_heap.get();
+		break;
+	case heap_id_type_dsv:
+		heap_impl = device->dsv_heap.get();
+		break;
+	}
+	ASSERT_NULL(heap_impl);
+	if (heap_impl->count < heap_impl->max_count)
+		throw std::exception("Max descriptors reached for heap %d", heap_id);
+	size_t& slot_id = heap_impl->count;
+	D3D12_CPU_DESCRIPTOR_HANDLE descriptor_handle = heap_impl->descriptor_handle.cpu_descriptor_handle;;
+	descriptor_handle.ptr += (slot_id++) * heap_impl->descriptor_handle.descriptor_size;
+	return descriptor_handle;
 }
