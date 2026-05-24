@@ -8,6 +8,7 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
+	ASSERT_NULL(i_device);
 	constexpr D3D12_RASTERIZER_DESC rasterizer_desc_default = {
 		D3D12_FILL_MODE_SOLID,
 		D3D12_CULL_MODE_NONE,

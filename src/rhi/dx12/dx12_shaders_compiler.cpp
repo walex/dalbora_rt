@@ -6,9 +6,13 @@ void dx12_shaders_compiler_set_folder(const char* const folder) {
     g_shaders_folder = folder;
 }
 
-std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> dx12_shaders_compiler_compile(const char* const file,
+RHI_COMPILED_SHADER_BUFFER* dx12_shaders_compiler_compile(const char* const file,
 	const char* const entry, 
 	const char* const target) {
+
+    ASSERT_NULL(file);
+    ASSERT_NULL(entry);
+    ASSERT_NULL(target);
 
     Microsoft::WRL::ComPtr<IDxcUtils> utils;
     Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
@@ -67,12 +71,14 @@ std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> dx12_shaders_compiler_compile(const 
         throw std::exception("Shader compile failed");
     }
 
-    assert(SUCCEEDED(hr) && "Error compiling shader");
 
-    IDxcBlob* shader;
-    if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader), nullptr))) {
+    IDxcBlob* i_shader;
+    if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&i_shader), nullptr))) {
         throw std::runtime_error("Failed to get compiled shader blob");
 	}
-
-	return std::make_unique<DX_COMPILED_SHADER_BUFFER>(shader);
+    
+    DX_COMPILED_SHADER_BUFFER* result = new DX_COMPILED_SHADER_BUFFER();
+    ASSERT_NULL(result);
+    result->set_handle(i_shader);
+    return result;
 }

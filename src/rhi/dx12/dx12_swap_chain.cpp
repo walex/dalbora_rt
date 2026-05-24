@@ -1,6 +1,6 @@
 #include "dx12_swap_chain.hpp"
 #include "dx12_factory.hpp"
-#include "dx12_heap.hpp"
+#include "dx12_buffers.hpp"
 
 RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
@@ -79,13 +79,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		ID3D12Resource* i_buffer;
 		ASSERT_FAILED(i_swap_chain_3->GetBuffer(i, IID_PPV_ARGS(&i_buffer)));
 		ASSERT_NULL(i_buffer);
-
-		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
-		rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rtv_desc.Format = dx12_resource_format_type[(int)desc->color_format];
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12_heap_next_handle(device_impl, heap_id_type_rtv);
-		i_device->CreateRenderTargetView(i_buffer, &rtv_desc, rtvHandle);
-
+	
 		DXGI_SWAP_CHAIN_DESC swp_desc;
 		i_swap_chain_3->GetDesc(&swp_desc);
 		UINT mip_count = 1;
@@ -127,8 +121,19 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 			mips[i].depth = static_cast<size_t>(layouts[i].Footprint.Depth);
 			mips[i].format = dx12_helpers_resource_format_from_dxgi_format(layouts[i].Footprint.Format);
 		}
+		
 		DX_VIEW* view = new DX_VIEW();
 		ASSERT_NULL(view);
+		RHI_VIEW_DESC view_desc;
+		view_desc.type = resource_type_render_target;
+		view_desc.device = desc->device;
+		view_desc.format = desc->color_format;
+		std::unique_ptr<DX_BUFFER> buffer_wrapper
+			= std::make_unique<DX_BUFFER>();
+		buffer_wrapper->Attach(i_buffer);
+		view_desc.buffer = buffer_wrapper.get();
+		RHI_VIEW* view = dx12_buffers_create_view(&view_desc);
+		buffer_wrapper->Detach();
 		DX_TEXTURE_2D* texture = new DX_TEXTURE_2D();
 		ASSERT_NULL(texture);
 		texture->set_handle(i_buffer);

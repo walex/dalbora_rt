@@ -61,8 +61,8 @@ void dx12_rhi_init()
 
 	// buffers
 	rhi_buffers_create_raw = &dx12_buffers_create_raw;
-	rhi_vertex_buffer_create = &dx12_vertex_buffer_create;
-	rhi_index_buffer_create = &dx12_index_buffer_create;
+	rhi_buffers_create_vertices = &dx12_buffers_create_vertices;
+	rhi_buffers_create_indices = &dx12_buffers_create_indices;
 	rhi_buffers_create_depth = &dx12_buffers_create_depth;
 	rhi_buffers_create_constant = &dx12_buffers_create_constant;
 	rhi_buffers_map_open = &dx12_buffers_map_open;

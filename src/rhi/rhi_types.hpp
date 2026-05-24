@@ -70,8 +70,8 @@ struct RHI_VIEWPORT {
 };
 struct RHI_RENDER_PASS {
 	RHI_DEVICE* device;
-	RHI_TEXTURE_2D* render_target;
-	RHI_DEPTH_BUFFER* depth_buffer;
+	RHI_VIEW* render_target_view;
+	RHI_VIEW* depth_buffer_view;
 	RHI_PIPELINE* pipeline;
 	RHI_VIEWPORT view_port;
 };

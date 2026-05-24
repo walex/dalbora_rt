@@ -29,7 +29,7 @@ RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc) {
     DX_SAMPLER* result = new DX_SAMPLER();
     ASSERT_NULL(result);
 
-    result->cpu_handle = dx12_heap_next_handle(device_impl, heap_id_type_sampler);
+    dx12_heap_next_handle(device_impl, heap_id_type_sampler, &result->cpu_handle);
     i_device->CreateSampler(&sampDesc, result->cpu_handle);
     return result;
 }

@@ -63,10 +63,14 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, resource_type reso
 	return result;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE dx12_heap_next_handle(const DX_DEVICE* const device, const heap_id_type heap_id) {
+size_t dx12_heap_next_handle(const DX_DEVICE* const device, 
+	const heap_id_type heap_id,
+	D3D12_CPU_DESCRIPTOR_HANDLE* const cpu_descriptor_handle,
+	D3D12_GPU_DESCRIPTOR_HANDLE* const gpu_descriptor_handle) {
 
 	ASSERT_NULL(device);
 	ASSERT_EXPR(heap_id < heap_id_type_count);
+	ASSERT_NULL(cpu_descriptor_handle);
 
 	ID3D12Device* i_device = *device;
 	ASSERT_NULL(i_device);
@@ -90,7 +94,12 @@ D3D12_CPU_DESCRIPTOR_HANDLE dx12_heap_next_handle(const DX_DEVICE* const device,
 	if (heap_impl->count < heap_impl->max_count)
 		throw std::exception("Max descriptors reached for heap %d", heap_id);
 	size_t& slot_id = heap_impl->count;
-	D3D12_CPU_DESCRIPTOR_HANDLE descriptor_handle = heap_impl->descriptor_handle.cpu_descriptor_handle;;
-	descriptor_handle.ptr += (slot_id++) * heap_impl->descriptor_handle.descriptor_size;
-	return descriptor_handle;
+	*cpu_descriptor_handle = heap_impl->descriptor_handle.cpu_descriptor_handle;
+	cpu_descriptor_handle->ptr += (slot_id++) * heap_impl->descriptor_handle.descriptor_size;
+
+	if (gpu_descriptor_handle) {
+		*gpu_descriptor_handle = heap_impl->descriptor_handle.gpu_descriptor_handle;
+		gpu_descriptor_handle->ptr += (slot_id)*heap_impl->descriptor_handle.descriptor_size;
+	}
+	return heap_impl->descriptor_handle.descriptor_size;
 }

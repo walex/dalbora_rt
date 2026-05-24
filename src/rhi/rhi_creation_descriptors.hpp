@@ -164,7 +164,7 @@ struct RT_GEOMETRY_INSTANCES_DESC  {
 };
 
 struct RHI_RENDER_PASS_DESC  {
-	RHI_TEXTURE_2D* render_target = nullptr;
+	RHI_VIEW* render_target_view = nullptr;
 	RHI_DEVICE* device = nullptr;
 	resource_format format;
 	bool synchronized;

@@ -205,7 +205,7 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	tlas_barrier.UAV.pResource = i_tlas_buffer;
 	i_command_buffer->ResourceBarrier(1, &tlas_barrier);
 
-	DX_RESOURCE_HEAP_DESCRIPTOR srv_handle = dx12_helpers_get_next_descriptor_heap_handle(device_impl, heap_id_type_resources);
+	//DX_RESOURCE_HEAP_DESCRIPTOR srv_handle = dx12_helpers_get_next_descriptor_heap_handle(device_impl, heap_id_type_resources);
 
 	// CREAR VIEW EN OTRO LADO
 	//D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};

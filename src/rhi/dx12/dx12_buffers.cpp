@@ -1,7 +1,6 @@
 #include "dx12_buffers.hpp"
 #include "dx12_command_buffer.hpp"
-
-
+#include "dx12_heap.hpp"
 
 RHI_DEPTH_BUFFER* dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC* const desc)
 {
@@ -202,7 +201,8 @@ RHI_VIEW* d12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
 	ASSERT_NULL(i_resource);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = dx12_helpers_get_next_descriptor_heap_handle(desc->device, DSV_HEAP_ID);
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
+	dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_dsv, &cpu_handle);
 
 	RHI_VIEW* result = nullptr;
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
@@ -227,7 +227,8 @@ RHI_VIEW* d12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
 	ASSERT_NULL(i_resource);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = dx12_helpers_get_next_descriptor_heap_handle(desc->device, RTV_HEAP_ID);
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
+	dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_rtv, &cpu_handle);
 
 	RHI_VIEW* result = nullptr;
 	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
@@ -251,9 +252,10 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
 	ASSERT_NULL(i_resource);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = dx12_helpers_get_next_descriptor_heap_handle(desc->device, RESOURCES_HEAP_ID);
+	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
+	size_t descriptor_size = dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_resources, &cpu_handle, &gpu_handle);
 
-	RHI_VIEW* result = nullptr;
 	if (desc->type == resource_type_constant_buffer) {
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
 		cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
@@ -280,9 +282,11 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 		i_device->CreateShaderResourceView(i_resource, &srv_desc, cpu_handle);
 	}
-	result = new DX_VIEW();
+	DX_VIEW* result = new DX_VIEW();
 	ASSERT_NULL(result);
-	result->set_handle(&cpu_handle);
+	result->cpu_descriptor_handle = cpu_handle;
+	result->gpu_descriptor_handle = gpu_handle;
+	result->descriptor_size = descriptor_size;
 	return result;
 }
 

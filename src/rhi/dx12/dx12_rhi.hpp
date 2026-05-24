@@ -22,7 +22,7 @@ struct DX_DEVICE_HEAP_DESC
 };
 
 template <typename T>
-struct DX_HANDLE : public RHI_HANDLE, protected Microsoft::WRL::ComPtr<T>
+struct DX_HANDLE : public RHI_HANDLE, public Microsoft::WRL::ComPtr<T>
 {
 	void set_handle(RHI_VOID_PTR handle) override {
 
@@ -112,7 +112,7 @@ struct DX_CONSTANT_BUFFER : public RHI_CONSTANT_BUFFER {
 struct DX_TEXTURE_2D : public RHI_TEXTURE_2D, public DX_RESOURCE {
 };
 
-struct DX_BVH_BUFFER : public RHI_BUFFER {
+struct DX_BVH_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
 };
 
 struct DX_FENCE : public RHI_FENCE, public DX_HANDLE<ID3D12Fence> {

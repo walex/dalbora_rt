@@ -101,14 +101,14 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			vb_desc.length = vertex_count * vertex_size;
 			vb_desc.stride = vertex_size;
 			vb_desc.format = resource_format_float3;
-			vertex_buffer = rhi_vertex_buffer_create(vb_desc);
+			vertex_buffer = rhi_buffers_create_vertices(vb_desc);
 
 			RHI_INDEX_BUFFER_DESC ib_desc(device);
 			ib_desc.count = index_count;
 			ib_desc.length = sizeof(uint16_t) * index_count;
 			ib_desc.stride = sizeof(uint16_t);
 			ib_desc.format = resource_format_uint16;
-			index_buffer = rhi_index_buffer_create(ib_desc);
+			index_buffer = rhi_buffers_create_indices(ib_desc);
 
 			// create shared memory for camera transforms
 			RHI_BUFFER_DESC shared_camera_buffer_desc(device);

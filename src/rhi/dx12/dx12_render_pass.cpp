@@ -6,12 +6,12 @@ RHI_RENDER_PASS* dx12_render_pass_create(const RHI_RENDER_PASS_DESC* const desc)
 
 	ASSERT_NULL(desc);
 	ASSERT_NULL(desc->device);
-	ASSERT_NULL(desc->render_target);
+	ASSERT_NULL(desc->render_target_view);
 
 	DX_RENDER_PASS* result = new DX_RENDER_PASS();
 	ASSERT_NULL(result);
 	result->device = desc->device;
-	result->render_target = desc->render_target;
+	result->render_target_view = desc->render_target_view;
 
 	return result;
 }
@@ -21,15 +21,15 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 
 	ASSERT_NULL(render_pass);
 	ASSERT_NULL(render_pass->device);
-	ASSERT_NULL(render_pass->render_target);
+	ASSERT_NULL(render_pass->render_target_view);
 	ASSERT_NULL(render_pass->pipeline);
 	ASSERT_NULL(render_pass->pipeline->layout);
 	ASSERT_NULL(command_buffer);
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
 	ASSERT_NULL(device_impl->resources_heap);
+	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view);
 
-	DX_TEXTURE_2D* render_target_impl = static_cast<DX_TEXTURE_2D*>(render_pass->render_target);
 	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
@@ -42,7 +42,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	};
 
 	dx12_command_buffer_resource_transition_block(i_command_buffer,
-		render_target_impl,
+		*static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		true,
 		[&]() {
@@ -70,8 +70,8 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	ASSERT_NULL(i_command_buffer);
 
 	DX_RASTER_PIPELINE* pipeline_impl = static_cast<DX_RASTER_PIPELINE*>(render_pass->pipeline);
-	DX_VIEW* render_target_view_impl = render_pass->render_target_view;
-	DX_VIEW* depth_buffer_view_impl = render_pass->depth_buffer_view;
+	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view);
+	DX_VIEW* depth_buffer_view_impl = static_cast<DX_VIEW*>(render_pass->depth_buffer_view);
 		
 	const RHI_VIEWPORT& vp = render_pass->view_port;
 	D3D12_VIEWPORT dx_vp;
