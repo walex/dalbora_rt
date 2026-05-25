@@ -65,8 +65,8 @@ void dx12_command_buffer_record(
 
 void dx12_command_buffer_draw_triangle_list(
 	RHI_COMMAND_BUFFER* const command_buffer, 
-	const RHI_VERTEX_BUFFER* const vb,
-	const RHI_INDEX_BUFFER* const ib) {
+	const RHI_BUFFER* const vb,
+	const RHI_BUFFER* const ib) {
 
 	ASSERT_PTR(command_buffer);
 	ASSERT_PTR(vb);
@@ -75,7 +75,7 @@ void dx12_command_buffer_draw_triangle_list(
 	ID3D12GraphicsCommandList* i_command_buffer = *cmd_buffer_impl;
 	ASSERT_PTR(i_command_buffer);
 	
-	DX_VERTEX_BUFFER* vb_impl = *static_cast<const DX_VERTEX_BUFFER*>(vb);
+	DX_BUFFER* vb_impl = *static_cast<const DX_BUFFER*>(vb);
 	ID3D12Resource* i_vb = *vb_impl;
 	ASSERT_PTR(i_vb);
 
@@ -94,7 +94,7 @@ void dx12_command_buffer_draw_triangle_list(
 
 			if (ib != nullptr) {
 
-				DX_VERTEX_BUFFER* ib_impl = *static_cast<const DX_INDEX_BUFFER*>(ib);
+				DX_BUFFER* ib_impl = *static_cast<const DX_BUFFER*>(ib);
 				ID3D12Resource* i_ib = *ib_impl;
 				ASSERT_PTR(i_ib);
 
@@ -108,7 +108,7 @@ void dx12_command_buffer_draw_triangle_list(
 						ib_view.SizeInBytes = static_cast<UINT>(ib_impl->length);
 						ib_view.Format = dx12_resource_format_type[ib_impl->format];
 						i_command_buffer->IASetIndexBuffer(&ib_view);
-						auto index_count = static_cast<UINT>(ib_view.SizeInBytes / ib->stride);
+						UINT index_count = static_cast<UINT>(ib_view.SizeInBytes / ib->stride);
 						i_command_buffer->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
 					});
 			}

@@ -11,7 +11,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges;
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges_sampler;
 
-	for (size_t i = 0; i < MAX_PIPELINE_DESCRIPTORS; i++) {
+	for (size_t i = 0; i < desc->descriptor_count; i++) {
 
 		if (desc->descriptors[i].pool_range_start == -1 
 			|| desc->descriptors[i].pool_range_count == -1) {
@@ -83,7 +83,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		&signature,
 		&error
 	));
-	ASSERT_PTR(error);
+
 	ASSERT_PTR(signature);
 	ID3D12RootSignature* i_root_signature = nullptr;
 	ASSERT_SUCCESS(i_device->CreateRootSignature(

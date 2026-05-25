@@ -14,8 +14,8 @@ void dx12_command_buffer_record(
 	fptr_command_buffer_on_record callback);
 void dx12_command_buffer_draw_triangle_list(
 	RHI_COMMAND_BUFFER* const command_buffer, 
-	const RHI_VERTEX_BUFFER* const vb,
-	const RHI_INDEX_BUFFER* const ib);
+	const RHI_BUFFER* const vb,
+	const RHI_BUFFER* const ib);
 void dx12_command_buffer_ray_trace(
 	RHI_COMMAND_BUFFER* const command_buffer,
 	RHI_TEXTURE_2D* const render_target, 

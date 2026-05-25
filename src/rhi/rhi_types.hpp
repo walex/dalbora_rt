@@ -16,6 +16,7 @@ struct RHI_HANDLE {
 struct RHI_BUFFER { 
 	virtual ~RHI_BUFFER() = default;
 	size_t length = 0;
+	size_t stride = 0;
 	resource_format format = resource_format_none;
 };
 
@@ -97,24 +98,6 @@ struct RHI_COMMAND_QUEUE {
 	virtual ~RHI_COMMAND_QUEUE() = default;
 	std::unique_ptr<RHI_FENCE> fence;
 	uint64_t fence_counter = 0;
-};
-
-struct RHI_VERTEX_BUFFER {
-	virtual ~RHI_VERTEX_BUFFER() = default;
-	size_t stride = 0; 
-};
-
-struct RHI_INDEX_BUFFER { 
-	virtual ~RHI_INDEX_BUFFER() = default;
-	size_t stride = 0;
-};
-
-struct RHI_CONSTANT_BUFFER {};
-
-struct RHI_DEPTH_BUFFER {
-	virtual ~RHI_DEPTH_BUFFER() = default;
-	size_t width = 0;
-	size_t height = 0;
 };
 
 struct RHI_VIEWPORT {

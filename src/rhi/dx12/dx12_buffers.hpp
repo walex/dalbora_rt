@@ -3,8 +3,8 @@
 
 #include "dx12_rhi.hpp"
 
-RHI_DEPTH_BUFFER* dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC* const desc);
-RHI_CONSTANT_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc);
+RHI_BUFFER* dx12_buffers_create_depth(const RHI_BUFFER_2D_DESC* const desc);
+RHI_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc);
 void dx12_buffers_copy_buffer_region(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
 	size_t offset_src, RHI_BUFFER* const dest_buffer, 
 	size_t offset_dest, size_t length);
@@ -29,13 +29,14 @@ void dx12_buffers_map_write(RHI_BUFFER* const buffer, const RHI_VOID_PTR data,
 void dx12_buffers_map_read(RHI_BUFFER* const buffer, RHI_VOID_PTR* const data,
 	const size_t offset, const size_t length);
 RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc);
-RHI_INDEX_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc);
-RHI_VERTEX_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc);
+RHI_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc);
+RHI_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc);
 
 template <typename T>
 T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 {
 	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
 
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
@@ -51,9 +52,9 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 	else if (buffer_type == buffer_type_rt_bvh) {
 		flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	}
-	if (desc->memory_type == buffer_memory_type_shared_rw) {
-		flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	}
+	//if (desc->memory_type == buffer_memory_type_shared_rw) {
+	//	flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	//}
 	if (desc->is_render_target == true) {
 		flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	}
@@ -79,11 +80,12 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 	else
 		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	bufferDesc.Flags = flags;
-	bufferDesc.Format = (bufferDesc.Dimension > D3D12_RESOURCE_DIMENSION_BUFFER)
+	bufferDesc.Format = (bufferDesc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
 		? dx12_resource_format_type[desc->format]
 		: DXGI_FORMAT_UNKNOWN;
 	ID3D12Resource* i_resource = nullptr;
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
+	ASSERT_PTR(i_device);
 	HRESULT hr = i_device->CreateCommittedResource(
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
@@ -109,8 +111,10 @@ template <typename T>
 T* dx12_buffers_create(const RHI_BUFFER_DESC* const desc) {
 
 	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
 
 	RHI_BUFFER_2D_DESC desc_2d;
+	desc_2d.device = desc->device;
 	desc_2d.length = desc->length;
 	desc_2d.mips = desc->mips;
 	desc_2d.memory_type = desc->memory_type;

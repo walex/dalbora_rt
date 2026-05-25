@@ -9,14 +9,15 @@ void test_raster_triangle(fptr_test_on_init on_init,
 						  fptr_test_on_layout on_layout)
 {
 
-	std::unique_ptr<RHI_RASTER_PIPELINE> triangle_raster_pipeline;
-	std::unique_ptr<RHI_DEPTH_BUFFER> depth_buffer;
-	std::unique_ptr<RHI_VERTEX_BUFFER> vertex_buffer;
-	std::unique_ptr<RHI_INDEX_BUFFER> index_buffer;
+	std::unique_ptr<RHI_RASTER_PIPELINE> pipeline;
+	std::unique_ptr<RHI_BUFFER> depth_buffer;
+	std::unique_ptr<RHI_VIEW> depth_buffer_view;
+	std::unique_ptr<RHI_BUFFER> vertex_buffer;
+	std::unique_ptr<RHI_BUFFER> index_buffer;
 	std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_layout;
-	std::unique_ptr<RHI_CONSTANT_BUFFER> shared_camera_constant_buffer;
-	std::unique_ptr<RHI_CONSTANT_BUFFER> shared_object_constant_buffer;
-	std::vector<RHI_CONSTANT_BUFFER *> constants_buffer_array;
+	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
+	std::unique_ptr<RHI_BUFFER> shared_object_constant_buffer;
+	std::vector<RHI_BUFFER*> constants_buffer_array;
 	std::unique_ptr<RHI_COMMAND_QUEUE> copy_command_queue;
 	std::unique_ptr<RHI_COMMAND_BUFFER> copy_command_buffer;
 	RHI_VOID_PTR camera_constant_buffer_ptr;
@@ -57,18 +58,16 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
 
-
 			// create layout for pipeline
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
 			pl_desc.device = &device;
 			pl_desc.shader_type = shader_type_undef;
 
 			// add constant buffer descriptors for camera and object transforms;
-			RHI_DESCRIPTOR_DESC cb_desc;
+			RHI_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			cb_desc.resource_type = resource_type_constant_buffer;
 			cb_desc.pool_range_start = 0;
 			cb_desc.pool_range_count = 2;
-			pl_desc.descriptors.push_back(cb_desc);
 
 			// create shaders layouts
 			std::vector<RHI_INPUT_LAYOUT_DESC> input_layouts;
@@ -77,120 +76,152 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			size_t vertex_size;
 			void* vertices_ptr;
 			if (on_layout) {
-				on_layout(pl_desc.descriptors, input_layouts, 
-					vs_file, ps_file, 
-					vertex_size, &vertices_ptr);
+				//on_layout(pl_desc.descriptors, input_layouts, 
+				//	vs_file, ps_file, 
+				//	vertex_size, &vertices_ptr);
 			}
 			else {
 				vs_file = "simple_triangle.hlsl";
 				ps_file = "simple_triangle.hlsl";
 				vertex_size = sizeof(Vertex);
 				vertices_ptr = &vertices[0];
-				input_layouts.emplace_back("POSITION", resource_format_float3, 0);
-				input_layouts.emplace_back("TEXCOORD", resource_format_float2, 12);
+				RHI_INPUT_LAYOUT_DESC& desc_pos = input_layouts.emplace_back();
+				strcpy(desc_pos.name, "POSITION");
+				desc_pos.format = resource_format_float3;
+				desc_pos.offset = 0;
 			}
 			// create pipeline layout
-			pipeline_layout = rhi_pipeline_layout_create(pl_desc);
+			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 
 			// compile shaders
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
 
-			vertex_shader = rhi_shaders_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0");
-			pixel_shader = rhi_shaders_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0");
+			vertex_shader.reset(rhi_shaders_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0"));
+			pixel_shader.reset(rhi_shaders_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0"));
 
 			// create geometry buffers
-			RHI_VERTEX_BUFFER_DESC vb_desc(device);
+			RHI_VERTEX_BUFFER_DESC vb_desc;
+			vb_desc.device = &device;
 			vb_desc.count = vertex_count;
 			vb_desc.length = vertex_count * vertex_size;
 			vb_desc.stride = vertex_size;
 			vb_desc.format = resource_format_float3;
-			vertex_buffer = rhi_buffers_create_vertices(vb_desc);
+			vb_desc.memory_type = buffer_memory_type_gpu_only;
+			vb_desc.type = buffer_type_raw;
+			vertex_buffer.reset(rhi_buffers_create_vertices(&vb_desc));
 
-			RHI_INDEX_BUFFER_DESC ib_desc(device);
+			RHI_INDEX_BUFFER_DESC ib_desc;
+			ib_desc.device = &device;
 			ib_desc.count = index_count;
 			ib_desc.length = sizeof(uint16_t) * index_count;
 			ib_desc.stride = sizeof(uint16_t);
 			ib_desc.format = resource_format_uint16;
-			index_buffer = rhi_buffers_create_indices(ib_desc);
+			ib_desc.memory_type = buffer_memory_type_gpu_only;
+			ib_desc.type = buffer_type_raw;
+			index_buffer.reset(rhi_buffers_create_indices(&ib_desc));
 
 			// create shared memory for camera transforms
-			RHI_BUFFER_DESC shared_camera_buffer_desc(device);
+			RHI_BUFFER_DESC shared_camera_buffer_desc;
+			shared_camera_buffer_desc.device = &device;
 			shared_camera_buffer_desc.length = sizeof(CameraCB);
 			shared_camera_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			shared_camera_buffer_desc.default_state = resource_state_generic_read;
-			shared_camera_buffer_desc.resource_slot = 0;
-			shared_camera_constant_buffer = rhi_buffers_create_constant(shared_camera_buffer_desc);
-			camera_constant_buffer_ptr = rhi_buffers_map_open(*shared_camera_constant_buffer, 0, sizeof(CameraCB));
+			shared_camera_buffer_desc.type = buffer_type_raw;
+			shared_camera_buffer_desc.mips = 1;
+			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
+			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
 
 			// create shared memory for object transfrms
-			RHI_BUFFER_DESC shared_object_buffer_desc(device);
+			RHI_BUFFER_DESC shared_object_buffer_desc;
+			shared_object_buffer_desc.device = &device;
 			shared_object_buffer_desc.length = sizeof(ObjectCB);
 			shared_object_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			shared_object_buffer_desc.default_state = resource_state_generic_read;
-			shared_object_buffer_desc.resource_slot = 1;
-			shared_object_constant_buffer = rhi_buffers_create_constant(shared_object_buffer_desc);
-			object_constant_buffer_ptr = rhi_buffers_map_open(*shared_object_constant_buffer, 0, sizeof(ObjectCB));
+			shared_object_buffer_desc.type = buffer_type_raw;
+			shared_object_buffer_desc.mips = 1;
+			shared_object_constant_buffer.reset(rhi_buffers_create_constant(&shared_object_buffer_desc));
+			object_constant_buffer_ptr = rhi_buffers_map_open(shared_object_constant_buffer.get(), 0, sizeof(ObjectCB));
 
 			constants_buffer_array = {shared_camera_constant_buffer.get(), shared_object_constant_buffer.get()};
 
 			// create copy command queue ad buffer
-			RHI_COMMAND_QUEUE_DESC queue_desc(device);
-			copy_command_queue = rhi_command_queue_create_for_copy(queue_desc);
+			RHI_COMMAND_QUEUE_DESC queue_desc; 
+			queue_desc.device = &device;
+			copy_command_queue.reset(rhi_command_queue_create_for_copy(&queue_desc));
 
-			RHI_COMMAND_BUFFER_DESC command_buffer_desc(device, *copy_command_queue);
-			copy_command_buffer = rhi_command_buffer_create_for_copy(command_buffer_desc);
+			RHI_COMMAND_BUFFER_DESC command_buffer_desc;
+			command_buffer_desc.device = &device;
+			command_buffer_desc.command_queue = copy_command_queue.get();
+			copy_command_buffer.reset(rhi_command_buffer_create_for_copy(&command_buffer_desc));
 
 			// upload buffers
-			rhi_command_queue_execute(*copy_command_queue, true,
+			rhi_command_queue_execute(copy_command_queue.get(), true,
 				[&](RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
-					std::vector<RHI_COMMAND_BUFFER *> &command_buffer_list) {
+					std::vector<RHI_COMMAND_BUFFER *>* command_buffer_list) {
 
-				rhi_command_buffer_record(*copy_command_buffer,
+				rhi_command_buffer_record(copy_command_buffer.get(),
 				[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
 
 					// cpu bridge buffer uploading
 					{
-						RHI_BUFFER_DESC shared_buffer_desc(device);
+						RHI_BUFFER_DESC shared_buffer_desc;
+						shared_buffer_desc.device = &device;
 						shared_buffer_desc.length = vb_desc.length;
 						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-						shared_buffer_desc.default_state = resource_state_generic_read;
-						auto shared_vertex_buffer = rhi_buffers_create_raw(shared_buffer_desc);
-						rhi_buffers_map_write(*shared_vertex_buffer, vertices_ptr, 0, shared_buffer_desc.length);
-						rhi_buffers_gpu_upload(*copy_command_buffer, *shared_vertex_buffer, *vertex_buffer);
+						shared_buffer_desc.type = buffer_type_raw;
+						shared_buffer_desc.mips = 1;
+						std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
+						shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+						rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
+						rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_vertex_buffer.get(), vertex_buffer.get());
 					}
 
 					// cpu bridge buffer uploading
 					{
-						RHI_BUFFER_DESC shared_buffer_desc(device);
+						RHI_BUFFER_DESC shared_buffer_desc;
+						shared_buffer_desc.device = &device;
 						shared_buffer_desc.length = ib_desc.length;
 						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-						shared_buffer_desc.default_state = resource_state_generic_read;
-						auto shared_index_buffer = rhi_buffers_create_raw(shared_buffer_desc);
-						rhi_buffers_map_write(*shared_index_buffer, &indices[0], 0, shared_buffer_desc.length);
-						rhi_buffers_gpu_upload(*copy_command_buffer, *shared_index_buffer, *index_buffer);
+						shared_buffer_desc.type = buffer_type_raw;
+						shared_buffer_desc.mips = 1;
+						std::unique_ptr<RHI_BUFFER> shared_index_buffer;
+						shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+						rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
+						rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_index_buffer.get(), index_buffer.get());
 					}
 
 				});
 
-				command_buffer_list.push_back(&*copy_command_buffer); 
+				command_buffer_list->push_back(copy_command_buffer.get()); 
 			});
 
 			// create depth buffer
-			RHI_DEPTH_BUFFER_DESC db_desc(device);
+			RHI_TEXTURE_2D_DESC db_desc;
+			db_desc.device = &device;
 			db_desc.width = 800;
 			db_desc.height = 600;
 			db_desc.format = resource_format_d24_norm_s8_uint;
 			db_desc.type = buffer_type_depth_stencil;
-			db_desc.resource_slot = 0;
-			db_desc.default_state = resource_state_depth_write;
-			depth_buffer = rhi_buffers_create_depth(db_desc);
+			depth_buffer.reset(rhi_buffers_create_depth(&db_desc));
 
+			// depth view
+			RHI_VIEW_DESC db_view_desc;
+			db_view_desc.device = &device;
+			db_view_desc.buffer = depth_buffer.get();
+			db_view_desc.type = resource_type_depth_stencil_target;
+			db_view_desc.format = db_desc.format;
+			depth_buffer_view.reset(rhi_buffers_create_view(&db_view_desc));
+			
 			// create pipeline
-			RHI_RASTER_PIPELINE_DESC pipe_desc(device, *pipeline_layout, input_layouts, vertex_shader.get(), pixel_shader.get());
+			RHI_RASTER_PIPELINE_DESC pipe_desc;
+			pipe_desc.device = &device;
+			pipe_desc.layout = pipeline_layout.get();
+			pipe_desc.input_layouts_desc_count = input_layouts.size();
+			memcpy(&pipe_desc.input_layouts_desc[0], input_layouts.data(), input_layouts.size() * sizeof(RHI_INPUT_LAYOUT_DESC));
+			pipe_desc.vertex_shader = vertex_shader.get();
+			pipe_desc.pixel_shader = pixel_shader.get();
 			pipe_desc.topology = primitive_topology_triangle;
 			pipe_desc.surface_format = resource_format_R8G8B8A8_norm;
 			pipe_desc.depth_buffer_format = resource_format_d24_norm_s8_uint;
-			triangle_raster_pipeline = rhi_raster_pipeline_create(pipe_desc); 
+			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));
 
 			// on init
 			if (on_init)
@@ -200,8 +231,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			[&](RHI_RENDER_PASS &render_pass)
 			{
 				// on before draw
-				render_pass.set_depth_buffer(depth_buffer.get());
-				render_pass.set_pipeline(triangle_raster_pipeline.get());
+				render_pass.depth_buffer_view = depth_buffer_view.get();
+				render_pass.pipeline = pipeline.get();
 			},
 			[&](RHI_DEVICE& device, RHI_RENDER_PASS& render_pass,
 				RHI_COMMAND_BUFFER &command_buffer)
@@ -215,12 +246,9 @@ void test_raster_triangle(fptr_test_on_init on_init,
 				memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCB));
 				memcpy(object_constant_buffer_ptr, &triangle_transforms, sizeof(ObjectCB));
 
-				rhi_command_buffer_reset_resource_state(command_buffer, *vertex_buffer);
-				rhi_command_buffer_reset_resource_state(command_buffer, *index_buffer);
-
 				if (on_draw)
 					on_draw(device, render_pass, command_buffer);
-				rhi_command_buffer_draw_triangle_list(command_buffer, *vertex_buffer, index_buffer.get());
+				rhi_command_buffer_draw_triangle_list(&command_buffer, vertex_buffer.get(), index_buffer.get());
 			},
 			[&](RHI_RENDER_PASS &UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& (swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer))
 			{
@@ -232,8 +260,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 				//	on_end(device);
 
 				// on end
-				rhi_buffers_map_close(*shared_camera_constant_buffer, 0, sizeof(CameraCB));
-				rhi_buffers_map_close(*shared_object_constant_buffer, 0, sizeof(ObjectCB));
+				rhi_buffers_map_close(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
+				rhi_buffers_map_close(shared_object_constant_buffer.get(), 0, sizeof(ObjectCB));
 			});
 	return;
 }

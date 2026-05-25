@@ -78,12 +78,6 @@ struct DX_RESOURCE : public DX_HANDLE<ID3D12Resource> {
 struct DX_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
 };
 
-struct DX_INDEX_BUFFER : public RHI_INDEX_BUFFER, public DX_BUFFER {
-};
-
-struct DX_VERTEX_BUFFER : public RHI_VERTEX_BUFFER, public DX_BUFFER {
-};
-
 struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_HANDLE<ID3D12CommandList> {
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
 };
@@ -112,12 +106,6 @@ private:
 
 struct DX_COMMAND_QUEUE : public RHI_COMMAND_QUEUE, public DX_HANDLE<ID3D12CommandQueue> {
 	DX_EVENT event_handle;
-};
-
-struct DX_DEPTH_BUFFER : public RHI_DEPTH_BUFFER, public DX_BUFFER {
-};
-
-struct DX_CONSTANT_BUFFER : public RHI_CONSTANT_BUFFER, public DX_BUFFER {
 };
 
 struct DX_TEXTURE_2D : public RHI_TEXTURE_2D, public DX_BUFFER {
@@ -181,7 +169,7 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D, // buffer_type_image_2d
 	D3D12_RESOURCE_DIMENSION_TEXTURE3D, // buffer_type_image_3d
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_rt_bvh
-	D3D12_RESOURCE_DIMENSION_BUFFER,		// buffer_type_depth_stencil
+	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_depth_stencil
 };
 
 constexpr DXGI_FORMAT dx12_resource_format_type[] = {

@@ -14,9 +14,9 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	ASSERT_PTR(i_device_0);
 	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
 	ASSERT_PTR(i_command_buffer_0);
-	DX_VERTEX_BUFFER* vb_impl = static_cast<DX_VERTEX_BUFFER*>(desc->vertex_buffer);
+	DX_BUFFER* vb_impl = static_cast<DX_BUFFER*>(desc->vertex_buffer);
 	ASSERT_PTR(vb_impl);
-	DX_INDEX_BUFFER* ib_impl = static_cast<DX_INDEX_BUFFER*>(desc->index_buffer);
+	DX_BUFFER* ib_impl = static_cast<DX_BUFFER*>(desc->index_buffer);
 	
 	ID3D12Resource* i_vb = *vb_impl;
 	ASSERT_PTR(i_vb);

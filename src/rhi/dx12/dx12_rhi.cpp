@@ -74,6 +74,8 @@ void dx12_rhi_init()
 	rhi_buffers_gpu_download = &dx12_buffers_gpu_download;
 	rhi_buffers_map_write = &dx12_buffers_map_write;
 	rhi_buffers_map_read = &dx12_buffers_map_read;
+	rhi_buffers_create_view = &dx12_buffers_create_view;
+
 	rhi_texture_2d_gpu_upload = &dx12_texture_2d_gpu_upload;
 
 	rhi_texture_2d_create = &dx12_texture_2d_create;

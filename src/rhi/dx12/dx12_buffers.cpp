@@ -2,22 +2,26 @@
 #include "dx12_command_buffer.hpp"
 #include "dx12_heap.hpp"
 
-RHI_DEPTH_BUFFER* dx12_buffers_create_depth(const RHI_DEPTH_BUFFER_DESC* const desc)
+RHI_BUFFER* dx12_buffers_create_depth(const RHI_BUFFER_2D_DESC* const desc)
 {
 	ASSERT_PTR(desc);
 	ASSERT_EXPR(desc->format >= resource_format_d32_float_s8_uint
 		&& desc->format < resource_format_d16_norm);
 
 	// overwrite desc to match must have depth buffer requeriments
-	RHI_DEPTH_BUFFER_DESC db_desc_mutable = *desc;	
+	RHI_BUFFER_2D_DESC db_desc_mutable = *desc;
 	db_desc_mutable.memory_type = buffer_memory_type_default;
 	db_desc_mutable.type = buffer_type_depth_stencil;
-	return dx12_buffers_create_2d<DX_DEPTH_BUFFER>(&db_desc_mutable);
+	db_desc_mutable.mips = 1;
+	db_desc_mutable.width = desc->width;
+	db_desc_mutable.height = desc->height;
+	db_desc_mutable.format = desc->format;
+	return dx12_buffers_create_2d<DX_TEXTURE_2D>(&db_desc_mutable);
 }
 
-RHI_CONSTANT_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc)
+RHI_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc)
 {
-	return dx12_buffers_create<DX_CONSTANT_BUFFER>(desc);
+	return dx12_buffers_create<DX_BUFFER>(desc);
 }
 
 void dx12_buffers_copy_buffer(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
@@ -84,6 +88,7 @@ void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer, const RHI
 	ASSERT_PTR(dest_buffer);
 
 	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	ASSERT_PTR(i_command_buffer);
 	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
@@ -91,8 +96,8 @@ void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer, const RHI
 		dest,
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		true, [&]() {
-			dx12_buffers_copy_buffer(command_buffer, *src,
-				*dest);
+			dx12_buffers_copy_buffer(command_buffer, src,
+				dest);
 		});
 }
 
@@ -309,24 +314,33 @@ RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc) {
 	return result;
 }
 
-RHI_INDEX_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc) {
+RHI_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc) {
 
 	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
 
 	RHI_BUFFER_DESC ib_desc;
+	ib_desc.device = desc->device;
 	ib_desc.length = desc->count * desc->stride;
 	ib_desc.memory_type = desc->memory_type;
 	ib_desc.type = desc->type;
 	ib_desc.format = desc->format;
-	return dx12_buffers_create<DX_INDEX_BUFFER>(&ib_desc);
+	ib_desc.mips = 1;
+	return dx12_buffers_create<DX_BUFFER>(&ib_desc);
 }
 
-RHI_VERTEX_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc) {
+RHI_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc) {
+	
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+
 	// overwrite desc to match must have index buffer requeriments
 	RHI_BUFFER_DESC vb_desc;
+	vb_desc.device = desc->device;
 	vb_desc.length = desc->count * desc->stride;
 	vb_desc.memory_type = desc->memory_type;
 	vb_desc.type = desc->type;
 	vb_desc.format = desc->format;
-	return dx12_buffers_create<DX_VERTEX_BUFFER>(&vb_desc);
+	vb_desc.mips = 1;
+	return dx12_buffers_create<DX_BUFFER>(&vb_desc);
 }

@@ -95,7 +95,7 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	dx12_command_buffer_resource_transition(i_command_buffer,
 		resource_impl,
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		true,
+		false,
 		[&]() {
 		
 			D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
@@ -161,9 +161,12 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 
 	});
 
+	resource_impl->current_state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	dx12_command_buffer_resource_transition(i_command_buffer,
 		resource_impl,
 		D3D12_RESOURCE_STATE_PRESENT,
 		false,
-		[&]() {});
+		[&]() {
+			resource_impl->current_state = D3D12_RESOURCE_STATE_PRESENT;
+		});
 }

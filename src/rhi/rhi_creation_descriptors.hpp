@@ -23,9 +23,6 @@ struct RHI_BUFFER_2D_DESC : RHI_BUFFER_DESC {
 	bool is_render_target = false;
 };
 
-struct RHI_DEPTH_BUFFER_DESC : RHI_BUFFER_2D_DESC {
-};
-
 struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 	size_t count;
 	size_t stride;
@@ -67,8 +64,8 @@ struct RHI_COMMAND_BUFFER_DESC  {
 #define MAX_INPUT_NAME_LENGTH 64
 struct RHI_INPUT_LAYOUT_DESC  {
 	char name[MAX_INPUT_NAME_LENGTH];
-	resource_format format;
-	size_t offset;
+	resource_format format = resource_format_none;
+	size_t offset = 0;
 };
 
 #define MAX_INPUT_LAYOUT_DESC 64

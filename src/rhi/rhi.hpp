@@ -37,21 +37,23 @@ inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_compute)(const RHI_CO
 inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_render)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
 inline void (*rhi_command_buffer_record)(RHI_COMMAND_BUFFER* const command_buffer,
 										 fptr_command_buffer_on_record callback);
-inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER* const command_buffer, const RHI_VERTEX_BUFFER* const vb,
-	const RHI_INDEX_BUFFER* const ib);
+inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const vb,
+	const RHI_BUFFER* const ib);
 inline void (*rhi_command_buffer_copy_texture)(RHI_COMMAND_BUFFER* const command_buffer, RHI_TEXTURE_2D* const dest_texture,
 	const RHI_TEXTURE_2D* const src_texture);
 
 // buffers
 inline RHI_BUFFER* (*rhi_buffers_create_raw)(const RHI_BUFFER_DESC* const desc);
-inline RHI_VERTEX_BUFFER* (*rhi_buffers_create_vertices)(const RHI_VERTEX_BUFFER_DESC* const desc);
-inline RHI_INDEX_BUFFER* (*rhi_buffers_create_indices)(const RHI_INDEX_BUFFER_DESC* const desc);
-inline RHI_DEPTH_BUFFER* (*rhi_buffers_create_depth)(const RHI_DEPTH_BUFFER_DESC* const desc);
-inline RHI_CONSTANT_BUFFER* (*rhi_buffers_create_constant)(const RHI_BUFFER_DESC* const desc);
-inline RHI_VOID_PTR (*rhi_buffers_map_open)(RHI_BUFFER* const shared_buffer, size_t offset,
-											size_t length);
-inline void (*rhi_buffers_map_close)(RHI_BUFFER* const shared_buffer, size_t offset,
-									 size_t length);
+inline RHI_BUFFER* (*rhi_buffers_create_vertices)(const RHI_VERTEX_BUFFER_DESC* const desc);
+inline RHI_BUFFER* (*rhi_buffers_create_indices)(const RHI_INDEX_BUFFER_DESC* const desc);
+inline RHI_BUFFER* (*rhi_buffers_create_depth)(const RHI_BUFFER_2D_DESC* const desc);
+inline RHI_BUFFER* (*rhi_buffers_create_constant)(const RHI_BUFFER_DESC* const desc);
+inline RHI_VOID_PTR (*rhi_buffers_map_open)(RHI_BUFFER* const shared_buffer,
+	const size_t offset,
+	const size_t length);
+inline void (*rhi_buffers_map_close)(RHI_BUFFER* const shared_buffer,
+	const size_t offset,
+	const size_t length);
 inline void (*rhi_buffers_gpu_upload_region)(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
 	RHI_BUFFER* const dest_buffer, const size_t offset_src,
 	const size_t offset_dest, const size_t length);
@@ -66,6 +68,7 @@ inline void (*rhi_buffers_map_write)(RHI_BUFFER* const shared_buffer, RHI_VOID_P
 									 size_t offset, size_t length);
 inline void (*rhi_buffers_map_read)(RHI_BUFFER* const shared_buffer, RHI_VOID_PTR* const data,
 									size_t offset, size_t length);
+inline RHI_VIEW* (*rhi_buffers_create_view)(const RHI_VIEW_DESC* const desc);
 
 inline void (*rhi_texture_2d_gpu_upload)(RHI_COMMAND_BUFFER* const command_buffer,
 	const RHI_BUFFER* const src_buffer,
