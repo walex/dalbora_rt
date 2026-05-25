@@ -10,9 +10,9 @@ RHI_COMPILED_SHADER_BUFFER* dx12_shaders_compiler_compile(const char* const file
 	const char* const entry, 
 	const char* const target) {
 
-    ASSERT_NULL(file);
-    ASSERT_NULL(entry);
-    ASSERT_NULL(target);
+    ASSERT_PTR(file);
+    ASSERT_PTR(entry);
+    ASSERT_PTR(target);
 
     Microsoft::WRL::ComPtr<IDxcUtils> utils;
     Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
@@ -39,46 +39,35 @@ RHI_COMPILED_SHADER_BUFFER* dx12_shaders_compiler_compile(const char* const file
         L"-Od"
     };
 
-    Microsoft::WRL::ComPtr<IDxcResult> result;
+    Microsoft::WRL::ComPtr<IDxcResult> i_shader_compiled;
     HRESULT hr = compiler->Compile(
         &buffer,
         args.data(),
         (uint32_t)args.size(),
         nullptr,
-        IID_PPV_ARGS(&result)
+        IID_PPV_ARGS(&i_shader_compiled)
     );
 
     if (FAILED(hr)) {
 
-        Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
-        result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
-        if (errors && errors->GetStringLength() > 0)
+        Microsoft::WRL::ComPtr<IDxcBlobUtf8> i_errors;
+        i_shader_compiled->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&i_errors), nullptr);
+        if (i_errors && i_errors->GetStringLength() > 0)
         {
-            OutputDebugStringA(errors->GetStringPointer());
+            OutputDebugStringA(i_errors->GetStringPointer());
         }
         throw std::exception("Shader compile failed");
     }
 
-    result->GetStatus(&hr);
-    if (FAILED(hr)) {
-
-        Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
-        result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
-        if (errors && errors->GetStringLength() > 0)
-        {
-            OutputDebugStringA(errors->GetStringPointer());
-        }
-        throw std::exception("Shader compile failed");
-    }
-
+    i_shader_compiled->GetStatus(&hr);
 
     IDxcBlob* i_shader;
-    if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&i_shader), nullptr))) {
+    if (FAILED(i_shader_compiled->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&i_shader), nullptr))) {
         throw std::runtime_error("Failed to get compiled shader blob");
 	}
     
     DX_COMPILED_SHADER_BUFFER* result = new DX_COMPILED_SHADER_BUFFER();
-    ASSERT_NULL(result);
+    ASSERT_PTR(result);
     result->set_handle(i_shader);
     return result;
 }

@@ -2,13 +2,13 @@
 
 RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC* const desc) {
 	
-	ASSERT_NULL(desc);
-	ASSERT_NULL(desc->device);
-	ASSERT_NULL(desc->layout);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(desc->layout);
 
 	// For simplicity, we will create a basic graphics pipeline state object (PSO)
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
-	ASSERT_NULL(i_device);
+	ASSERT_PTR(i_device);
 	constexpr D3D12_RASTERIZER_DESC rasterizer_desc_default = {
 		D3D12_FILL_MODE_SOLID,
 		D3D12_CULL_MODE_NONE,
@@ -91,11 +91,11 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 	psoDesc.SampleDesc.Count = 1;
 
 	ID3D12PipelineState* pipelineState = nullptr;
-	ASSERT_FAILED(i_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState)));
-	ASSERT_NULL(pipelineState);
+	ASSERT_SUCCESS(i_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState)));
+	ASSERT_PTR(pipelineState);
 
 	DX_RASTER_PIPELINE* result = new DX_RASTER_PIPELINE();
-	ASSERT_NULL(result);
+	ASSERT_PTR(result);
 	result->set_handle(pipelineState);
 	result->layout = desc->layout;
 	return result;

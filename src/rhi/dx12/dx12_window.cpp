@@ -81,7 +81,7 @@ LRESULT CALLBACK dx12_window_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 
 RHI_WINDOW* dx12_window_create(const RHI_WINDOW_DESC* const desc) {
 
-    ASSERT_NULL(desc);
+    ASSERT_PTR(desc);
 
 	// Create a simple window using the Win32 API
 	WNDCLASS wc = {};
@@ -104,23 +104,27 @@ RHI_WINDOW* dx12_window_create(const RHI_WINDOW_DESC* const desc) {
 		throw std::exception("Failed to create window");
 	}
 
-    return new DX_WINDOW(hwnd, desc->callbacks);
+    RHI_WINDOW* result = new RHI_WINDOW();
+    ASSERT_PTR(result);
+	result->handle = hwnd;
+	result->callbacks = desc->callbacks;
+    return result;
 }
 
 static std::atomic<bool> window_running;
 
-void dx12_window_main_loop(const RHI_WINDOW* const window) {
+void dx12_window_main_loop(RHI_WINDOW* const window) {
 
-    ASSERT_NULL(window);
+    ASSERT_PTR(window);
+    ASSERT_PTR(window->callbacks);
 
-    auto wnd_handle = reinterpret_cast<HWND>(static_cast<const RHI_VOID_PTR>(*window));
+    auto wnd_handle = static_cast<HWND>(window->handle);
     ShowWindow(wnd_handle, SW_SHOW);
 
     MSG msg = {};
 
-    auto& callback = static_cast<RHI_WINDOW_CALLBACKS&>(*window);
     window_running.store(true);
-    callback.on_init(*window);
+	window->callbacks->on_init(window);
     while (window_running.load() == true)
     {
         // Procesar todos los mensajes pendientes
@@ -139,9 +143,9 @@ void dx12_window_main_loop(const RHI_WINDOW* const window) {
         if (!window_running)
             break;
 
-        callback.main_loop(*window);
+        window->callbacks->main_loop(window);
     }
-    callback.on_end(*window);
+    window->callbacks->on_end(window);
 }
 
 #else

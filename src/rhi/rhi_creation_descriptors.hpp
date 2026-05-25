@@ -52,16 +52,16 @@ struct RHI_SWAP_CHAIN_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_QUEUE* command_queue = nullptr;
 	RHI_WINDOW* window = nullptr;
-	size_t width;
-	size_t height;
-	resource_format color_format;
-	bool allow_tearing;
-	size_t buffer_count;
+	size_t width = -1;
+	size_t height = -1;
+	resource_format color_format = resource_format_none;
+	bool allow_tearing = false;
+	size_t buffer_count = 0;
 };
 
 struct RHI_COMMAND_BUFFER_DESC  {
 	RHI_DEVICE* device = nullptr;
-	RHI_COMMAND_QUEUE* command_queue;
+	RHI_COMMAND_QUEUE* command_queue = nullptr;
 };
 
 #define MAX_INPUT_NAME_LENGTH 64
@@ -134,7 +134,7 @@ struct RHI_PIPELINE_LAYOUT_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_DESCRIPTOR_DESC descriptors[MAX_PIPELINE_DESCRIPTORS];
 	size_t descriptor_count = 0;
-	raster_pipeline_shader_type shader_type;
+	raster_pipeline_shader_type shader_type = shader_type_undef;
 };
 
 struct RHI_TEXTURE_2D_DESC : public RHI_BUFFER_2D_DESC {
@@ -166,8 +166,6 @@ struct RT_GEOMETRY_INSTANCES_DESC  {
 struct RHI_RENDER_PASS_DESC  {
 	RHI_VIEW* render_target_view = nullptr;
 	RHI_DEVICE* device = nullptr;
-	resource_format format;
-	bool synchronized;
 };
 
 struct RHI_RT_SAMPLER_DESC {

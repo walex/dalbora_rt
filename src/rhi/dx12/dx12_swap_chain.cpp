@@ -4,22 +4,22 @@
 
 RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
-	ASSERT_NULL(desc);
-	ASSERT_NULL(desc->device);
-	ASSERT_NULL(desc->command_queue);
-	ASSERT_NULL(desc->window);
-	ASSERT_NULL(desc->window->handle);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(desc->command_queue);
+	ASSERT_PTR(desc->window);
+	ASSERT_PTR(desc->window->handle);
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
 	ID3D12Device* i_device = *device_impl;
-	ASSERT_NULL(i_device);
-	ASSERT_NULL(device_impl->rtv_heap.get());
+	ASSERT_PTR(i_device);
+	ASSERT_PTR(device_impl->rtv_heap.get());
 
 	ID3D12CommandQueue* i_command_queue = *static_cast<DX_COMMAND_QUEUE*>(desc->command_queue);
-	ASSERT_NULL(i_command_queue);
+	ASSERT_PTR(i_command_queue);
 
 	IDXGIFactory5* i_factory = dx12_factory_get();
-	ASSERT_NULL(i_factory);
+	ASSERT_PTR(i_factory);
 
 	HWND hwnd = static_cast<HWND>(desc->window->handle);
 	
@@ -55,7 +55,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
 	// Create swap chain
 	IDXGISwapChain1* i_swap_chain_1 = nullptr;
-	ASSERT_FAILED(i_factory->CreateSwapChainForHwnd(
+	ASSERT_SUCCESS(i_factory->CreateSwapChainForHwnd(
 		i_command_queue,
 		hwnd,
 		&scDesc,
@@ -63,22 +63,22 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		nullptr, // restrict to output
 		&i_swap_chain_1
 	));
-	ASSERT_NULL(i_swap_chain_1);
+	ASSERT_PTR(i_swap_chain_1);
 
 	// Query for IDXGISwapChain3
 	IDXGISwapChain3* i_swap_chain_3 = nullptr;
-	ASSERT_FAILED(i_swap_chain_1->QueryInterface(IID_PPV_ARGS(&i_swap_chain_3)));
-	ASSERT_NULL(i_swap_chain_3);
+	ASSERT_SUCCESS(i_swap_chain_1->QueryInterface(IID_PPV_ARGS(&i_swap_chain_3)));
+	ASSERT_PTR(i_swap_chain_3);
 
 	ID3D12DescriptorHeap* i_heap = *device_impl->rtv_heap.get();
-	ASSERT_NULL(i_heap);
+	ASSERT_PTR(i_heap);
 	DX_SWAP_CHAIN* swap_chain_impl = new DX_SWAP_CHAIN();
 	swap_chain_impl->set_handle(i_swap_chain_3);
 
 	for (size_t i = 0; i < bufferCount; i++) {
 		ID3D12Resource* i_buffer;
-		ASSERT_FAILED(i_swap_chain_3->GetBuffer(i, IID_PPV_ARGS(&i_buffer)));
-		ASSERT_NULL(i_buffer);
+		ASSERT_SUCCESS(i_swap_chain_3->GetBuffer(i, IID_PPV_ARGS(&i_buffer)));
+		ASSERT_PTR(i_buffer);
 	
 		DXGI_SWAP_CHAIN_DESC swp_desc;
 		i_swap_chain_3->GetDesc(&swp_desc);
@@ -122,20 +122,19 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 			mips[i].format = dx12_helpers_resource_format_from_dxgi_format(layouts[i].Footprint.Format);
 		}
 		
-		DX_VIEW* view = new DX_VIEW();
-		ASSERT_NULL(view);
 		RHI_VIEW_DESC view_desc;
 		view_desc.type = resource_type_render_target;
 		view_desc.device = desc->device;
 		view_desc.format = desc->color_format;
 		std::unique_ptr<DX_BUFFER> buffer_wrapper
 			= std::make_unique<DX_BUFFER>();
-		buffer_wrapper->Attach(i_buffer);
+		buffer_wrapper->com_ptr.Attach(i_buffer);
 		view_desc.buffer = buffer_wrapper.get();
 		RHI_VIEW* view = dx12_buffers_create_view(&view_desc);
-		buffer_wrapper->Detach();
+		buffer_wrapper->com_ptr.Detach();
 		DX_TEXTURE_2D* texture = new DX_TEXTURE_2D();
-		ASSERT_NULL(texture);
+		ASSERT_PTR(texture);
+		i_buffer->AddRef();
 		texture->set_handle(i_buffer);
 		texture->format = desc->color_format;
 		texture->width = desc->width;
@@ -152,32 +151,32 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
 void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 
-	ASSERT_NULL(swap_chain);
+	ASSERT_PTR(swap_chain);
 	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
-	ASSERT_NULL(i_swap_chain);
+	ASSERT_PTR(i_swap_chain);
 	i_swap_chain->Present(1, 0);
 }
 
 const RHI_VIEW* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const swap_chain, 
 	const size_t surface_index) {
 
-	ASSERT_NULL(swap_chain);
+	ASSERT_PTR(swap_chain);
 	ASSERT_EXPR(surface_index < swap_chain->render_targets_count);
 
-	ASSERT_NULL(swap_chain);
+	ASSERT_PTR(swap_chain);
 	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
-	ASSERT_NULL(i_swap_chain);
+	ASSERT_PTR(i_swap_chain);
 
-	swap_chain->render_targets[(surface_index < 0)
+	return swap_chain->render_targets[(surface_index < 0)
 		? i_swap_chain->GetCurrentBackBufferIndex()
-		: surface_index];
+		: surface_index].get();
 }
 
 uint32_t dx12_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_chain) {
 
-	ASSERT_NULL(swap_chain);
+	ASSERT_PTR(swap_chain);
 	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
-	ASSERT_NULL(i_swap_chain);
+	ASSERT_PTR(i_swap_chain);
 
 	return static_cast<uint32_t>(i_swap_chain->GetCurrentBackBufferIndex());
 }

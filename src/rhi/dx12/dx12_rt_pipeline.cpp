@@ -3,19 +3,19 @@
 
 RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc) {
 
-	ASSERT_NULL(desc);
-	ASSERT_NULL(desc->device);
-	ASSERT_NULL(desc->layout);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(desc->layout);
 
 	ID3D12Device* i_device_0 = *static_cast<DX_DEVICE*>(desc->device);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	ASSERT_FAILED(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
-	ASSERT_NULL(i_device);
+	ASSERT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_PTR(i_device);
 
 	// root signature
 	ID3D12RootSignature* rootSignature = *static_cast<DX_PIPELINE_LAYOUT*>(desc->layout);
-	ASSERT_NULL(rootSignature);
+	ASSERT_PTR(rootSignature);
 
 	// export shaders
 	// reserver for n miss, n hit, 1 ray gen
@@ -180,20 +180,20 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 
 	ID3D12StateObject* i_state_object = nullptr;
 
-	ASSERT_FAILED(i_device->CreateStateObject(
+	ASSERT_SUCCESS(i_device->CreateStateObject(
 		&pipelineDesc,
 		IID_PPV_ARGS(&i_state_object)
 	));
-	ASSERT_NULL(i_state_object);
+	ASSERT_PTR(i_state_object);
 
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> props;
-	ASSERT_FAILED(i_state_object->QueryInterface(
+	ASSERT_SUCCESS(i_state_object->QueryInterface(
 		IID_PPV_ARGS(&props)
 	));
-	ASSERT_NULL(props);
+	ASSERT_PTR(props);
 
 	DX_RT_PIPELINE* pipeline_impl = new DX_RT_PIPELINE();
-	ASSERT_NULL(pipeline_impl);
+	ASSERT_PTR(pipeline_impl);
 
 	RHI_SHADER_TABLE_ENTRY* ste = pipeline_impl->shader_table;
 	
@@ -222,10 +222,10 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 
 RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline) {
 
-	ASSERT_NULL(device);
-	ASSERT_NULL(desc);
-	ASSERT_NULL(pipeline);
-	ASSERT_NULL(pipeline->shader_table);
+	ASSERT_PTR(device);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(pipeline);
+	ASSERT_PTR(pipeline->shader_table);
 
 	size_t hit_group_max_elements = desc->hit_group_count;
 	size_t ray_gen_max_elements = desc->ray_gen_count;
@@ -309,10 +309,10 @@ RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RH
 	buffer_desc.length = total_size;
 	buffer_desc.memory_type = buffer_memory_type_shared_rw;
 	std::unique_ptr<DX_BUFFER> shared_buffer;
-	shared_buffer.reset(dx12_buffers_create_raw<DX_BUFFER>(&buffer_desc));
-	ASSERT_NULL(shared_buffer);
+	shared_buffer.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
+	ASSERT_PTR(shared_buffer);
 	ID3D12Resource* i_resource = *shared_buffer;
-	ASSERT_NULL(i_resource);
+	ASSERT_PTR(i_resource);
 	i_resource->AddRef();
 
 	// ============================================================
@@ -385,7 +385,7 @@ RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RH
 	dx12_buffers_map_close(*shared_buffer, 0, total_size);
 
 	DX_SBT_BUFFER* result = new DX_SBT_BUFFER();
-	ASSERT_NULL(result);
+	ASSERT_PTR(result);
 	result->set_handle(i_resource);
 	result->ray_gen_offset = ray_gen_offset;
 	result->miss_offset = miss_offset;

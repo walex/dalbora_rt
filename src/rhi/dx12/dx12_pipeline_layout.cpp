@@ -2,11 +2,11 @@
 
 RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC* const desc) {
 
-	ASSERT_NULL(desc);
-	ASSERT_NULL(desc->device);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
 
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
-	ASSERT_NULL(i_device);
+	ASSERT_PTR(i_device);
 
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges;
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges_sampler;
@@ -78,21 +78,21 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	Microsoft::WRL::ComPtr<ID3DBlob> error;
 	Microsoft::WRL::ComPtr<ID3DBlob> signature;
 
-	ASSERT_FAILED(D3D12SerializeVersionedRootSignature(
+	ASSERT_SUCCESS(D3D12SerializeVersionedRootSignature(
 		&rootDesc,
 		&signature,
 		&error
 	));
-	ASSERT_NULL(error);
-	ASSERT_NULL(signature);
+	ASSERT_PTR(error);
+	ASSERT_PTR(signature);
 	ID3D12RootSignature* i_root_signature = nullptr;
-	ASSERT_FAILED(i_device->CreateRootSignature(
+	ASSERT_SUCCESS(i_device->CreateRootSignature(
 		0,
 		signature->GetBufferPointer(),
 		signature->GetBufferSize(),
 		IID_PPV_ARGS(&i_root_signature)
 	));
-	ASSERT_NULL(i_root_signature);
+	ASSERT_PTR(i_root_signature);
 	DX_PIPELINE_LAYOUT* result = new DX_PIPELINE_LAYOUT();
 	result->set_handle(i_root_signature);
 	return result;

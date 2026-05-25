@@ -1,6 +1,8 @@
 #include "test_api.hpp"
 #include "rhi.hpp"
 
+#ifdef TEST_RT_TRIANGLE
+
 void test_rt_triangle(fptr_test_on_init on_init,
 	fptr_test_on_draw on_draw,
 	fptr_test_on_end on_end,
@@ -82,7 +84,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 
 			// create render pass
 			RHI_RENDER_PASS_DESC render_pass_desc(device, render_target);
-			render_pass_desc.synchronized = true;
 			rt_render_pass = rhi_render_pass_create(render_pass_desc);
 
 			// compile shaders
@@ -253,3 +254,5 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			}
 		);
 }
+
+#endif

@@ -77,15 +77,15 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 
 RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 
-	ASSERT_NULL(desc);
+	ASSERT_PTR(desc);
 
 	// Pick the best hardware adapter that supports D3D12
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	bool check_features = true;
 	if (desc->adapter_id != -1) {
 		// Try to get the adapter by index
-		ASSERT_FAILED(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
-		ASSERT_NULL(chosenAdapter);
+		ASSERT_SUCCESS(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
+		ASSERT_PTR(chosenAdapter);
 	}
 	else {
 		chosenAdapter = dx12_device_pick_best_adapter(desc->features);
@@ -94,8 +94,8 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 
 	// Create D3D12 device (request ID3D12Device). Try feature level 12_0.
 	ID3D12Device* i_device = nullptr;
-	ASSERT_FAILED(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
-	ASSERT_NULL(i_device);
+	ASSERT_SUCCESS(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
+	ASSERT_PTR(i_device);
 	if (check_features == true) {
 
 		try {
@@ -111,11 +111,19 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	chosenAdapter->Release();
 
 	DX_DEVICE* dx_device = new DX_DEVICE;
-	ASSERT_NULL(dx_device);
+	ASSERT_PTR(dx_device);
 	dx_device->set_handle(i_device);
 
 	DX_DEVICE_HEAP_DESC heaps_desc;
-	// dx12_config_load_heap_config(&heaps_desc);
+	heaps_desc.resources_heap_enable = RESOURCES_HEAP_ENABLE;
+	heaps_desc.resources_heap_slot_count = RESOURCES_HEAP_SLOT_COUNT;
+	heaps_desc.rtv_heap_enable = RTV_HEAP_ENABLE;
+	heaps_desc.rtv_heap_slot_count = RTV_HEAP_SLOT_COUNT;
+	heaps_desc.dsv_heap_enable = DSV_HEAP_ENABLE;
+	heaps_desc.dsv_heap_slot_count = DSV_HEAP_SLOT_COUNT;
+	heaps_desc.sampler_heap_enable = SAMPLER_HEAP_ENABLE;
+	heaps_desc.sampler_heap_slot_count = SAMPLER_HEAP_SLOT_COUNT;
+
 	if (heaps_desc.resources_heap_enable == true) {
 		dx_device->resources_heap.reset(dx12_heap_create(dx_device, 
 			resource_type_generic_rw_buffer, 
@@ -127,7 +135,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (heaps_desc.rtv_heap_enable == true) {
 		dx_device->rtv_heap.reset(dx12_heap_create(dx_device,
 			resource_type_render_target,
-			heaps_desc.rtv_heap_slot_count, true));
+			heaps_desc.rtv_heap_slot_count, false));
 		if(!dx_device->rtv_heap.get())
 			throw std::exception("Failed to create RTV heap");
 	}
@@ -135,7 +143,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (heaps_desc.dsv_heap_enable == true) {
 		dx_device->dsv_heap.reset(dx12_heap_create(dx_device,
 			resource_type_depth_stencil_target,
-			heaps_desc.dsv_heap_slot_count, true));
+			heaps_desc.dsv_heap_slot_count, false));
 		if(!dx_device->dsv_heap.get())
 			throw std::exception("Failed to create DSV heap");
 	}

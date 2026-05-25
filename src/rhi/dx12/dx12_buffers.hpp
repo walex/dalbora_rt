@@ -35,7 +35,7 @@ RHI_VERTEX_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* co
 template <typename T>
 T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 {
-	ASSERT_NULL(desc);
+	ASSERT_PTR(desc);
 
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
@@ -92,11 +92,11 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 		clear_value.get(),
 		IID_PPV_ARGS(&i_resource));
 
-	ASSERT_FAILED(hr);
-	ASSERT_NULL(i_resource);
+	ASSERT_SUCCESS(hr);
+	ASSERT_PTR(i_resource);
 
 	T* buffer_impl = new T();
-	ASSERT_NULL(buffer_impl);
+	ASSERT_PTR(buffer_impl);
 	buffer_impl->length = desc->length;
 	buffer_impl->format = desc->format;
 	buffer_impl->current_state = D3D12_RESOURCE_STATE_COMMON;
@@ -106,9 +106,9 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 }
 
 template <typename T>
-T* dx12_buffers_create_raw(const RHI_BUFFER_DESC* const desc) {
+T* dx12_buffers_create(const RHI_BUFFER_DESC* const desc) {
 
-	ASSERT_NULL(desc);
+	ASSERT_PTR(desc);
 
 	RHI_BUFFER_2D_DESC desc_2d;
 	desc_2d.length = desc->length;
@@ -120,5 +120,7 @@ T* dx12_buffers_create_raw(const RHI_BUFFER_DESC* const desc) {
 	desc_2d.height = 1;
 	return dx12_buffers_create_2d<T>(&desc_2d);
 }
-
+inline RHI_BUFFER* dx12_buffers_create_raw(const RHI_BUFFER_DESC* const desc) {
+	return dx12_buffers_create<DX_BUFFER>(desc);
+}
 #endif

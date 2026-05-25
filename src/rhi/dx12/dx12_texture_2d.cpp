@@ -4,14 +4,14 @@
 
 RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 {
-	ASSERT_NULL(desc->device);
+	ASSERT_PTR(desc->device);
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
 	ID3D12Device *i_device = *device_impl;
-	ASSERT_NULL(i_device);
+	ASSERT_PTR(i_device);
 	DX_HEAP* heap_impl = device_impl->resources_heap.get();
-	ASSERT_NULL(heap_impl);
+	ASSERT_PTR(heap_impl);
 	ID3D12DescriptorHeap* i_heap = *heap_impl;
-	ASSERT_NULL(i_heap);
+	ASSERT_PTR(i_heap);
 
 	RHI_BUFFER_2D_DESC buff_desc = {};
 	buff_desc.device = desc->device;
@@ -23,9 +23,9 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	buff_desc.type = buffer_type_image_2d;
 	std::unique_ptr<DX_BUFFER> buffer;
 	buffer.reset(dx12_buffers_create_2d<DX_BUFFER>(&buff_desc));
-	ASSERT_NULL(buffer.get());
+	ASSERT_PTR(buffer.get());
 	ID3D12Resource *i_texture = *static_cast<DX_BUFFER*>(*buffer);
-	ASSERT_NULL(i_texture);
+	ASSERT_PTR(i_texture);
 	i_texture->AddRef();
 
 
@@ -105,7 +105,7 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	}
 
 	DX_TEXTURE_2D* result = new DX_TEXTURE_2D();
-	ASSERT_NULL(result);
+	ASSERT_PTR(result);
 	result->set_handle(i_texture);
 	result->format = desc->format;
 	result->width = desc->width;
@@ -120,16 +120,16 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
 	const RHI_BUFFER* const src_buffer,
 	RHI_TEXTURE_2D* const dest_buffer) {
 
-	ASSERT_NULL(command_buffer);
-	ASSERT_NULL(src_buffer);
-	ASSERT_NULL(dest_buffer);
+	ASSERT_PTR(command_buffer);
+	ASSERT_PTR(src_buffer);
+	ASSERT_PTR(dest_buffer);
 
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
-	ASSERT_NULL(i_command_buffer);
+	ASSERT_PTR(i_command_buffer);
 	ID3D12Resource* i_texture = *static_cast<DX_TEXTURE_2D*>(dest_buffer);
-	ASSERT_NULL(i_texture);
+	ASSERT_PTR(i_texture);
 
-	dx12_command_buffer_resource_transition_block(i_command_buffer,
+	dx12_command_buffer_resource_transition(i_command_buffer,
 		*static_cast<DX_TEXTURE_2D*>(dest_buffer),
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		true, [&]() {

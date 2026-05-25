@@ -4,12 +4,12 @@
 
 RHI_RENDER_PASS* dx12_render_pass_create(const RHI_RENDER_PASS_DESC* const desc) {
 
-	ASSERT_NULL(desc);
-	ASSERT_NULL(desc->device);
-	ASSERT_NULL(desc->render_target_view);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(desc->render_target_view);
 
 	DX_RENDER_PASS* result = new DX_RENDER_PASS();
-	ASSERT_NULL(result);
+	ASSERT_PTR(result);
 	result->device = desc->device;
 	result->render_target_view = desc->render_target_view;
 
@@ -19,29 +19,32 @@ RHI_RENDER_PASS* dx12_render_pass_create(const RHI_RENDER_PASS_DESC* const desc)
 void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, RHI_COMMAND_BUFFER* const command_buffer,
 	fptr_render_pass_on_execute callback) {
 
-	ASSERT_NULL(render_pass);
-	ASSERT_NULL(render_pass->device);
-	ASSERT_NULL(render_pass->render_target_view);
-	ASSERT_NULL(render_pass->pipeline);
-	ASSERT_NULL(render_pass->pipeline->layout);
-	ASSERT_NULL(command_buffer);
+	ASSERT_PTR(render_pass);
+	ASSERT_PTR(render_pass->device);
+	ASSERT_PTR(render_pass->render_target_view);
+	ASSERT_PTR(render_pass->pipeline);
+	ASSERT_PTR(render_pass->pipeline->layout);
+	ASSERT_PTR(command_buffer);
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
-	ASSERT_NULL(device_impl->resources_heap);
+	ASSERT_PTR(device_impl->resources_heap);
 	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view);
 
 	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
-	ASSERT_FAILED(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
-	ASSERT_NULL(i_command_buffer_5);
-	ASSERT_NULL(device_impl->resources_heap.get());
+	ASSERT_SUCCESS(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
+	ASSERT_PTR(i_command_buffer_5);
+	ASSERT_PTR(device_impl->resources_heap.get());
 	ID3D12DescriptorHeap* heaps[] =
 	{
 		*device_impl->resources_heap.get()
 	};
 
-	dx12_command_buffer_resource_transition_block(i_command_buffer,
+	dx12_command_buffer_resource_transition(nullptr, nullptr,
+		D3D12_RESOURCE_STATE_RENDER_TARGET, false, []() {});
+
+	dx12_command_buffer_resource_transition(i_command_buffer,
 		*static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		true,
@@ -60,14 +63,14 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	RHI_COMMAND_BUFFER* const command_buffer,
 	fptr_render_pass_on_execute callback) {
 	
-	ASSERT_NULL(command_buffer);
-	ASSERT_NULL(render_pass);
-	ASSERT_NULL(render_pass->device);
+	ASSERT_PTR(command_buffer);
+	ASSERT_PTR(render_pass);
+	ASSERT_PTR(render_pass->device);
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
 	ID3D12Device* i_device = *device_impl;
-	ASSERT_NULL(i_device);
+	ASSERT_PTR(i_device);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
-	ASSERT_NULL(i_command_buffer);
+	ASSERT_PTR(i_command_buffer);
 
 	DX_RASTER_PIPELINE* pipeline_impl = static_cast<DX_RASTER_PIPELINE*>(render_pass->pipeline);
 	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view);
@@ -87,8 +90,10 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	dx_scissor.right = (LONG)vp.width;
 	dx_scissor.bottom = (LONG)vp.height;
 
-	dx12_command_buffer_resource_transition_block(i_command_buffer,
-		*static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()),
+	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->resource.get());
+	ASSERT_PTR(resource_impl);
+	dx12_command_buffer_resource_transition(i_command_buffer,
+		resource_impl,
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		true,
 		[&]() {
@@ -124,17 +129,17 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 
 			if (pipeline_impl) {
 
-				ASSERT_NULL(device_impl->resources_heap.get());				
+				ASSERT_PTR(device_impl->resources_heap.get());				
 				ID3D12DescriptorHeap* resource_heap = *device_impl->resources_heap.get();
-				ASSERT_NULL(resource_heap);
+				ASSERT_PTR(resource_heap);
 				ID3D12DescriptorHeap* sampler_heap = nullptr;
 				if (device_impl->sampler_heap.get())
 					sampler_heap = *device_impl->sampler_heap.get();
 				ID3D12PipelineState* i_pipeline = *pipeline_impl;
-				ASSERT_NULL(i_pipeline);
+				ASSERT_PTR(i_pipeline);
 				i_command_buffer->SetPipelineState(i_pipeline);
 				ID3D12RootSignature* i_signature = *static_cast<DX_PIPELINE_LAYOUT*>(pipeline_impl->layout);
-				ASSERT_NULL(i_signature);
+				ASSERT_PTR(i_signature);
 				i_command_buffer->SetGraphicsRootSignature(i_signature);
 				i_command_buffer->SetGraphicsRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);		
 				if (sampler_heap) {
@@ -156,8 +161,8 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 
 	});
 
-	dx12_command_buffer_resource_transition_block(i_command_buffer,
-		*static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()),
+	dx12_command_buffer_resource_transition(i_command_buffer,
+		resource_impl,
 		D3D12_RESOURCE_STATE_PRESENT,
 		false,
 		[&]() {});

@@ -1,5 +1,7 @@
 #include "test_api.hpp"
 
+#ifdef TEST_WINDOW
+
 void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 
 	// setup window
@@ -7,23 +9,25 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 	window_desc.full_screen = false;
 	window_desc.width = 800;
 	window_desc.height = 600;	
+	std::unique_ptr<RHI_WINDOW_CALLBACKS> cbs;
 	if (callbacks.get() != nullptr) {
-		window_desc.callbacks = callbacks;
+		window_desc.callbacks = callbacks.get();
 	}
 	else {
-		window_desc.callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
+		cbs = std::make_unique<RHI_WINDOW_CALLBACKS>();
+		window_desc.callbacks = cbs.get();
 	}
 
-	if (window_desc.callbacks.get()->on_init == nullptr) {
+	if (window_desc.callbacks->on_init == nullptr) {
 	
-		window_desc.callbacks.get()->on_init = ([&](RHI_WINDOW& UNUSED_PARAM(window)) {
+		window_desc.callbacks->on_init = ([&](const RHI_WINDOW* const UNUSED_PARAM(window)) {
 			printf("Window initialized.\n");
 			});
 	}
 
-	if (window_desc.callbacks.get()->main_loop == nullptr) {
+	if (window_desc.callbacks->main_loop == nullptr) {
 	
-		window_desc.callbacks.get()->main_loop = ([&](RHI_WINDOW& UNUSED_PARAM(window)) {
+		window_desc.callbacks->main_loop = ([&](const RHI_WINDOW* const UNUSED_PARAM(window)) {
 			static auto last_print = std::chrono::steady_clock::now();
 			auto diff = std::chrono::steady_clock::now() - last_print;
 			if (std::chrono::duration_cast<std::chrono::seconds>(diff).count() >= 1) {
@@ -33,9 +37,9 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 			});
 	}
 	
-	if (window_desc.callbacks.get()->on_end == nullptr) {
+	if (window_desc.callbacks->on_end == nullptr) {
 	
-		window_desc.callbacks.get()->on_end = ([&](RHI_WINDOW& UNUSED_PARAM(window)) {
+		window_desc.callbacks->on_end = ([&](const RHI_WINDOW* const UNUSED_PARAM(window)) {
 			printf("Window terminated.\n");
 			});
 	}
@@ -48,3 +52,5 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 	// main loop
 	rhi_window_main_loop(window.get());
 }
+
+#endif

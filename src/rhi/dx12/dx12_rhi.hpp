@@ -22,14 +22,22 @@ struct DX_DEVICE_HEAP_DESC
 };
 
 template <typename T>
-struct DX_HANDLE : public RHI_HANDLE, public Microsoft::WRL::ComPtr<T>
+struct DX_HANDLE : public RHI_HANDLE
 {
+	virtual ~DX_HANDLE() {
+#if DEBUG
+		printf("Releasing handle of type %s\n", typeid(T).name());
+#endif
+	};
 	void set_handle(RHI_VOID_PTR handle) override {
 
-		this->Attach(static_cast<T*>(handle));
+		com_ptr.Attach(static_cast<T*>(handle));
+	}	
+
+	RHI_VOID_PTR get_handle() const override { 
+		return static_cast<RHI_VOID_PTR>(com_ptr.Get());
 	}
-	virtual ~DX_HANDLE() = default;
-	RHI_VOID_PTR get_handle() const override { return static_cast<RHI_VOID_PTR>(this->Get()); }
+	Microsoft::WRL::ComPtr<T> com_ptr;
 };
 
 enum heap_id_type {
@@ -70,17 +78,20 @@ struct DX_RESOURCE : public DX_HANDLE<ID3D12Resource> {
 struct DX_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
 };
 
-struct DX_INDEX_BUFFER : public RHI_INDEX_BUFFER, public DX_RESOURCE {
+struct DX_INDEX_BUFFER : public RHI_INDEX_BUFFER, public DX_BUFFER {
 };
 
-struct DX_VERTEX_BUFFER : public RHI_VERTEX_BUFFER, public DX_RESOURCE {
+struct DX_VERTEX_BUFFER : public RHI_VERTEX_BUFFER, public DX_BUFFER {
 };
 
 struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_HANDLE<ID3D12CommandList> {
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
 };
 
-struct DX_COMPILED_SHADER_BUFFER : public RHI_COMPILED_SHADER_BUFFER, public DX_HANDLE<IDxcBlob> {
+struct DX_COMPILED_SHADER_BUFFER : 
+	public RHI_COMPILED_SHADER_BUFFER, 
+	public RHI_BUFFER,
+	public DX_HANDLE<IDxcBlob> {
 
 };
 
@@ -88,7 +99,7 @@ struct DX_EVENT {
 	DX_EVENT() : handle(
 		CreateEvent(nullptr, FALSE, FALSE, nullptr)) {
 
-		ASSERT_NULL(handle);
+		ASSERT_PTR(handle);
 	}
 	virtual ~DX_EVENT() {
 		if (handle)
@@ -103,13 +114,13 @@ struct DX_COMMAND_QUEUE : public RHI_COMMAND_QUEUE, public DX_HANDLE<ID3D12Comma
 	DX_EVENT event_handle;
 };
 
-struct DX_DEPTH_BUFFER : public RHI_DEPTH_BUFFER, public DX_RESOURCE {
+struct DX_DEPTH_BUFFER : public RHI_DEPTH_BUFFER, public DX_BUFFER {
 };
 
-struct DX_CONSTANT_BUFFER : public RHI_CONSTANT_BUFFER {
+struct DX_CONSTANT_BUFFER : public RHI_CONSTANT_BUFFER, public DX_BUFFER {
 };
 
-struct DX_TEXTURE_2D : public RHI_TEXTURE_2D, public DX_RESOURCE {
+struct DX_TEXTURE_2D : public RHI_TEXTURE_2D, public DX_BUFFER {
 };
 
 struct DX_BVH_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
@@ -217,7 +228,7 @@ void dx12_rhi_init();
 void dx12_rhi_end();
 
 #ifdef DEBUG
-	#define ASSERT_FAILED(expr) ASSERT_EXPR(expr != S_OK)
+	#define ASSERT_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)
 #else
 	#define ASSERT_FAILED(expr)
 #endif

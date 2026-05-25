@@ -14,7 +14,7 @@ void rhi_end();
 
 // window api
 inline RHI_WINDOW* (*rhi_create_window)(const RHI_WINDOW_DESC* const desc);
-inline void (*rhi_window_main_loop)(const RHI_WINDOW* const handle);
+inline void (*rhi_window_main_loop)(RHI_WINDOW* const handle);
 
 inline RHI_DEVICE* (*rhi_create_device)(const RHI_DEVICE_DESC* const desc);
 

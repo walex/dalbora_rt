@@ -3,12 +3,12 @@
 
 RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc) {
 
-    ASSERT_NULL(desc);
-    ASSERT_NULL(desc->device);
+    ASSERT_PTR(desc);
+    ASSERT_PTR(desc->device);
 
     DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
     ID3D12Device* i_device = *device_impl;
-    ASSERT_NULL(i_device);
+    ASSERT_PTR(i_device);
 
 	D3D12_SAMPLER_DESC sampDesc = {};
 
@@ -27,7 +27,7 @@ RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc) {
     sampDesc.MaxAnisotropy = 1;
 
     DX_SAMPLER* result = new DX_SAMPLER();
-    ASSERT_NULL(result);
+    ASSERT_PTR(result);
 
     dx12_heap_next_handle(device_impl, heap_id_type_sampler, &result->cpu_handle);
     i_device->CreateSampler(&sampDesc, result->cpu_handle);

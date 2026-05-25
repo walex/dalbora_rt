@@ -3,6 +3,8 @@
 #define TINYDDSLOADER_IMPLEMENTATION
 #include "tinyddsloader.h"
 
+#ifdef TEST_RASTER_TEXTURED_TRIANGLE
+
 void copy_bc1_image_data(tinyddsloader::DDSFile& dds, RHI_TEXTURE_2D& texture, RHI_VOID_PTR buff_ptr) {
 
     
@@ -197,3 +199,5 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             pixel_shader_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
         });
 }
+
+#endif

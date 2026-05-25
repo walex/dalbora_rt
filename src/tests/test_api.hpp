@@ -19,4 +19,9 @@ void test_raster_triangle(fptr_test_on_init on_init = nullptr, fptr_test_on_draw
 void test_raster_textured_triangle(fptr_test_on_init on_init = nullptr, fptr_test_on_draw on_draw = nullptr, fptr_test_on_end on_end = nullptr, fptr_test_on_layout on_layout = nullptr);
 void test_rt_triangle(fptr_test_on_init on_init = nullptr, fptr_test_on_draw on_draw = nullptr, fptr_test_on_end on_end = nullptr, fptr_test_on_layout on_layout = nullptr);
 
+#define TEST_WINDOW
+#define TEST_SWAP_CHAIN
+#define TEST_RASTER_TRIANGLE
+#define xTEST_RASTER_TEXTURED_TRIANGLE
+#define xTEST_RT_TRIANGLE
 #endif

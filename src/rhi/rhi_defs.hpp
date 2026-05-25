@@ -4,14 +4,15 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <memory>
 struct RHI_WINDOW;
 struct RHI_COMMAND_BUFFER;
 typedef void* RHI_VOID_PTR;
-using fptr_window_main_loop_callback = std::function<void(const RHI_WINDOW &window)>;
-using fptr_window_on_init = std::function<void(const RHI_WINDOW &window)>;
-using fptr_window_on_end = std::function<void(const RHI_WINDOW &window)>;
+using fptr_window_main_loop_callback = std::function<void(const RHI_WINDOW* const window)>;
+using fptr_window_on_init = std::function<void(RHI_WINDOW* const window)>;
+using fptr_window_on_end = std::function<void(const RHI_WINDOW* const window)>;
 using fptr_command_queue_on_execute = std::function<void(RHI_VOID_PTR native_command_queue_impl,
-														 std::vector<RHI_COMMAND_BUFFER *> &command_buffer_list)>;
+														 std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list)>;
 using fptr_command_buffer_on_record = std::function<void(RHI_VOID_PTR native_command_buffer_impl)>;
 using fptr_render_pass_on_execute = std::function<void()>;
 
