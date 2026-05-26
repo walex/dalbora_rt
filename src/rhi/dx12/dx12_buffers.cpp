@@ -221,7 +221,12 @@ RHI_VIEW* d12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 
-	result->descriptor_size = dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_dsv, &result->cpu_descriptor_handle, &result->gpu_descriptor_handle);
+	result->descriptor_size = dx12_heap_next_handle(
+		static_cast<DX_DEVICE*>(desc->device), 
+		heap_id_type_dsv, 
+		resource_type_depth_stencil_target,
+		&result->cpu_descriptor_handle, 
+		&result->gpu_descriptor_handle);
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 	dsvDesc.Format = dx12_resource_format_type[desc->format];
@@ -247,8 +252,10 @@ RHI_VIEW* d12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 
-	dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), 
+	dx12_heap_next_handle(
+		static_cast<DX_DEVICE*>(desc->device), 
 		heap_id_type_rtv, 
+		resource_type_render_target,
 		&result->cpu_descriptor_handle,
 		&result->gpu_descriptor_handle);
 
@@ -274,7 +281,13 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 
 	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
 	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
-	size_t descriptor_size = dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_resources, &cpu_handle, &gpu_handle);
+	size_t descriptor_size = 
+		dx12_heap_next_handle(
+			static_cast<DX_DEVICE*>(desc->device), 
+			heap_id_type_resources, 
+			desc->type,
+			&cpu_handle, 
+			&gpu_handle);
 
 	if (desc->type == resource_type_constant_buffer) {
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};

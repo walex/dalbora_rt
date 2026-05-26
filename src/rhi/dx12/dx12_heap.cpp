@@ -71,43 +71,63 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl,
 	return result;
 }
 
-size_t dx12_heap_next_handle(const DX_DEVICE* const device, 
+size_t dx12_heap_next_handle(const DX_DEVICE* const device_impl,
 	const heap_id_type heap_id,
+	const resource_type resource_type,
 	D3D12_CPU_DESCRIPTOR_HANDLE* const cpu_descriptor_handle,
 	D3D12_GPU_DESCRIPTOR_HANDLE* const gpu_descriptor_handle) {
 
-	ASSERT_PTR(device);
+	ASSERT_PTR(device_impl);
 	ASSERT_EXPR(heap_id < heap_id_type_count);
 	ASSERT_PTR(cpu_descriptor_handle);
 
-	ID3D12Device* i_device = *device;
+	ID3D12Device* i_device = *device_impl;
 	ASSERT_PTR(i_device);
 
 	DX_HEAP* heap_impl = nullptr;
 	switch (heap_id) {
 	case heap_id_type_resources:
-		heap_impl = device->resources_heap.get();
+		heap_impl = device_impl->resources_heap.get();
 		break;
 	case heap_id_type_sampler:
-		heap_impl = device->sampler_heap.get();
+		heap_impl = device_impl->sampler_heap.get();
 		break;
 	case heap_id_type_rtv:
-		heap_impl = device->rtv_heap.get();
+		heap_impl = device_impl->rtv_heap.get();
 		break;
 	case heap_id_type_dsv:
-		heap_impl = device->dsv_heap.get();
+		heap_impl = device_impl->dsv_heap.get();
 		break;
 	}
 	ASSERT_PTR(heap_impl);
+
+	size_t slot_start = 0;
+	if (heap_id == heap_id_type_resources) {
+		switch (resource_type) {
+		case resource_type_generic_rw_buffer:
+			slot_start = device_impl->heap_desc.resources_heap_srv_offset;
+			break;
+		case resource_type_constant_buffer:
+			slot_start = device_impl->heap_desc.resources_heap_cbv_offset;
+			break;
+		case resource_type_shader:
+			slot_start = device_impl->heap_desc.resources_heap_srv_offset;
+			break;
+		}
+	}
+
 	if (heap_impl->count >= heap_impl->max_count)
 		throw std::exception("Max descriptors reached for heap %d", heap_id);
 	size_t& slot_id = heap_impl->count;
+	slot_start *= heap_impl->descriptor_handle.descriptor_size;
+	size_t slot_offset = slot_start + (slot_id * heap_impl->descriptor_handle.descriptor_size);
 	*cpu_descriptor_handle = heap_impl->descriptor_handle.cpu_descriptor_handle;
-	cpu_descriptor_handle->ptr += (slot_id++) * heap_impl->descriptor_handle.descriptor_size;
+	cpu_descriptor_handle->ptr += slot_offset;
 
 	if (gpu_descriptor_handle) {
 		*gpu_descriptor_handle = heap_impl->descriptor_handle.gpu_descriptor_handle;
-		gpu_descriptor_handle->ptr += (slot_id)*heap_impl->descriptor_handle.descriptor_size;
+		gpu_descriptor_handle->ptr += slot_offset;
 	}
+	slot_id++;
 	return heap_impl->descriptor_handle.descriptor_size;
 }

@@ -8,17 +8,22 @@ struct DX_DEVICE_HEAP_DESC
 {
 	RHI_DEVICE* device;
 	
-	bool resources_heap_enable;
-	size_t resources_heap_slot_count;
+	bool resources_heap_enable = false;
+	size_t resources_heap_cbv_offset = 0;
+	size_t resources_heap_cbv_count = 0;
+	size_t resources_heap_srv_offset = 0;
+	size_t resources_heap_srv_count = 0;
+	size_t resources_heap_uav_offset = 0;
+	size_t resources_heap_uav_count = 0;
 
-	bool rtv_heap_enable;
-	size_t rtv_heap_slot_count;
+	bool rtv_heap_enable = false;
+	size_t rtv_heap_slot_count = 0;
 
-	bool dsv_heap_enable;
-	size_t dsv_heap_slot_count;
+	bool dsv_heap_enable = false;
+	size_t dsv_heap_slot_count = 0;
 
-	bool sampler_heap_enable;
-	size_t sampler_heap_slot_count;
+	bool sampler_heap_enable = false;
+	size_t sampler_heap_slot_count = 0;
 };
 
 template <typename T>
@@ -60,7 +65,7 @@ struct DX_HEAP : public DX_HANDLE<ID3D12DescriptorHeap> {
 
 	size_t count = 0;
 	size_t max_count = 0;
-	DX_RESOURCE_HEAP_DESCRIPTOR descriptor_handle;
+	DX_RESOURCE_HEAP_DESCRIPTOR descriptor_handle = { 0 };
 };
 
 struct DX_DEVICE : public RHI_DEVICE, public DX_HANDLE<ID3D12Device>
@@ -69,6 +74,7 @@ struct DX_DEVICE : public RHI_DEVICE, public DX_HANDLE<ID3D12Device>
 	std::unique_ptr<DX_HEAP> dsv_heap;
 	std::unique_ptr<DX_HEAP> sampler_heap;
 	std::unique_ptr<DX_HEAP> resources_heap;
+	DX_DEVICE_HEAP_DESC heap_desc;
 };
 
 struct DX_RESOURCE : public DX_HANDLE<ID3D12Resource> {

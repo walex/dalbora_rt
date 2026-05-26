@@ -5,7 +5,8 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
 
-	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
+	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
+	ID3D12Device* i_device = *device_impl;
 	ASSERT_PTR(i_device);
 
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges;
@@ -19,15 +20,18 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		}
 		const RHI_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
-
+		UINT offset = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		switch (descriptor.resource_type) {
 		case resource_type_shader:
+			offset = static_cast<UINT>(device_impl->heap_desc.resources_heap_srv_offset);
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			break;
 		case resource_type_generic_rw_buffer:
+			offset = static_cast<UINT>(device_impl->heap_desc.resources_heap_uav_offset);
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			break;
 		case resource_type_constant_buffer:
+			offset = static_cast<UINT>(device_impl->heap_desc.resources_heap_cbv_offset);
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 			break;
 		case resource_type_sampler:
@@ -45,7 +49,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		range->NumDescriptors = descriptor.pool_range_count;
 		range->RegisterSpace = 0;
 		range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-		range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+		range->OffsetInDescriptorsFromTableStart = offset;
 	}
 
 	std::vector<D3D12_ROOT_PARAMETER1> root_params;
