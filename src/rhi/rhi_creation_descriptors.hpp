@@ -11,10 +11,11 @@ struct RHI_DEVICE_DESC  {
 
 struct RHI_BUFFER_DESC  {
 	RHI_DEVICE* device = nullptr;
-	size_t length, mips;
-	buffer_memory_type memory_type;
-	resource_format format;
-	buffer_type type;
+	size_t length = 0, mips = 0, stride = 0;
+	buffer_memory_type memory_type = buffer_memory_type_default;
+	resource_format format = resource_format_none;
+	buffer_type type = buffer_type_undef;
+
 };
 
 struct RHI_BUFFER_2D_DESC : RHI_BUFFER_DESC {
@@ -25,12 +26,10 @@ struct RHI_BUFFER_2D_DESC : RHI_BUFFER_DESC {
 
 struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 	size_t count;
-	size_t stride;
 };
 
 struct RHI_INDEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 	size_t count;
-	size_t stride;
 };
 
 struct RHI_WINDOW_DESC  {

@@ -31,9 +31,10 @@ void dx12_buffers_copy_buffer(RHI_COMMAND_BUFFER* const command_buffer, const RH
 	ASSERT_PTR(src_buffer);
 	ASSERT_PTR(dest_buffer);
 
-//	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
-//	ID3D12Resource* src = *static_cast<const DX_BUFFER*>(src_buffer);
-//	ID3D12Resource* dest = *static_cast<DX_BUFFER*>(dest_buffer);
+	// ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
+	// ID3D12Resource* src = *static_cast<const DX_BUFFER*>(src_buffer);
+	// ID3D12Resource* dest = *static_cast<DX_BUFFER*>(dest_buffer);
+	// i_command_buffer->CopyResource(dest, src);
 	static_cast<ID3D12GraphicsCommandList*>(
 		*static_cast<DX_COMMAND_BUFFER*>(command_buffer))->CopyResource(
 			*static_cast<DX_BUFFER*>(dest_buffer),
@@ -70,11 +71,14 @@ void dx12_buffers_gpu_upload_region(RHI_COMMAND_BUFFER* const command_buffer, co
 	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
 	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
-
+	
+	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_COPY_DEST };
+	static constexpr bool restore[] = { true };
+	DX_RESOURCE* resources[] = { dest };
 	dx12_command_buffer_resource_transition(i_command_buffer, 
-		dest,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		true,[&]() {
+		resources,
+		resource_state,
+		restore,1, [&]() {
 			dx12_buffers_copy_buffer_region(command_buffer, *src,
 				offset_src, *dest, offset_dest, length);
 		});
@@ -92,10 +96,13 @@ void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer, const RHI
 	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	dx12_command_buffer_resource_transition(i_command_buffer, 
-		dest,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		true, [&]() {
+	static constexpr D3D12_RESOURCE_STATES resource_state[] = {D3D12_RESOURCE_STATE_COPY_DEST};
+	static constexpr bool restore[] = { true };
+	DX_RESOURCE* resources[] = { dest };
+	dx12_command_buffer_resource_transition(i_command_buffer,
+		resources,
+		resource_state,
+		restore, 1, [&]() {
 			dx12_buffers_copy_buffer(command_buffer, src,
 				dest);
 		});
@@ -113,10 +120,14 @@ void dx12_buffers_gpu_download_region(RHI_COMMAND_BUFFER* const command_buffer, 
 	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
 	DX_BUFFER* src = const_cast<DX_BUFFER*>(static_cast<const DX_BUFFER*>(src_buffer));
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
-	dx12_command_buffer_resource_transition(i_command_buffer, 
-		src,
-		D3D12_RESOURCE_STATE_COPY_SOURCE,
-		true, [&]() {
+
+	static constexpr D3D12_RESOURCE_STATES resource_state[] = {D3D12_RESOURCE_STATE_COPY_SOURCE};
+	static constexpr bool restore[] = {true};
+	DX_RESOURCE* resources[] = { src };
+	dx12_command_buffer_resource_transition(i_command_buffer,
+		resources,
+		resource_state,
+		restore, 1, [&]() {
 			dx12_buffers_copy_buffer_region(command_buffer, *src,
 				offset_src, *dest, offset_dest, length);
 		});
@@ -134,10 +145,13 @@ void dx12_buffers_gpu_download(RHI_COMMAND_BUFFER* const command_buffer, const R
 	DX_BUFFER* src = const_cast<DX_BUFFER*>(static_cast<const DX_BUFFER*>(src_buffer));
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	dx12_command_buffer_resource_transition(i_command_buffer, 
-		src,
-		D3D12_RESOURCE_STATE_COPY_SOURCE,
-		true, [&]() {
+	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_COPY_SOURCE };
+	static constexpr bool restore[] = { true };
+	DX_RESOURCE* resources[] = { src };
+	dx12_command_buffer_resource_transition(i_command_buffer,
+		resources,
+		resource_state,
+		restore, 1, [&]() {
 			dx12_buffers_copy_buffer(command_buffer, *src, *dest);
 		});
 }
@@ -204,17 +218,17 @@ RHI_VIEW* d12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
 	ASSERT_PTR(i_resource);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
-	dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_dsv, &cpu_handle);
+	DX_VIEW* result = new DX_VIEW();
+	ASSERT_PTR(result);
 
-	RHI_VIEW* result = nullptr;
+	result->descriptor_size = dx12_heap_next_handle(static_cast<DX_DEVICE*>(desc->device), heap_id_type_dsv, &result->cpu_descriptor_handle, &result->gpu_descriptor_handle);
+
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 	dsvDesc.Format = dx12_resource_format_type[desc->format];
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-	i_device->CreateDepthStencilView(i_resource, &dsvDesc, cpu_handle);
+	i_device->CreateDepthStencilView(i_resource, &dsvDesc, result->cpu_descriptor_handle);
 
-	ASSERT_PTR(result);
 	return result;
 }
 
@@ -326,6 +340,7 @@ RHI_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc)
 	ib_desc.type = desc->type;
 	ib_desc.format = desc->format;
 	ib_desc.mips = 1;
+	ib_desc.stride = desc->stride;
 	return dx12_buffers_create<DX_BUFFER>(&ib_desc);
 }
 

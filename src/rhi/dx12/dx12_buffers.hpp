@@ -37,9 +37,9 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 {
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
-
+	
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-
+	D3D12_RESOURCE_STATES initial_state = D3D12_RESOURCE_STATE_COMMON;
 	std::unique_ptr<D3D12_CLEAR_VALUE> clear_value;
 	buffer_type buffer_type = desc->type;
 	if (buffer_type == buffer_type_depth_stencil) {
@@ -48,6 +48,8 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 		clear_value->Format = dx12_resource_format_type[desc->format];
 		clear_value->DepthStencil.Depth = 1.0f;
 		clear_value->DepthStencil.Stencil = 0;
+		buffer_type = buffer_type_image_2d;
+		initial_state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	}
 	else if (buffer_type == buffer_type_rt_bvh) {
 		flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -90,7 +92,7 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 		&heapProps,
 		D3D12_HEAP_FLAG_NONE,
 		&bufferDesc,
-		D3D12_RESOURCE_STATE_COMMON,
+		initial_state,
 		clear_value.get(),
 		IID_PPV_ARGS(&i_resource));
 
@@ -102,6 +104,7 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 	buffer_impl->length = desc->length;
 	buffer_impl->format = desc->format;
 	buffer_impl->current_state = D3D12_RESOURCE_STATE_COMMON;
+	buffer_impl->stride = desc->stride;
 	buffer_impl->set_handle(i_resource);
 
 	return buffer_impl;
@@ -122,6 +125,7 @@ T* dx12_buffers_create(const RHI_BUFFER_DESC* const desc) {
 	desc_2d.type = desc->type;
 	desc_2d.width = desc->length;
 	desc_2d.height = 1;
+	desc_2d.stride = desc->stride;
 	return dx12_buffers_create_2d<T>(&desc_2d);
 }
 inline RHI_BUFFER* dx12_buffers_create_raw(const RHI_BUFFER_DESC* const desc) {

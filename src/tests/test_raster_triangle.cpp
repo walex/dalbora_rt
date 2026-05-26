@@ -17,6 +17,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_layout;
 	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
 	std::unique_ptr<RHI_BUFFER> shared_object_constant_buffer;
+	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
+	std::unique_ptr<RHI_VIEW> object_constant_buffer_view;
 	std::vector<RHI_BUFFER*> constants_buffer_array;
 	std::unique_ptr<RHI_COMMAND_QUEUE> copy_command_queue;
 	std::unique_ptr<RHI_COMMAND_BUFFER> copy_command_buffer;
@@ -57,6 +59,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
+			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
+			std::unique_ptr<RHI_BUFFER> shared_index_buffer;
 
 			// create layout for pipeline
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
@@ -68,7 +72,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			cb_desc.resource_type = resource_type_constant_buffer;
 			cb_desc.pool_range_start = 0;
 			cb_desc.pool_range_count = 2;
-
+			
 			// create shaders layouts
 			std::vector<RHI_INPUT_LAYOUT_DESC> input_layouts;
 			std::string vs_file;
@@ -128,9 +132,15 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			shared_camera_buffer_desc.type = buffer_type_raw;
 			shared_camera_buffer_desc.mips = 1;
 			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
-			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
 
-			// create shared memory for object transfrms
+			// camera constant buffer view
+			RHI_VIEW_DESC camera_cb_view_desc;
+			camera_cb_view_desc.device = &device;
+			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
+			camera_cb_view_desc.type = resource_type_constant_buffer;
+			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
+
+			// create shared memory for object transforms
 			RHI_BUFFER_DESC shared_object_buffer_desc;
 			shared_object_buffer_desc.device = &device;
 			shared_object_buffer_desc.length = sizeof(ObjectCB);
@@ -138,6 +148,15 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			shared_object_buffer_desc.type = buffer_type_raw;
 			shared_object_buffer_desc.mips = 1;
 			shared_object_constant_buffer.reset(rhi_buffers_create_constant(&shared_object_buffer_desc));
+
+			// object constant buffer view
+			RHI_VIEW_DESC object_cb_view_desc;
+			object_cb_view_desc.device = &device;
+			object_cb_view_desc.buffer = shared_object_constant_buffer.get();
+			object_cb_view_desc.type = resource_type_constant_buffer;
+			object_constant_buffer_view.reset(rhi_buffers_create_view(&object_cb_view_desc));
+
+			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
 			object_constant_buffer_ptr = rhi_buffers_map_open(shared_object_constant_buffer.get(), 0, sizeof(ObjectCB));
 
 			constants_buffer_array = {shared_camera_constant_buffer.get(), shared_object_constant_buffer.get()};
@@ -167,8 +186,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 						shared_buffer_desc.length = vb_desc.length;
 						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
 						shared_buffer_desc.type = buffer_type_raw;
-						shared_buffer_desc.mips = 1;
-						std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
+						shared_buffer_desc.mips = 1;						
 						shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
 						rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
 						rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_vertex_buffer.get(), vertex_buffer.get());
@@ -181,8 +199,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 						shared_buffer_desc.length = ib_desc.length;
 						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
 						shared_buffer_desc.type = buffer_type_raw;
-						shared_buffer_desc.mips = 1;
-						std::unique_ptr<RHI_BUFFER> shared_index_buffer;
+						shared_buffer_desc.mips = 1;						
 						shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
 						rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
 						rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_index_buffer.get(), index_buffer.get());

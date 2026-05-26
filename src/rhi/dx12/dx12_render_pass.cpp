@@ -40,15 +40,13 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	{
 		*device_impl->resources_heap.get()
 	};
-
-	dx12_command_buffer_resource_transition(nullptr, nullptr,
-		D3D12_RESOURCE_STATE_RENDER_TARGET, false, []() {});
-
+	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_RENDER_TARGET };
+	static constexpr bool restore[] = {true};
+	DX_RESOURCE* resources[] = { static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()) };
 	dx12_command_buffer_resource_transition(i_command_buffer,
-		*static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()),
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		true,
-		[&]() {
+		resources,
+		resource_state,
+		restore, 1, [&]() {
 
 			i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
 			i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
@@ -92,16 +90,42 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 
 	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->resource.get());
 	ASSERT_PTR(resource_impl);
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resource_impl,
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		false,
-		[&]() {
-		
-			D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
-			if (depth_buffer_view_impl) {
+	
+	size_t barriers_count = 1;
+	D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
+	if (depth_buffer_view_impl) {
 
-				dsv_handle = &depth_buffer_view_impl->cpu_descriptor_handle;
+		dsv_handle = &depth_buffer_view_impl->cpu_descriptor_handle;
+	}
+	
+	ASSERT_PTR(resource_impl);
+
+	D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_RENDER_TARGET };
+	static constexpr bool restore[] = {false};
+	DX_RESOURCE* resources[] = { resource_impl };
+	dx12_command_buffer_resource_transition(i_command_buffer,
+		resources,
+		resource_state,
+		restore, 1, [&]() {
+		
+			// configure heap
+			ASSERT_PTR(device_impl->resources_heap.get());
+			ID3D12DescriptorHeap* resource_heap = *device_impl->resources_heap.get();
+			ASSERT_PTR(resource_heap);
+
+			ID3D12DescriptorHeap* sampler_heap = nullptr;
+			if (device_impl->sampler_heap.get())
+				sampler_heap = *device_impl->sampler_heap.get();
+			if (sampler_heap) {
+				ID3D12DescriptorHeap* heaps[] =
+				{
+					resource_heap,
+					sampler_heap
+				};
+				i_command_buffer->SetDescriptorHeaps(2, heaps);				
+			}
+			else {
+				i_command_buffer->SetDescriptorHeaps(1, &resource_heap);
 			}
 
 			static float clearColor[] = { 0.1f, 0.2f, 0.4f, 1.0f };
@@ -126,34 +150,18 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 					nullptr                            // rects
 				);
 			}
-
-			if (pipeline_impl) {
-
-				ASSERT_PTR(device_impl->resources_heap.get());				
-				ID3D12DescriptorHeap* resource_heap = *device_impl->resources_heap.get();
-				ASSERT_PTR(resource_heap);
-				ID3D12DescriptorHeap* sampler_heap = nullptr;
-				if (device_impl->sampler_heap.get())
-					sampler_heap = *device_impl->sampler_heap.get();
+			
+			if (pipeline_impl) {				
+				
 				ID3D12PipelineState* i_pipeline = *pipeline_impl;
 				ASSERT_PTR(i_pipeline);
 				i_command_buffer->SetPipelineState(i_pipeline);
 				ID3D12RootSignature* i_signature = *static_cast<DX_PIPELINE_LAYOUT*>(pipeline_impl->layout);
 				ASSERT_PTR(i_signature);
 				i_command_buffer->SetGraphicsRootSignature(i_signature);
-				i_command_buffer->SetGraphicsRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);		
-				if (sampler_heap) {
-					ID3D12DescriptorHeap* heaps[] =
-					{
-						resource_heap,
-						sampler_heap
-					};
-					i_command_buffer->SetDescriptorHeaps(2, heaps);
+				i_command_buffer->SetGraphicsRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);					
+				if (sampler_heap)
 					i_command_buffer->SetGraphicsRootDescriptorTable(1, device_impl->sampler_heap->descriptor_handle.gpu_descriptor_handle);
-				}
-				else {
-					i_command_buffer->SetDescriptorHeaps(1, &resource_heap);
-				}
 			}
 
 			if (callback)
@@ -161,12 +169,9 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 
 	});
 
-	resource_impl->current_state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	resource_state[0] = D3D12_RESOURCE_STATE_PRESENT;
 	dx12_command_buffer_resource_transition(i_command_buffer,
-		resource_impl,
-		D3D12_RESOURCE_STATE_PRESENT,
-		false,
-		[&]() {
-			resource_impl->current_state = D3D12_RESOURCE_STATE_PRESENT;
-		});
+		resources,
+		resource_state,
+		restore, 1, [&]() {});
 }

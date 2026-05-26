@@ -28,8 +28,9 @@ void dx12_command_buffer_copy_texture(
 	const RHI_TEXTURE_2D* const src_texture);
 void dx12_command_buffer_resource_transition(
 	ID3D12GraphicsCommandList* const i_command_buffer,
-	DX_RESOURCE* const resource_impl,
-	D3D12_RESOURCE_STATES end_state,
-	bool restore, 
+	const DX_RESOURCE* const resource_impl[],
+	const D3D12_RESOURCE_STATES states[],
+	const bool restore[],
+	const size_t count,
 	std::function<void()> cb);
 #endif

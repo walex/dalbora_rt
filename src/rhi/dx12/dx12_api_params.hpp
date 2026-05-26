@@ -7,7 +7,7 @@
 #define RTV_HEAP_SLOT_COUNT 8
 #define DSV_HEAP_ENABLE true
 #define DSV_HEAP_SLOT_COUNT 1
-#define SAMPLER_HEAP_ENABLE true
+#define SAMPLER_HEAP_ENABLE false
 #define SAMPLER_HEAP_SLOT_COUNT 8
 
 #endif

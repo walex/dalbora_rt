@@ -62,7 +62,10 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl,
 	result->count = 0;
 	result->max_count = static_cast<size_t>(desc.NumDescriptors);
 	result->descriptor_handle.cpu_descriptor_handle = dh->GetCPUDescriptorHandleForHeapStart();
-	result->descriptor_handle.gpu_descriptor_handle = dh->GetGPUDescriptorHandleForHeapStart();
+	if (shader_visible == true)
+		result->descriptor_handle.gpu_descriptor_handle = dh->GetGPUDescriptorHandleForHeapStart();
+	else
+		result->descriptor_handle.gpu_descriptor_handle.ptr = 0;
 	result->descriptor_handle.descriptor_size = i_device->GetDescriptorHandleIncrementSize(desc.Type);
 	result->max_count = slot_count;
 	return result;
