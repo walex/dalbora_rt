@@ -91,14 +91,11 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->resource);
 	ASSERT_PTR(resource_impl);
 	
-	size_t barriers_count = 1;
 	D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
 	if (depth_buffer_view_impl) {
 
 		dsv_handle = &depth_buffer_view_impl->cpu_descriptor_handle;
 	}
-	
-	ASSERT_PTR(resource_impl);
 
 	D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_RENDER_TARGET };
 	static constexpr bool restore[] = {false};
@@ -116,17 +113,12 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 			ID3D12DescriptorHeap* sampler_heap = nullptr;
 			if (device_impl->sampler_heap.get())
 				sampler_heap = *device_impl->sampler_heap.get();
-			if (sampler_heap) {
-				ID3D12DescriptorHeap* heaps[] =
-				{
-					resource_heap,
-					sampler_heap
-				};
-				i_command_buffer->SetDescriptorHeaps(2, heaps);				
-			}
-			else {
-				i_command_buffer->SetDescriptorHeaps(1, &resource_heap);
-			}
+			ID3D12DescriptorHeap* heaps[] =
+			{
+				resource_heap,
+				sampler_heap
+			};
+			i_command_buffer->SetDescriptorHeaps(sampler_heap ? 2 : 1, heaps);
 
 			static float clearColor[] = { 0.1f, 0.2f, 0.4f, 1.0f };
 

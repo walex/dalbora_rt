@@ -370,5 +370,6 @@ RHI_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const des
 	vb_desc.type = desc->type;
 	vb_desc.format = desc->format;
 	vb_desc.mips = 1;
+	vb_desc.stride = desc->stride;
 	return dx12_buffers_create<DX_BUFFER>(&vb_desc);
 }

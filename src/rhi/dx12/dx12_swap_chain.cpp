@@ -75,14 +75,14 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	DX_SWAP_CHAIN* swap_chain_impl = new DX_SWAP_CHAIN();
 	swap_chain_impl->set_handle(i_swap_chain_3);
 
-	for (size_t i = 0; i < bufferCount; i++) {
+	for (UINT i = 0; i < bufferCount; i++) {
 		ID3D12Resource* i_buffer;
 		ASSERT_SUCCESS(i_swap_chain_3->GetBuffer(i, IID_PPV_ARGS(&i_buffer)));
 		ASSERT_PTR(i_buffer);
 	
 		DXGI_SWAP_CHAIN_DESC swp_desc;
 		i_swap_chain_3->GetDesc(&swp_desc);
-		UINT mip_count = 1;
+		UINT16 mip_count = 1;
 		D3D12_RESOURCE_DESC texDesc = {};
 		texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		texDesc.Alignment = 0;
@@ -112,14 +112,16 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 			&totalUploadSize);
 
 		std::vector<RHI_TEXTURE_MIPS> mips(mip_count);
-		for (UINT i = 0; i < mip_count; i++) {
-			mips[i].offset = static_cast<size_t>(layouts[i].Offset);
-			mips[i].num_rows = static_cast<size_t>(num_rows[i]);
-			mips[i].pitch = static_cast<size_t>(layouts[i].Footprint.RowPitch);
-			mips[i].width = static_cast<size_t>(layouts[i].Footprint.Width);
-			mips[i].height = static_cast<size_t>(layouts[i].Footprint.Height);
-			mips[i].depth = static_cast<size_t>(layouts[i].Footprint.Depth);
-			mips[i].format = dx12_helpers_resource_format_from_dxgi_format(layouts[i].Footprint.Format);
+		for (UINT j = 0; j < mip_count; j++) {
+			RHI_TEXTURE_MIPS& tm = mips.at(j);
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT& fp = layouts.at(j);
+			tm.offset = static_cast<size_t>(fp.Offset);
+			tm.num_rows = static_cast<size_t>(num_rows[j]);
+			tm.pitch = static_cast<size_t>(fp.Footprint.RowPitch);
+			tm.width = static_cast<size_t>(fp.Footprint.Width);
+			tm.height = static_cast<size_t>(fp.Footprint.Height);
+			tm.depth = static_cast<size_t>(fp.Footprint.Depth);
+			tm.format = dx12_helpers_resource_format_from_dxgi_format(fp.Footprint.Format);
 		}
 		
 		RHI_VIEW_DESC view_desc;

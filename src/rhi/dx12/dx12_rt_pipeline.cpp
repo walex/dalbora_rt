@@ -200,19 +200,19 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 	for (size_t i = 0; i < ray_gen_max_elements; i++) {
 		std::wstring raygen_id = std::move(to_wstring_ascii(desc->ray_gen[i].name_id));
 		ste[pipeline_impl->shader_table_entries_count].shader_id = props->GetShaderIdentifier(raygen_id.c_str());
-		strcpy(ste[pipeline_impl->shader_table_entries_count].name, desc->ray_gen[i].name_id);
+		strcpy_s(ste[pipeline_impl->shader_table_entries_count].name, desc->ray_gen[i].name_id);
 		pipeline_impl->shader_table_entries_count++;
 	}
 	for (size_t i = 0; i < miss_max_elements; i++) {
 		std::wstring miss_id = std::move(to_wstring_ascii(desc->miss_shaders[i].name_id));
 		ste[pipeline_impl->shader_table_entries_count].shader_id = props->GetShaderIdentifier(miss_id.c_str());
-		strcpy(ste[pipeline_impl->shader_table_entries_count].name, desc->miss_shaders[i].name_id);
+		strcpy_s(ste[pipeline_impl->shader_table_entries_count].name, desc->miss_shaders[i].name_id);
 		pipeline_impl->shader_table_entries_count++;
 	}
 	for (size_t i = 0; i < hit_group_max_elements; i++) {
 		std::wstring group_id = std::move(to_wstring_ascii(desc->hit_groups[i].group_id));
 		ste[pipeline_impl->shader_table_entries_count].shader_id = props->GetShaderIdentifier(group_id.c_str());
-		strcpy(ste[pipeline_impl->shader_table_entries_count].name, desc->hit_groups[i].group_id);
+		strcpy_s(ste[pipeline_impl->shader_table_entries_count].name, desc->hit_groups[i].group_id);
 		pipeline_impl->shader_table_entries_count++;
 	}
 	pipeline_impl->set_handle(i_state_object);

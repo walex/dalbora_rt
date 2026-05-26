@@ -74,7 +74,7 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 	bufferDesc.Width = static_cast<UINT>(desc->width);
 	bufferDesc.Height = static_cast<UINT>(desc->height);
 	bufferDesc.DepthOrArraySize = 1;
-	bufferDesc.MipLevels = static_cast<UINT>(desc->mips);
+	bufferDesc.MipLevels = static_cast<UINT16>(desc->mips);
 	bufferDesc.SampleDesc.Count = 1;
 	bufferDesc.SampleDesc.Quality = 0;
 	if (bufferDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)

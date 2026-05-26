@@ -63,7 +63,7 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	//		*srv_handle);
 	//}
 
-	const UINT mip_count = static_cast<UINT>(desc->mips);
+	const UINT16 mip_count = static_cast<UINT16>(desc->mips);
 	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>
 		layouts(mip_count);
 	std::vector<UINT> num_rows(mip_count);
@@ -137,7 +137,7 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
 		resource_state,
 		restore, 1, [&]() {
 
-			for (size_t i = 0; i < dest_buffer->mip_maps_count; ++i)
+			for (UINT i = 0; i < static_cast<UINT>(dest_buffer->mip_maps_count); ++i)
 			{
 				auto& mip = dest_buffer->mip_maps[i];
 
@@ -145,11 +145,11 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
 				src.pResource = *static_cast<const DX_BUFFER*>(src_buffer);
 				src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 				src.PlacedFootprint.Footprint.Format = dx12_resource_format_type[mip.format];
-				src.PlacedFootprint.Footprint.Width = mip.width;
-				src.PlacedFootprint.Footprint.Height = mip.height;
-				src.PlacedFootprint.Footprint.Depth = mip.depth;
-				src.PlacedFootprint.Footprint.RowPitch = mip.pitch;
-				src.PlacedFootprint.Offset = mip.offset;
+				src.PlacedFootprint.Footprint.Width = static_cast<UINT>(mip.width);
+				src.PlacedFootprint.Footprint.Height = static_cast<UINT>(mip.height);
+				src.PlacedFootprint.Footprint.Depth = static_cast<UINT>(mip.depth);
+				src.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(mip.pitch);
+				src.PlacedFootprint.Offset = static_cast<UINT64>(mip.offset);
 
 				D3D12_TEXTURE_COPY_LOCATION dst = {};
 				dst.pResource = i_texture;

@@ -59,7 +59,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 			try {
 				dx12_device_check_device_features(testDevice, features);
 			}
-			catch (std::exception& ex) {
+			catch (std::exception&) {
 				
 				use_it = false;
 					

@@ -58,7 +58,7 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 		ele_desc.SemanticIndex = 0;
 		ele_desc.Format = dx12_resource_format_type[(int)gen_layout.format];
 		ele_desc.InputSlot = 0;
-		ele_desc.AlignedByteOffset = gen_layout.offset;
+		ele_desc.AlignedByteOffset = static_cast<UINT>(gen_layout.offset);
 		ele_desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 		ele_desc.InstanceDataStepRate = 0;
 	}
@@ -68,14 +68,14 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = *static_cast<DX_PIPELINE_LAYOUT*>(desc->layout);
 	if (desc->vertex_shader) {
-		IDxcBlob* buffer = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->vertex_shader);
-		psoDesc.VS.pShaderBytecode = buffer->GetBufferPointer();
-		psoDesc.VS.BytecodeLength = buffer->GetBufferSize();
+		IDxcBlob* buffer_vs = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->vertex_shader);
+		psoDesc.VS.pShaderBytecode = buffer_vs->GetBufferPointer();
+		psoDesc.VS.BytecodeLength = buffer_vs->GetBufferSize();
 	}
 	if (desc->pixel_shader) {
-		IDxcBlob* buffer = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->pixel_shader);
-		psoDesc.PS.pShaderBytecode = buffer->GetBufferPointer();
-		psoDesc.PS.BytecodeLength = buffer->GetBufferSize();
+		IDxcBlob* buffer_ps = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->pixel_shader);
+		psoDesc.PS.pShaderBytecode = buffer_ps->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = buffer_ps->GetBufferSize();
 	}
 	psoDesc.BlendState = belnd_desc_default;
 	psoDesc.SampleMask = UINT_MAX;

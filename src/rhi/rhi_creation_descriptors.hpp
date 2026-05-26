@@ -48,8 +48,8 @@ struct RHI_SWAP_CHAIN_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_QUEUE* command_queue = nullptr;
 	RHI_WINDOW* window = nullptr;
-	size_t width = -1;
-	size_t height = -1;
+	size_t width = 0;
+	size_t height = 0;
 	resource_format color_format = resource_format_none;
 	bool allow_tearing = false;
 	size_t buffer_count = 0;
@@ -79,9 +79,9 @@ struct RHI_RASTER_PIPELINE_DESC  {
 	RHI_COMPILED_SHADER_BUFFER* hull_shader = nullptr;
 	RHI_COMPILED_SHADER_BUFFER* tess_shader = nullptr;
 	RHI_COMPILED_SHADER_BUFFER* domain_shader = nullptr;
-	primitive_topology topology;
-	resource_format surface_format;
-	resource_format depth_buffer_format;
+	primitive_topology topology = primitive_topology_none;
+	resource_format surface_format = resource_format_none;
+	resource_format depth_buffer_format = resource_format_none;
 };
 
 struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC  {
@@ -89,7 +89,7 @@ struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC  {
 	RHI_COMPILED_SHADER_BUFFER* as_shader = nullptr;
 	RHI_COMPILED_SHADER_BUFFER* mesh_shader = nullptr;
 	RHI_COMPILED_SHADER_BUFFER* pixel_shader = nullptr;
-	primitive_topology topology;
+	primitive_topology topology = primitive_topology_none;
 };
 
 #define MAX_SHADER_UNIT_NAME_LENGTH 64
@@ -121,8 +121,8 @@ struct RHI_RT_PIPELINE_DESC  {
 
 struct RHI_DESCRIPTOR_DESC  {
 	resource_type resource_type;
-	int pool_range_start = -1;
-	int pool_range_count = -1;
+	int register_start = -1;
+	int register_count = -1;
 };
 
 #define MAX_PIPELINE_DESCRIPTORS 16

@@ -219,7 +219,7 @@ void dx12_command_buffer_resource_transition(
 	std::vector<D3D12_RESOURCE_BARRIER> barriers(count);
 	std::vector<bool> t_restore(count);
 	std::vector<DX_RESOURCE*> t_resources(count);
-	size_t barrier_index = 0;
+	UINT barrier_index = 0;
 	for (size_t i = 0; i < count; ++i) {
 
 		D3D12_RESOURCE_STATES init_state = resource_impl[i]->current_state;

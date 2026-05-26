@@ -14,8 +14,8 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 
 	for (size_t i = 0; i < desc->descriptor_count; i++) {
 
-		if (desc->descriptors[i].pool_range_start == -1 
-			|| desc->descriptors[i].pool_range_count == -1) {
+		if (desc->descriptors[i].register_start == -1 
+			|| desc->descriptors[i].register_count == -1) {
 			break;
 		}
 		const RHI_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
@@ -45,8 +45,8 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 			? &descriptor_ranges_sampler.emplace_back()
 			: &descriptor_ranges.emplace_back();
 		range->RangeType = range_type;
-		range->BaseShaderRegister = descriptor.pool_range_start;
-		range->NumDescriptors = descriptor.pool_range_count;
+		range->BaseShaderRegister = descriptor.register_start;
+		range->NumDescriptors = descriptor.register_count;
 		range->RegisterSpace = 0;
 		range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 		range->OffsetInDescriptorsFromTableStart = offset;

@@ -70,36 +70,34 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			// add constant buffer descriptors for camera and object transforms;
 			RHI_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			cb_desc.resource_type = resource_type_constant_buffer;
-			cb_desc.pool_range_start = 0;
-			cb_desc.pool_range_count = 2;
+			cb_desc.register_start = 0; // ie: b0 in hlsl
+			cb_desc.register_count = 2; // ie: b0, b1 in hlsl
 			
 			// create shaders layouts
 			std::vector<RHI_INPUT_LAYOUT_DESC> input_layouts;
-			std::string vs_file;
-			std::string ps_file;
-			size_t vertex_size;
-			void* vertices_ptr;
-			if (on_layout) {
-				//on_layout(pl_desc.descriptors, input_layouts, 
-				//	vs_file, ps_file, 
-				//	vertex_size, &vertices_ptr);
-			}
-			else {
-				vs_file = "simple_triangle.hlsl";
-				ps_file = "simple_triangle.hlsl";
-				vertex_size = sizeof(Vertex);
-				vertices_ptr = &vertices[0];
-				RHI_INPUT_LAYOUT_DESC& desc_pos = input_layouts.emplace_back();
-				strcpy(desc_pos.name, "POSITION");
-				desc_pos.format = resource_format_float3;
-				desc_pos.offset = 0;
-			}
+
+			std::string vs_file = "simple_triangle.hlsl";
+			std::string ps_file = "simple_triangle.hlsl";
+			size_t vertex_size = sizeof(Vertex);
+			void* vertices_ptr = &vertices[0];
+
+			RHI_INPUT_LAYOUT_DESC& desc_pos = input_layouts.emplace_back();
+			strcpy_s(desc_pos.name, "POSITION");
+			desc_pos.format = resource_format_float3;
+			desc_pos.offset = 0;
+
+			//if (on_layout) {
+			//	on_layout(pl_desc.descriptors, input_layouts, 
+			//		vs_file, ps_file, 
+			//		vertex_size, &vertices_ptr);
+			//}
+			// 
+			
 			// create pipeline layout
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 			
 			// compile shaders
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
-
 			vertex_shader.reset(rhi_shaders_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0"));
 			pixel_shader.reset(rhi_shaders_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0"));
 			

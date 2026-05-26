@@ -48,6 +48,8 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl,
 		case resource_type_depth_stencil_target:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 			break;
+		default:
+			throw std::exception("resource type not supported");
 	}	
 
 	ID3D12DescriptorHeap* dh = dx12_heap_create_descriptor(device_impl, type,
@@ -104,11 +106,11 @@ size_t dx12_heap_next_handle(const DX_DEVICE* const device_impl,
 	size_t slot_start = 0;
 	if (heap_id == heap_id_type_resources) {
 		switch (resource_type) {
-		case resource_type_generic_rw_buffer:
-			slot_start = device_impl->heap_desc.resources_heap_srv_offset;
-			break;
 		case resource_type_constant_buffer:
 			slot_start = device_impl->heap_desc.resources_heap_cbv_offset;
+			break;
+		case resource_type_generic_rw_buffer:
+			slot_start = device_impl->heap_desc.resources_heap_uav_offset;
 			break;
 		case resource_type_shader:
 			slot_start = device_impl->heap_desc.resources_heap_srv_offset;

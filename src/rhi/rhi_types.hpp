@@ -32,7 +32,7 @@ struct RHI_DEVICE {
 struct RHI_TEXTURE_MIPS {
 	size_t width = 0;
 	size_t height = 0;
-	size_t offset = 0;
+	uint64_t offset = 0;
 	size_t num_rows = 0;
 	size_t pitch = 0;
 	size_t depth = 0;
