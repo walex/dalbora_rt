@@ -42,7 +42,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	};
 	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_RENDER_TARGET };
 	static constexpr bool restore[] = {true};
-	DX_RESOURCE* resources[] = { static_cast<DX_BUFFER*>(render_target_view_impl->resource.get()) };
+	DX_RESOURCE* resources[] = { static_cast<DX_BUFFER*>(render_target_view_impl->resource) };
 	dx12_command_buffer_resource_transition(i_command_buffer,
 		resources,
 		resource_state,
@@ -88,7 +88,7 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	dx_scissor.right = (LONG)vp.width;
 	dx_scissor.bottom = (LONG)vp.height;
 
-	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->resource.get());
+	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->resource);
 	ASSERT_PTR(resource_impl);
 	
 	size_t barriers_count = 1;

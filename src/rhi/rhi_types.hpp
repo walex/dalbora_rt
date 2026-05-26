@@ -22,7 +22,7 @@ struct RHI_BUFFER {
 
 struct RHI_VIEW {
 	virtual ~RHI_VIEW() = default;
-	std::shared_ptr<RHI_BUFFER> resource;
+	RHI_BUFFER* resource = nullptr;
 };
 
 struct RHI_DEVICE {

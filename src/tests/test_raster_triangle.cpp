@@ -56,7 +56,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	test_swap_chain([&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
 						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)
 					{
-
+			
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
 			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
@@ -96,13 +96,13 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			}
 			// create pipeline layout
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
-
+			
 			// compile shaders
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
 
 			vertex_shader.reset(rhi_shaders_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0"));
 			pixel_shader.reset(rhi_shaders_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0"));
-
+			
 			// create geometry buffers
 			RHI_VERTEX_BUFFER_DESC vb_desc;
 			vb_desc.device = &device;
@@ -113,7 +113,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			vb_desc.memory_type = buffer_memory_type_gpu_only;
 			vb_desc.type = buffer_type_raw;
 			vertex_buffer.reset(rhi_buffers_create_vertices(&vb_desc));
-
+			
 			RHI_INDEX_BUFFER_DESC ib_desc;
 			ib_desc.device = &device;
 			ib_desc.count = index_count;
@@ -123,7 +123,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			ib_desc.memory_type = buffer_memory_type_gpu_only;
 			ib_desc.type = buffer_type_raw;
 			index_buffer.reset(rhi_buffers_create_indices(&ib_desc));
-
+			
 			// create shared memory for camera transforms
 			RHI_BUFFER_DESC shared_camera_buffer_desc;
 			shared_camera_buffer_desc.device = &device;
@@ -132,14 +132,14 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			shared_camera_buffer_desc.type = buffer_type_raw;
 			shared_camera_buffer_desc.mips = 1;
 			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
-
+			
 			// camera constant buffer view
 			RHI_VIEW_DESC camera_cb_view_desc;
 			camera_cb_view_desc.device = &device;
 			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
 			camera_cb_view_desc.type = resource_type_constant_buffer;
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
-
+			
 			// create shared memory for object transforms
 			RHI_BUFFER_DESC shared_object_buffer_desc;
 			shared_object_buffer_desc.device = &device;

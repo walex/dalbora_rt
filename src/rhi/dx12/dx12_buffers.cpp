@@ -307,8 +307,8 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 	result->cpu_descriptor_handle = cpu_handle;
 	result->gpu_descriptor_handle = gpu_handle;
 	result->descriptor_size = descriptor_size;
-	i_resource->AddRef();
-	result->resource.reset(desc->buffer);
+	//i_resource->AddRef();
+	result->resource = desc->buffer;
 	return result;
 }
 

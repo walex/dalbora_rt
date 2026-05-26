@@ -27,10 +27,9 @@ RHI_COMMAND_QUEUE* dx12_create_command_queue(const RHI_COMMAND_QUEUE_DESC* const
 	fence_desc.flags = fence_flags_none;
 	fence_desc.initial_value = 0;
 
-	RHI_FENCE* fence = dx12_fence_create(&fence_desc);
-	ASSERT_PTR(fence);
-	result->fence.reset(fence);
-	
+	result->fence.reset(dx12_fence_create(&fence_desc));
+	ASSERT_PTR(result->fence);
+
 	return result;
 }
 

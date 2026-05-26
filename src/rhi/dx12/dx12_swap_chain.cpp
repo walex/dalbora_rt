@@ -141,7 +141,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		texture->height = desc->height;
 		texture->length = static_cast<size_t>(totalUploadSize);
 		memcpy(texture->mip_maps, mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
-		view->resource.reset(texture);
+		view->resource = texture;
 
 		swap_chain_impl->render_targets[swap_chain_impl->render_targets_count++].reset(view);
 	}
