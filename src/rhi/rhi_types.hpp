@@ -44,6 +44,8 @@ struct RHI_TEXTURE_2D {
 	virtual ~RHI_TEXTURE_2D() = default;
 	size_t width = 0;
 	size_t height = 0;
+	size_t hw_length = 0;
+	resource_format hw_format = resource_format_none;
 	RHI_TEXTURE_MIPS mip_maps[MAX_TEXTURE_MIP_LEVELS];
 	size_t mip_maps_count = 0;
 };

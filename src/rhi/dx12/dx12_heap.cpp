@@ -103,26 +103,8 @@ size_t dx12_heap_next_handle(const DX_DEVICE* const device_impl,
 	}
 	ASSERT_PTR(heap_impl);
 
-	size_t slot_start = 0;
-	if (heap_id == heap_id_type_resources) {
-		switch (resource_type) {
-		case resource_type_constant_buffer:
-			slot_start = device_impl->heap_desc.resources_heap_cbv_offset;
-			break;
-		case resource_type_generic_rw_buffer:
-			slot_start = device_impl->heap_desc.resources_heap_uav_offset;
-			break;
-		case resource_type_shader:
-			slot_start = device_impl->heap_desc.resources_heap_srv_offset;
-			break;
-		}
-	}
-
-	if (heap_impl->count >= heap_impl->max_count)
-		throw std::exception("Max descriptors reached for heap %d", heap_id);
 	size_t& slot_id = heap_impl->count;
-	slot_start *= heap_impl->descriptor_handle.descriptor_size;
-	size_t slot_offset = slot_start + (slot_id * heap_impl->descriptor_handle.descriptor_size);
+	size_t slot_offset = (slot_id * heap_impl->descriptor_handle.descriptor_size);
 	*cpu_descriptor_handle = heap_impl->descriptor_handle.cpu_descriptor_handle;
 	cpu_descriptor_handle->ptr += slot_offset;
 

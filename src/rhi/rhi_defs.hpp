@@ -53,6 +53,7 @@ enum resource_type
 	resource_type_depth_stencil_target = 5,
 	resource_type_constant_buffer = 6,
 	resource_type_shader = 7,
+	resource_type_texture_2d = 8
 };
 
 enum buffer_type

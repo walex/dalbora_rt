@@ -9,12 +9,7 @@ struct DX_DEVICE_HEAP_DESC
 	RHI_DEVICE* device;
 	
 	bool resources_heap_enable = false;
-	size_t resources_heap_cbv_offset = 0;
-	size_t resources_heap_cbv_count = 0;
-	size_t resources_heap_srv_offset = 0;
-	size_t resources_heap_srv_count = 0;
-	size_t resources_heap_uav_offset = 0;
-	size_t resources_heap_uav_count = 0;
+	size_t resources_heap_count = 0;
 
 	bool rtv_heap_enable = false;
 	size_t rtv_heap_slot_count = 0;

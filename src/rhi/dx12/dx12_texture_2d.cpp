@@ -24,7 +24,7 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	std::unique_ptr<DX_BUFFER> buffer;
 	buffer.reset(dx12_buffers_create_2d<DX_BUFFER>(&buff_desc));
 	ASSERT_PTR(buffer.get());
-	ID3D12Resource *i_texture = *static_cast<DX_BUFFER*>(*buffer);
+	ID3D12Resource *i_texture = *static_cast<DX_BUFFER*>(buffer.get());
 	ASSERT_PTR(i_texture);
 	i_texture->AddRef();
 
@@ -111,6 +111,8 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	result->width = desc->width;
 	result->height = desc->height;
 	result->length = static_cast<size_t>(totalUploadSize);
+	result->hw_length = result->length;
+	result->hw_format = result->format;
 	memcpy(&result->mip_maps[0], mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
 	result->mip_maps_count = mip_count;
 	return result;

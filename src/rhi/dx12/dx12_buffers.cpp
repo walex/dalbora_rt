@@ -315,6 +315,19 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 		i_device->CreateShaderResourceView(i_resource, &srv_desc, cpu_handle);
 	}
+	else if (desc->type == resource_type_texture_2d) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = dx12_resource_format_type[desc->format];
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srv_desc.Shader4ComponentMapping =
+			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srv_desc.Texture2D.MipLevels = static_cast<UINT>(desc->mip_maps_count);
+		srv_desc.Texture1D.MostDetailedMip = 0;
+		i_device->CreateShaderResourceView(
+			i_resource,
+			&srv_desc,
+			cpu_handle);
+	}
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 	result->cpu_descriptor_handle = cpu_handle;

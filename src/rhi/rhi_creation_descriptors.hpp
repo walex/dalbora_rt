@@ -121,8 +121,8 @@ struct RHI_RT_PIPELINE_DESC  {
 
 struct RHI_DESCRIPTOR_DESC  {
 	resource_type resource_type;
-	int register_start = -1;
-	int register_count = -1;
+	size_t register_start = 0;
+	size_t register_count = 0;
 };
 
 #define MAX_PIPELINE_DESCRIPTORS 16
@@ -178,9 +178,10 @@ struct RHI_RT_SBT_DESC {
 };
 
 struct RHI_VIEW_DESC  {
-	resource_type type;
-	resource_format format;
-	RHI_DEVICE* device;
-	RHI_BUFFER* buffer;
+	resource_type type = resource_type_generic_rw_buffer;
+	resource_format format = resource_format_none;
+	size_t mip_maps_count  = 0;
+	RHI_DEVICE* device = nullptr;
+	RHI_BUFFER* buffer = nullptr;
 };
 #endif

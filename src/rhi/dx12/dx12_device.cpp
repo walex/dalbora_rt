@@ -116,12 +116,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 
 	DX_DEVICE_HEAP_DESC heaps_desc;
 	heaps_desc.resources_heap_enable = RESOURCES_HEAP_ENABLE;
-	heaps_desc.resources_heap_cbv_offset = CBV_HEAP_SLOT_OFFSET;
-	heaps_desc.resources_heap_cbv_count = CBV_HEAP_SLOT_COUNT;
-	heaps_desc.resources_heap_uav_offset = UAV_HEAP_SLOT_OFFSET;
-	heaps_desc.resources_heap_uav_count = UAV_HEAP_SLOT_COUNT;
-	heaps_desc.resources_heap_srv_offset = SRV_HEAP_SLOT_OFFSET;
-	heaps_desc.resources_heap_srv_count = SRV_HEAP_SLOT_COUNT;
+	heaps_desc.resources_heap_count = RESOURCES_HEAP_SLOT_COUNT;
 
 	heaps_desc.rtv_heap_enable = RTV_HEAP_ENABLE;
 	heaps_desc.rtv_heap_slot_count = RTV_HEAP_SLOT_COUNT;
@@ -133,13 +128,9 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	heaps_desc.sampler_heap_slot_count = SAMPLER_HEAP_SLOT_COUNT;
 
 	if (heaps_desc.resources_heap_enable == true) {
-		size_t resources_heap_slot_count =
-			heaps_desc.resources_heap_cbv_count +
-			heaps_desc.resources_heap_uav_count +
-			heaps_desc.resources_heap_srv_count;
 		dx_device->resources_heap.reset(dx12_heap_create(dx_device, 
 			resource_type_generic_rw_buffer, 
-			resources_heap_slot_count, true));
+			heaps_desc.resources_heap_count, true));
 		if(!dx_device->resources_heap.get())
 			throw std::exception("Failed to create resources heap");
 	}
