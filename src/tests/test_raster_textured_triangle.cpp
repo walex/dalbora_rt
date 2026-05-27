@@ -84,7 +84,8 @@ resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
 void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                                    fptr_test_on_draw UNUSED_PARAM(on_draw),
                                    fptr_test_on_end UNUSED_PARAM(on_end),
-                                   fptr_test_on_layout UNUSED_PARAM(on_layout))
+                                   fptr_test_on_layout UNUSED_PARAM(on_layout),
+                                   fptr_test_on_configure_device on_configure_device)
 {
     struct Vertex
     {
@@ -216,6 +217,11 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             // shaders paths
             vertex_shader_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
             pixel_shader_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
+        },
+        [&](RHI_DEVICE_DESC& desc) {
+            if (on_configure_device)
+                on_configure_device(desc);
+            desc.enable_texture_sampling = true;
         });
 }
 

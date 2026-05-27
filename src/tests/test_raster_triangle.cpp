@@ -6,7 +6,8 @@
 void test_raster_triangle(fptr_test_on_init on_init,
 						  fptr_test_on_draw on_draw,
 						  fptr_test_on_end on_end,
-						  fptr_test_on_layout on_layout)
+						  fptr_test_on_layout on_layout,
+						  fptr_test_on_configure_device on_configure_device)
 {
 
 	std::unique_ptr<RHI_RASTER_PIPELINE> pipeline;
@@ -65,7 +66,6 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			// create layout for pipeline
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
 			pl_desc.device = &device;
-			pl_desc.shader_type = shader_type_undef;
 
 			// add constant buffer descriptors for camera and object transforms;
 			RHI_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
@@ -283,7 +283,12 @@ void test_raster_triangle(fptr_test_on_init on_init,
 				// on end
 				rhi_buffers_map_close(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
 				rhi_buffers_map_close(shared_object_constant_buffer.get(), 0, sizeof(ObjectCB));
-			});
+				}, 
+				[&](RHI_DEVICE_DESC& desc)
+				{
+					if (on_configure_device)
+						on_configure_device(desc);
+				});
 	return;
 }
 

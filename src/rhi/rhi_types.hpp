@@ -22,7 +22,7 @@ struct RHI_BUFFER {
 
 struct RHI_VIEW {
 	virtual ~RHI_VIEW() = default;
-	RHI_BUFFER* resource = nullptr;
+	RHI_BUFFER* buffer = nullptr;
 };
 
 struct RHI_DEVICE {

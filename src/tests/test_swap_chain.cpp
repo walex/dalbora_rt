@@ -6,7 +6,8 @@ void test_swap_chain(fptr_test_on_init on_init
 	, fptr_test_on_before_draw on_before_draw
 	, fptr_test_on_draw on_draw
 	, fptr_test_on_before_present on_before_present
-	, fptr_test_on_end on_end) {
+	, fptr_test_on_end on_end
+    , fptr_test_on_configure_device on_configure_device) {
 
 	std::unique_ptr<RHI_DEVICE> device;
 	std::unique_ptr<RHI_COMMAND_QUEUE> command_queue;
@@ -19,7 +20,10 @@ void test_swap_chain(fptr_test_on_init on_init
 
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = 0;
-		device_desc.features = device_features_raytracing;
+		device_desc.features = device_features_none;
+		if (on_configure_device)
+			on_configure_device(device_desc);
+
 		device.reset(rhi_create_device(&device_desc));
 
 		RHI_COMMAND_QUEUE_DESC queue_desc;

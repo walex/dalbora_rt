@@ -6,20 +6,24 @@
 void test_rt_triangle(fptr_test_on_init on_init,
 	fptr_test_on_draw on_draw,
 	fptr_test_on_end on_end,
-	fptr_test_on_layout on_layout)
+	fptr_test_on_layout on_layout,
+	fptr_test_on_configure_device on_configure_device)
 {
 
 	std::unique_ptr<RHI_BUFFER> vertex_buffer;
 	std::unique_ptr<RHI_BUFFER> index_buffer;
 	std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_layout;
 	std::shared_ptr<RHI_TEXTURE_2D> render_target;
+	std::shared_ptr<RHI_VIEW> render_target_view;
 	std::unique_ptr<RHI_RENDER_PASS> rt_render_pass;
 	std::unique_ptr<RHI_RT_BVH> bvh;
 	std::unique_ptr<RHI_BUFFER> bvh_instances;
+	std::unique_ptr<RHI_VIEW> bvh_instances_view;
 	std::unique_ptr<RHI_BUFFER> sbt;
 	std::unique_ptr<RHI_RT_PIPELINE> pipeline;
-	std::unique_ptr<RHI_CONSTANT_BUFFER> shared_camera_constant_buffer;
+	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
 	RHI_VOID_PTR camera_constant_buffer_ptr;
+	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
 
 	float aspect = 800.0f / 600.0f;
 	float x = 0.5f;
@@ -67,177 +71,235 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	test_swap_chain([&](RHI_DEVICE& device, RHI_COMMAND_QUEUE& command_queue,
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
 		{
+			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
+			std::unique_ptr<RHI_BUFFER> shared_index_buffer;
+			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> ray_gen_shader;
+			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> miss_shader;
+			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> closest_hit_shader;
+
 			// on_init
 			swap_chain_ptr = &swap_chain;
 
 			// render target
-			RHI_TEXTURE_2D_DESC tx_desc(device);
-			auto back_buffer = swap_chain.get_render_target(0);
+			RHI_TEXTURE_2D_DESC tx_desc;
+			tx_desc.device = &device;
 			tx_desc.memory_type = buffer_memory_type_gpu_only;
 			tx_desc.type = buffer_type_image_2d;
-			tx_desc.width = back_buffer->get_width();
-			tx_desc.height = back_buffer->get_height();
-			tx_desc.default_state = resource_state_rt_render_target;
+			tx_desc.width = 800;
+			tx_desc.height = 600;
 			tx_desc.format = resource_format_R8G8B8A8_norm;
-			tx_desc.resource_slot = 1;
-			render_target = rhi_texture_2d_create(tx_desc);
+			tx_desc.is_render_target = true;
+			tx_desc.flags = resource_flags_shader_read_write;
+			render_target.reset(rhi_texture_2d_create(&tx_desc));
+
+			// create render target view
+			RHI_VIEW_DESC view_desc;
+			view_desc.type = resource_type_render_target;
+			view_desc.device = &device;
+			view_desc.format = tx_desc.format;
+			view_desc.buffer = dynamic_cast<RHI_BUFFER*>(render_target.get());
+			render_target_view.reset(rhi_buffers_create_view(&view_desc));
 
 			// create render pass
-			RHI_RENDER_PASS_DESC render_pass_desc(device, render_target);
-			rt_render_pass = rhi_render_pass_create(render_pass_desc);
+			RHI_RENDER_PASS_DESC render_pass_desc;
+			render_pass_desc.device = &device;
+			render_pass_desc.render_target_view = render_target_view.get();
+			rt_render_pass.reset(rhi_render_pass_create(&render_pass_desc));
 
 			// compile shaders
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
 			std::string rt_file = "simple_rt.hlsl";
-			
-			auto ray_gen_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "RayGen", "lib_6_6");
-			auto miss_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "Miss", "lib_6_6");
-			auto closest_hit_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "ClosestHit", "lib_6_6");
+
+			ray_gen_shader.reset(rhi_shaders_compiler_compile(rt_file.c_str(), "RayGen", "lib_6_6"));
+			miss_shader.reset(rhi_shaders_compiler_compile(rt_file.c_str(), "Miss", "lib_6_6"));			
+			closest_hit_shader.reset(rhi_shaders_compiler_compile(rt_file.c_str(), "ClosestHit", "lib_6_6"));
 
 			// on_layout
 
-			RHI_PIPELINE_LAYOUT_DESC pl_desc(device);
+			RHI_PIPELINE_LAYOUT_DESC pl_desc;
+			pl_desc.device = &device;
 
 			// descriptors
-			std::vector<RHI_DESCRIPTOR_DESC>& descriptors = pl_desc.descriptors;
 
 			// SceneBVH
-			RHI_DESCRIPTOR_DESC s_desc;
+			RHI_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			s_desc.resource_type = resource_type_shader;
-			s_desc.pool_range_start = 0;
-			s_desc.pool_range_count = 1;
-			descriptors.push_back(s_desc);
+			s_desc.register_start = 0;
+			s_desc.register_count = 1;
 
 			// Output
-			RHI_DESCRIPTOR_DESC o_desc;
+			RHI_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			o_desc.resource_type = resource_type_generic_rw_buffer;
-			o_desc.pool_range_start = 0;
-			o_desc.pool_range_count = 1;
-			descriptors.push_back(o_desc);
+			o_desc.register_start = 0;
+			o_desc.register_count = 1;
 
 			// Camera
-			RHI_DESCRIPTOR_DESC c_desc;
+			RHI_DESCRIPTOR_DESC& c_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			c_desc.resource_type = resource_type_constant_buffer;
-			c_desc.pool_range_start = 0;
-			c_desc.pool_range_count = 1;
-			descriptors.push_back(c_desc);
+			c_desc.register_start = 0;
+			c_desc.register_count = 1;
 
-			pl_desc.shader_type = shader_type_undef;
+			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 
-			pipeline_layout = rhi_pipeline_layout_create(pl_desc);
+			RHI_RT_PIPELINE_DESC p_desc;
+			p_desc.device = &device;
+			p_desc.layout = pipeline_layout.get();
 
-			RHI_RT_PIPELINE_DESC p_desc(device, *pipeline_layout);
+			const char* ray_gen_id = "RayGen";
+			const char* miss_id = "Miss";
+			const char* hit_group_id_0 = "HG_1";
+			const char* group_id_0_closest_hit_id = "ClosestHit";
 
-			auto& hg_1 = p_desc.hit_groups.emplace_back();
-			hg_1.group_id = "HG_1";
-			hg_1.closest_hit.blob = std::move(closest_hit_shader);
-			hg_1.closest_hit.name_id = "ClosestHit";
+			auto& hg_1 = p_desc.hit_groups[p_desc.hit_group_count++];
+			strcpy_s(hg_1.group_id, hit_group_id_0);
+			hg_1.closest_hit.blob = closest_hit_shader.get();
+			strcpy_s(hg_1.closest_hit.name_id, group_id_0_closest_hit_id);
 
-			auto& miss_1 = p_desc.miss_shaders.emplace_back();
-			miss_1.blob = std::move(miss_shader);
-			miss_1.name_id = "Miss";
+			auto& miss_1 = p_desc.miss_shaders[p_desc.miss_shader_count++];
+			miss_1.blob = miss_shader.get();
+			strcpy_s(miss_1.name_id, miss_id);
 
-			p_desc.ray_gen.name_id = "RayGen";
-			p_desc.ray_gen.blob = std::move(ray_gen_shader);
+			auto& ran_gen = p_desc.ray_gen[p_desc.ray_gen_count++];
+			strcpy(ran_gen.name_id, ray_gen_id);
+			ran_gen.blob = ray_gen_shader.get();
 
-			pipeline = rhi_rt_pipeline_create(p_desc);
+			pipeline.reset(rhi_rt_pipeline_create(&p_desc));
 
 			// sbt
+			
 			RHI_RT_SBT_DESC sbt_desc;
-			sbt_desc.ray_gen_ids.push_back("RayGen");
-			sbt_desc.miss_ids.push_back("Miss");
-			sbt_desc.hit_group_ids.push_back("HG_1");
-			sbt = rhi_rt_pipeline_create_sbt(device, sbt_desc, *pipeline);
+			sbt_desc.ray_gen_ids[0] = ray_gen_id;
+			sbt_desc.ray_gen_count = 1;
+			sbt_desc.miss_ids[0] = miss_id;
+			sbt_desc.miss_shader_count = 1;
+			sbt_desc.hit_group_ids[0] = hit_group_id_0;
+			sbt_desc.hit_group_count = 1;
+			sbt.reset(rhi_rt_pipeline_create_sbt(&device, &sbt_desc, pipeline.get()));
 
 			// create geometry buffers
-			RHI_VERTEX_BUFFER_DESC vb_desc(device);
+			RHI_VERTEX_BUFFER_DESC vb_desc;
+			vb_desc.device = &device;
 			vb_desc.count = vertex_count;
 			vb_desc.length = vertex_count * sizeof(Vertex);
 			vb_desc.stride = sizeof(Vertex);
 			vb_desc.format = resource_format_float3;
-			vertex_buffer = rhi_buffers_create_vertices(vb_desc);
+			vb_desc.memory_type = buffer_memory_type_gpu_only;
+			vb_desc.type = buffer_type_raw;
+			vertex_buffer.reset(rhi_buffers_create_vertices(&vb_desc));
 
-			RHI_INDEX_BUFFER_DESC ib_desc(device);
+			RHI_INDEX_BUFFER_DESC ib_desc;
+			ib_desc.device = &device;
 			ib_desc.count = index_count;
 			ib_desc.length = sizeof(uint16_t) * index_count;
 			ib_desc.stride = sizeof(uint16_t);
 			ib_desc.format = resource_format_uint16;
-			index_buffer = rhi_buffers_create_indices(ib_desc);
+			ib_desc.memory_type = buffer_memory_type_gpu_only;
+			ib_desc.type = buffer_type_raw;
+			index_buffer.reset(rhi_buffers_create_indices(&ib_desc));
 
 			// create shared memory for camera transforms
-			RHI_BUFFER_DESC shared_camera_buffer_desc(device);
+			RHI_BUFFER_DESC shared_camera_buffer_desc;
+			shared_camera_buffer_desc.device = &device;
 			shared_camera_buffer_desc.length = sizeof(CameraCBRT);
 			shared_camera_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			shared_camera_buffer_desc.default_state = resource_state_generic_read;
-			shared_camera_buffer_desc.resource_slot = 2;
-			shared_camera_constant_buffer = rhi_buffers_create_constant(shared_camera_buffer_desc);
-			camera_constant_buffer_ptr = rhi_buffers_map_open(*shared_camera_constant_buffer, 0, sizeof(CameraCBRT));
+			shared_camera_buffer_desc.type = buffer_type_raw;
+			shared_camera_buffer_desc.mips = 1;
+			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
+			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
 
-			rhi_command_queue_execute(command_queue, true, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
-				std::vector<RHI_COMMAND_BUFFER*>& command_buffer_list) {
+			rhi_command_queue_execute(&command_queue, true, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
+				std::vector<RHI_COMMAND_BUFFER*>* command_buffer_list) {
 
-					rhi_command_buffer_record(command_buffer, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
+					rhi_command_buffer_record(&command_buffer, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
 
 						auto vertex_size = sizeof(Vertex);
 						auto vertices_ptr = &vertices[0];
 
 						// cpu bridge buffer uploading
 						{
-							RHI_BUFFER_DESC shared_buffer_desc(device);
+							RHI_BUFFER_DESC shared_buffer_desc;
+							shared_buffer_desc.device = &device;
 							shared_buffer_desc.length = vb_desc.length;
 							shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-							shared_buffer_desc.default_state = resource_state_generic_read;
-							auto shared_vertex_buffer = rhi_buffers_create_raw(shared_buffer_desc);
-							rhi_buffers_map_write(*shared_vertex_buffer, vertices_ptr, 0, shared_buffer_desc.length);
-							rhi_buffers_gpu_upload(command_buffer, *shared_vertex_buffer, *vertex_buffer);
+							shared_buffer_desc.type = buffer_type_raw;
+							shared_buffer_desc.mips = 1;
+							shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+							rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
+							rhi_buffers_gpu_upload(&command_buffer, shared_vertex_buffer.get(), vertex_buffer.get());
 						}
 
 						// cpu bridge buffer uploading
 						{
-							RHI_BUFFER_DESC shared_buffer_desc(device);
+							RHI_BUFFER_DESC shared_buffer_desc;
+							shared_buffer_desc.device = &device;
 							shared_buffer_desc.length = ib_desc.length;
 							shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-							shared_buffer_desc.default_state = resource_state_generic_read;
-							auto shared_index_buffer = rhi_buffers_create_raw(shared_buffer_desc);
-							rhi_buffers_map_write(*shared_index_buffer, &indices[0], 0, shared_buffer_desc.length);
-							rhi_buffers_gpu_upload(command_buffer, *shared_index_buffer, *index_buffer);
+							shared_buffer_desc.type = buffer_type_raw;
+							shared_buffer_desc.mips = 1;
+							shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+							rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
+							rhi_buffers_gpu_upload(&command_buffer, shared_index_buffer.get(), index_buffer.get());
 						}
 
-						RHI_RT_BVH_DESC blas_desc(device, command_buffer, *vertex_buffer, index_buffer.get());
-						bvh = rhi_rt_bvh_create(blas_desc);
+						RHI_RT_BVH_DESC blas_desc;
+						blas_desc.device = &device;
+						blas_desc.command_buffer = &command_buffer;
+						blas_desc.vertex_buffer = vertex_buffer.get();
+						blas_desc.index_buffer = index_buffer.get();
+						bvh.reset(rhi_rt_bvh_create(&blas_desc));
+												
+						RT_GEOMETRY_INSTANCES_DESC tlas_desc;
+						tlas_desc.device = &device;
+						tlas_desc.command_buffer = &command_buffer;
+						tlas_desc.parent_bvh = bvh.get();
+						tlas_desc.transforms = &rotation_matrix;
+						tlas_desc.instance_count = 1;
+						bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
 
-						RT_GEOMETRY_INSTANCES_DESC tlas_desc(device, command_buffer, *bvh);
-						tlas_desc.transforms = { Eigen::Matrix4f::Identity() };
-						tlas_desc.resource_slot = 0;
-						bvh_instances = rhi_rt_bvh_build_geometry_instances(tlas_desc);
-
+						// view
+						RHI_VIEW_DESC bvh_instances_view_desc;
+						bvh_instances_view_desc.device = &device;
+						bvh_instances_view_desc.buffer = bvh_instances.get();
+						bvh_instances_view_desc.type = resource_type_rt_bvh_buffer;
+						bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
+						
 					});
-					command_buffer_list.push_back(&command_buffer);
+					command_buffer_list->push_back(&command_buffer);
 				});
 		}	
 		, [&](RHI_RENDER_PASS&) {
 			// before draw
-			rt_render_pass->set_pipeline(pipeline.get());
+
+			rt_render_pass->pipeline = pipeline.get();
 		}
 		, [&] (RHI_DEVICE& device, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
 
 			float dt = get_delta_time();
-			auto world = rotate_triangle(dt);
+			rotation_matrix = rotate_triangle(dt);
 
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));
 
-			rhi_render_pass_execute_rt_mode(*rt_render_pass, command_buffer, [&] {
-				
-				RT_GEOMETRY_INSTANCES_DESC tlas_desc(device, command_buffer, *bvh);
-				tlas_desc.transforms = { world };
-				tlas_desc.resource_slot = 0;
-				bvh_instances = rhi_rt_bvh_build_geometry_instances(tlas_desc);
+			rhi_render_pass_execute_rt_mode(rt_render_pass.get(), &command_buffer, [&] {
+								
+				RT_GEOMETRY_INSTANCES_DESC tlas_desc;
+				tlas_desc.device = &device;
+				tlas_desc.command_buffer = &command_buffer;
+				tlas_desc.parent_bvh = bvh.get();
+				tlas_desc.transforms = &rotation_matrix;
+				tlas_desc.instance_count = 1;
+				bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
 
-				rhi_command_buffer_ray_trace(device, command_buffer, *render_target, *pipeline, *bvh_instances, *sbt);
+				rhi_command_buffer_ray_trace( 
+					&command_buffer, 
+					render_target.get(), 
+					pipeline.get(), 
+					bvh_instances.get(), 
+					dynamic_cast<RHI_SBT_TABLE*>(sbt.get()));
 			});
-			std::shared_ptr<RHI_TEXTURE_2D> back_buffer = rhi_swap_chain_get_surface(*swap_chain_ptr, -1);
-			rhi_command_buffer_copy_texture(command_buffer, *back_buffer, *render_target);
+			size_t index = rhi_swap_chain_get_current_buffer_id(swap_chain_ptr);
+			const RHI_VIEW* back_buffer = rhi_swap_chain_get_surface(swap_chain_ptr, index);
+			//rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(back_buffer->buffer), render_target.get());
 		}
 		, [&](RHI_RENDER_PASS& render_pass, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_BUFFER& command_buffer) {
 
@@ -250,9 +312,13 @@ void test_rt_triangle(fptr_test_on_init on_init,
 				//	on_end(device);
 
 				// on end
-				rhi_buffers_map_close(*shared_camera_constant_buffer, 0, sizeof(CameraCBRT));
-			}
-		);
+				rhi_buffers_map_close(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
+			},
+		[&](RHI_DEVICE_DESC& desc) {
+			if (on_configure_device)
+				on_configure_device(desc);
+			desc.features = device_features_raytracing;
+		});
 }
 
 #endif

@@ -113,6 +113,8 @@ struct DX_TEXTURE_2D : public RHI_TEXTURE_2D, public DX_BUFFER {
 };
 
 struct DX_BVH_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
+	DX_HANDLE<ID3D12Resource> scratch_handle;
+	DX_HANDLE<ID3D12Resource> inputs_buffer_handle;
 };
 
 struct DX_FENCE : public RHI_FENCE, public DX_HANDLE<ID3D12Fence> {
@@ -126,6 +128,7 @@ struct DX_RENDER_PASS : public RHI_RENDER_PASS {
 };
 
 struct DX_RT_BVH : public RHI_RT_BVH, public DX_RESOURCE {
+	DX_HANDLE<ID3D12Resource> scratch_handle;
 };
 
 struct DX_PIPELINE_LAYOUT : public RHI_PIPELINE_LAYOUT, public DX_HANDLE<ID3D12RootSignature> {

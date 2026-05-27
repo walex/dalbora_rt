@@ -17,11 +17,12 @@ void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 fea
 
 	auto feats = features;
 	if (feats & device_features_raytracing) {
-		result |= dx12_device_check_rt_support(i_device);
+		result &= dx12_device_check_rt_support(i_device);
 		feats ^= device_features_raytracing;
 	}
-	else {
-		throw std::exception("Device doesn't support RT\n\n");
+	
+	if (result == false) {
+		throw std::exception("Device doesn't support requested features\n\n");
 	}
 	D3D12_FEATURE_DATA_SHADER_MODEL SM = {};
 	SM.HighestShaderModel = D3D_HIGHEST_SHADER_MODEL;
@@ -124,7 +125,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	heaps_desc.dsv_heap_enable = DSV_HEAP_ENABLE;
 	heaps_desc.dsv_heap_slot_count = DSV_HEAP_SLOT_COUNT;
 	
-	heaps_desc.sampler_heap_enable = SAMPLER_HEAP_ENABLE;
+	heaps_desc.sampler_heap_enable = desc->enable_texture_sampling;
 	heaps_desc.sampler_heap_slot_count = SAMPLER_HEAP_SLOT_COUNT;
 
 	if (heaps_desc.resources_heap_enable == true) {

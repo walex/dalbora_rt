@@ -40,9 +40,9 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	{
 		*device_impl->resources_heap.get()
 	};
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_RENDER_TARGET };
-	static constexpr bool restore[] = {true};
-	DX_RESOURCE* resources[] = { static_cast<DX_BUFFER*>(render_target_view_impl->resource) };
+	D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
+	static constexpr bool restore[] = {false};
+	DX_RESOURCE* resources[] = { static_cast<DX_BUFFER*>(render_target_view_impl->buffer) };
 	dx12_command_buffer_resource_transition(i_command_buffer,
 		resources,
 		resource_state,
@@ -54,6 +54,12 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 			i_command_buffer_5->SetPipelineState1(static_cast<DX_RT_PIPELINE&>(*pipeline_impl));
 			if (callback)
 				callback();
+		});
+	resource_state[0] = D3D12_RESOURCE_STATE_PRESENT;
+	dx12_command_buffer_resource_transition(i_command_buffer_5.Get(),
+		resources,
+		resource_state,
+		restore, 1, [&]() {
 		});
 }
 
@@ -88,7 +94,7 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	dx_scissor.right = (LONG)vp.width;
 	dx_scissor.bottom = (LONG)vp.height;
 
-	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->resource);
+	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->buffer);
 	ASSERT_PTR(resource_impl);
 	
 	D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;

@@ -62,12 +62,15 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 		&blasInfo);
 
 	RHI_BUFFER_DESC buffer_desc;
+	buffer_desc.device = desc->device;
 	buffer_desc.type = buffer_type_rt_bvh;
 	buffer_desc.format = desc->vertex_buffer->format;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = blasInfo.ResultDataMaxSizeInBytes;
+	buffer_desc.mips = 1;
 	std::unique_ptr<DX_BUFFER> blas_buffer_impl;
 	blas_buffer_impl.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
+	buffer_desc.type = buffer_type_raw;
 	buffer_desc.length = blasInfo.ScratchDataSizeInBytes;
 	std::unique_ptr<DX_BUFFER> scratch_buffer_impl;
 	scratch_buffer_impl.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
@@ -92,8 +95,11 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	i_command_buffer->ResourceBarrier(1, &blas_barrier);
 	DX_RT_BVH* result = new DX_RT_BVH();
 	ASSERT_PTR(result);
+	
 	i_blas_buffer->AddRef();
+	i_scratch_buffer->AddRef();
 	result->set_handle(i_blas_buffer);
+	result->scratch_handle.set_handle(i_scratch_buffer);
 	return result;
 }
 
@@ -104,25 +110,31 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	ASSERT_PTR(desc->command_buffer);
 	ASSERT_PTR(desc->parent_bvh);
 
-	DX_DEVICE* device_impl = *static_cast<DX_DEVICE*>(desc->device);
+	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
 	ID3D12Device* i_device_0 = *device_impl;
 	ASSERT_PTR(i_device_0);
-	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	ASSERT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
-	ASSERT_PTR(i_device);
-	ID3D12Resource* i_blas_buffer = *static_cast<DX_RT_BVH*>(desc->parent_bvh);
-	ASSERT_PTR(i_blas_buffer);
+	
 	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
 	ASSERT_PTR(i_command_buffer_0);
+
+	ID3D12Resource* i_blas_buffer = *static_cast<DX_RT_BVH*>(desc->parent_bvh);
+	ASSERT_PTR(i_blas_buffer);
+
+	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
+	ASSERT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_PTR(i_device);	
+	
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
 	ASSERT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);
 
 	// TLAS
 	RHI_BUFFER_DESC inputs_buffer_desc;
-	inputs_buffer_desc.device = device_impl;
+	inputs_buffer_desc.device = desc->device;
+	inputs_buffer_desc.type = buffer_type_raw;
 	inputs_buffer_desc.length = desc->instance_count * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
 	inputs_buffer_desc.memory_type = buffer_memory_type_shared_rw;
+	inputs_buffer_desc.mips = 1;
 	std::unique_ptr<DX_BUFFER> tlas_inputs_buffer_impl;
 	tlas_inputs_buffer_impl.reset(dx12_buffers_create<DX_BUFFER>(&inputs_buffer_desc));
 	ID3D12Resource* i_tlas_inputs_buffer = *tlas_inputs_buffer_impl;
@@ -181,8 +193,10 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	buffer_desc.type = buffer_type_rt_bvh;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = tlas_info.ResultDataMaxSizeInBytes;
+	buffer_desc.mips = 1;
 	std::unique_ptr<DX_BUFFER> tlas_buffer_impl;
 	tlas_buffer_impl.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
+	buffer_desc.type = buffer_type_raw;
 	buffer_desc.length = tlas_info.ScratchDataSizeInBytes;
 	std::unique_ptr<DX_BUFFER> scratch_buffer_impl;
 	scratch_buffer_impl.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
@@ -223,6 +237,10 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	DX_BVH_BUFFER* result = new DX_BVH_BUFFER();
 	ASSERT_PTR(result);
 	i_tlas_buffer->AddRef();
+	i_scratch_buffer->AddRef();
+	i_tlas_inputs_buffer->AddRef();
 	result->set_handle(i_tlas_buffer);
+	result->scratch_handle.set_handle(i_scratch_buffer);
+	result->inputs_buffer_handle.set_handle(i_tlas_inputs_buffer);
 	return result;
 }

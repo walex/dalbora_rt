@@ -12,16 +12,34 @@ using fptr_test_on_draw = std::function<void(RHI_DEVICE& device, RHI_RENDER_PASS
 using fptr_test_on_before_present = std::function<void(RHI_RENDER_PASS &render_pass, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_BUFFER& command_buffer)>;
 using fptr_test_on_end = std::function<void(RHI_DEVICE &device)>;
 using fptr_test_on_layout = std::function<void(RHI_PIPELINE_LAYOUT_DESC&, std::vector<RHI_INPUT_LAYOUT_DESC>&, std::string&, std::string&, size_t&, void**)>;
+using fptr_test_on_configure_device = std::function<void(RHI_DEVICE_DESC&)>;
 
 void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::shared_ptr<RHI_WINDOW_CALLBACKS>());
-void test_swap_chain(fptr_test_on_init on_init = nullptr, fptr_test_on_before_draw on_before_draw = nullptr, fptr_test_on_draw on_draw = nullptr, fptr_test_on_before_present on_before_present = nullptr, fptr_test_on_end on_end = nullptr);
-void test_raster_triangle(fptr_test_on_init on_init = nullptr, fptr_test_on_draw on_draw = nullptr, fptr_test_on_end on_end = nullptr, fptr_test_on_layout on_layout = nullptr);
-void test_raster_textured_triangle(fptr_test_on_init on_init = nullptr, fptr_test_on_draw on_draw = nullptr, fptr_test_on_end on_end = nullptr, fptr_test_on_layout on_layout = nullptr);
-void test_rt_triangle(fptr_test_on_init on_init = nullptr, fptr_test_on_draw on_draw = nullptr, fptr_test_on_end on_end = nullptr, fptr_test_on_layout on_layout = nullptr);
+void test_swap_chain(fptr_test_on_init on_init = nullptr, 
+	fptr_test_on_before_draw on_before_draw = nullptr,
+	fptr_test_on_draw on_draw = nullptr,
+	fptr_test_on_before_present on_before_present = nullptr, 
+	fptr_test_on_end on_end = nullptr,
+	fptr_test_on_configure_device on_configure_device = nullptr);
+void test_raster_triangle(fptr_test_on_init on_init = nullptr, 
+	fptr_test_on_draw on_draw = nullptr, 
+	fptr_test_on_end on_end = nullptr, 
+	fptr_test_on_layout on_layout = nullptr,
+	fptr_test_on_configure_device on_configure_device = nullptr);
+void test_raster_textured_triangle(fptr_test_on_init on_init = nullptr, 
+	fptr_test_on_draw on_draw = nullptr, 
+	fptr_test_on_end on_end = nullptr, 
+	fptr_test_on_layout on_layout = nullptr,
+	fptr_test_on_configure_device on_configure_device = nullptr);
+void test_rt_triangle(fptr_test_on_init on_init = nullptr, 
+	fptr_test_on_draw on_draw = nullptr, 
+	fptr_test_on_end on_end = nullptr, 
+	fptr_test_on_layout on_layout = nullptr,
+	fptr_test_on_configure_device on_configure_device = nullptr);
 
 #define TEST_WINDOW
 #define TEST_SWAP_CHAIN
 #define TEST_RASTER_TRIANGLE
 #define TEST_RASTER_TEXTURED_TRIANGLE
-#define xTEST_RT_TRIANGLE
+#define TEST_RT_TRIANGLE
 #endif

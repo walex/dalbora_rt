@@ -144,8 +144,8 @@ void dx12_command_buffer_ray_trace(
 	ID3D12Resource* i_table = *static_cast<const DX_SBT_BUFFER*>(sbt);	
 	ASSERT_PTR(i_table);
 
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
-	static constexpr bool restore[] = {true};
+	constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
+	static constexpr bool restore[] = {false};
 	DX_RESOURCE* resources[] = { render_target_impl };
 	dx12_command_buffer_resource_transition(i_command_buffer.Get(),
 		resources,

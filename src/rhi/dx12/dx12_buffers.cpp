@@ -263,7 +263,7 @@ RHI_VIEW* d12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	rtv_desc.Format = dx12_resource_format_type[desc->format];
 	rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	i_device->CreateRenderTargetView(i_resource, &rtv_desc, result->cpu_descriptor_handle);
-
+	result->buffer = desc->buffer;
 	return result;
 }
 
@@ -328,13 +328,27 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 			&srv_desc,
 			cpu_handle);
 	}
+	else if (desc->type == resource_type_rt_bvh_buffer) {
+			D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+			srv.ViewDimension =
+				D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+			srv.Shader4ComponentMapping =
+				D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srv.RaytracingAccelerationStructure.Location =
+				i_resource->GetGPUVirtualAddress();
+			i_device->CreateShaderResourceView(
+				nullptr,
+				&srv,
+				cpu_handle
+			);
+	}
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 	result->cpu_descriptor_handle = cpu_handle;
 	result->gpu_descriptor_handle = gpu_handle;
 	result->descriptor_size = descriptor_size;
 	//i_resource->AddRef();
-	result->resource = desc->buffer;
+	result->buffer = desc->buffer;
 	return result;
 }
 

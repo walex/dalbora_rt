@@ -53,10 +53,12 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 	}
 	else if (buffer_type == buffer_type_rt_bvh) {
 		flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		initial_state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	}
-	//if (desc->memory_type == buffer_memory_type_shared_rw) {
-	//	flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	//}
+	if ((desc->flags & resource_flags_shader_read_write
+		) == resource_flags_shader_read_write ) {
+		flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	}	
 	if (desc->is_render_target == true) {
 		flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	}

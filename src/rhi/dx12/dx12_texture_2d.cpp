@@ -21,6 +21,7 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	buff_desc.is_render_target = desc->is_render_target;
 	buff_desc.mips = desc->mips;
 	buff_desc.type = buffer_type_image_2d;
+	buff_desc.flags = desc->flags;
 	std::unique_ptr<DX_BUFFER> buffer;
 	buffer.reset(dx12_buffers_create_2d<DX_BUFFER>(&buff_desc));
 	ASSERT_PTR(buffer.get());

@@ -7,6 +7,7 @@
 struct RHI_DEVICE_DESC  {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
+	bool enable_texture_sampling = false;
 };
 
 struct RHI_BUFFER_DESC  {
@@ -15,6 +16,7 @@ struct RHI_BUFFER_DESC  {
 	buffer_memory_type memory_type = buffer_memory_type_default;
 	resource_format format = resource_format_none;
 	buffer_type type = buffer_type_undef;
+	resource_flags flags = resource_flags_none;
 
 };
 
@@ -120,7 +122,7 @@ struct RHI_RT_PIPELINE_DESC  {
 };
 
 struct RHI_DESCRIPTOR_DESC  {
-	resource_type resource_type;
+	resource_type resource_type = resource_type_generic_rw_buffer;
 	size_t register_start = 0;
 	size_t register_count = 0;
 };
@@ -130,7 +132,6 @@ struct RHI_PIPELINE_LAYOUT_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_DESCRIPTOR_DESC descriptors[MAX_PIPELINE_DESCRIPTORS];
 	size_t descriptor_count = 0;
-	raster_pipeline_shader_type shader_type = shader_type_undef;
 };
 
 struct RHI_TEXTURE_2D_DESC : public RHI_BUFFER_2D_DESC {
@@ -168,12 +169,15 @@ struct RHI_RT_SAMPLER_DESC {
 	RHI_DEVICE* device = nullptr;
 };
 
+#define MAX_SBT_RAY_GEN_ENTRIES 8
+#define MAX_SBT_MISS_ENTRIES 8
+#define MAX_SBT_GROUPS_ENTRIES 16
 struct RHI_RT_SBT_DESC {
-	char** ray_gen_ids = nullptr;
+	const char* ray_gen_ids[MAX_SBT_RAY_GEN_ENTRIES];
 	size_t ray_gen_count = 0;
-	char** miss_ids = nullptr;
+	const char* miss_ids[MAX_SBT_MISS_ENTRIES];
 	size_t miss_shader_count = 0;
-	char** hit_group_ids = nullptr;
+	const char* hit_group_ids[MAX_SBT_GROUPS_ENTRIES];
 	size_t hit_group_count = 0;
 };
 

@@ -306,8 +306,11 @@ RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RH
 		hitgroup_table_size;
 
 	RHI_BUFFER_DESC buffer_desc;
+	buffer_desc.device = const_cast<RHI_DEVICE*>(device);
 	buffer_desc.length = total_size;
 	buffer_desc.memory_type = buffer_memory_type_shared_rw;
+	buffer_desc.type = buffer_type_raw;
+	buffer_desc.mips = 1;
 	std::unique_ptr<DX_BUFFER> shared_buffer;
 	shared_buffer.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
 	ASSERT_PTR(shared_buffer);
@@ -319,7 +322,7 @@ RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RH
 	// MAP
 	// ============================================================
 
-	uint8_t* mapped = static_cast<uint8_t*>(dx12_buffers_map_open(*shared_buffer, 0, total_size));
+	uint8_t* mapped = static_cast<uint8_t*>(dx12_buffers_map_open(shared_buffer.get(), 0, total_size));
 
 	// ============================================================
 	// COPY RAYGEN RECORDS
@@ -382,7 +385,7 @@ RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RH
 	}
 	size_t hit_group_size = hit_group_max_elements * record_size;
 
-	dx12_buffers_map_close(*shared_buffer, 0, total_size);
+	dx12_buffers_map_close(shared_buffer.get(), 0, total_size);
 
 	DX_SBT_BUFFER* result = new DX_SBT_BUFFER();
 	ASSERT_PTR(result);

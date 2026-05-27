@@ -17,7 +17,7 @@ int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 	// test_raster_triangle();
 
 	// raster textured triangle
-	test_raster_textured_triangle();
+	 test_raster_textured_triangle();
 
 	// rt triangle
 	//test_rt_triangle();

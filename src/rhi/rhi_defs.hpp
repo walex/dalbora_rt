@@ -47,7 +47,7 @@ enum resource_format
 enum resource_type
 {
 	resource_type_generic_rw_buffer = 1,
-	resource_type_rt_bvh_buffeer = 2,
+	resource_type_rt_bvh_buffer = 2,
 	resource_type_sampler = 3,
 	resource_type_render_target = 4,
 	resource_type_depth_stencil_target = 5,
@@ -92,24 +92,30 @@ enum primitive_topology
 	primitive_topology_patch
 };
 
-enum resource_state
-{
-	resource_state_none = 0,
-	resource_state_raster_render_target,
-	resource_state_depth_read,
-	resource_state_depth_write,
-	resource_state_shader_write,
-	resource_state_shader_read,
-	resource_state_copy_src,
-	resource_state_copy_dest,
-	resource_state_present,
-	resource_state_rt_bvh,
-	resource_state_constant_buffer,
-	resource_state_vertex_buffer,
-	resource_state_index_buffer,
-	resource_state_generic_read,
-	resource_state_rt_render_target,
+enum resource_flags {
+	resource_flags_none = 0,
+	resource_flags_shader_read_write = 0x1,
+	resource_flags_render_target = 0x2
 };
+
+//enum resource_state
+//{
+//	resource_state_none = 0,
+//	resource_state_raster_render_target,
+//	resource_state_depth_read,
+//	resource_state_depth_write,
+//	resource_state_shader_write,
+//	resource_state_shader_read,
+//	resource_state_copy_src,
+//	resource_state_copy_dest,
+//	resource_state_present,
+//	resource_state_rt_bvh,
+//	resource_state_constant_buffer,
+//	resource_state_vertex_buffer,
+//	resource_state_index_buffer,
+//	resource_state_generic_read,
+//	resource_state_rt_render_target,
+//};
 
 enum fence_flags
 {
