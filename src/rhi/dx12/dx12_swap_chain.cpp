@@ -80,22 +80,8 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		ASSERT_SUCCESS(i_swap_chain_3->GetBuffer(i, IID_PPV_ARGS(&i_buffer)));
 		ASSERT_PTR(i_buffer);
 	
-		DXGI_SWAP_CHAIN_DESC swp_desc;
-		i_swap_chain_3->GetDesc(&swp_desc);
-		UINT16 mip_count = 1;
-		D3D12_RESOURCE_DESC texDesc = {};
-		texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		texDesc.Alignment = 0;
-		texDesc.Width = swp_desc.BufferDesc.Width;
-		texDesc.Height = swp_desc.BufferDesc.Height;
-		texDesc.DepthOrArraySize = 1;
-		texDesc.MipLevels = mip_count;
-		texDesc.SampleDesc.Count = 1;
-		texDesc.SampleDesc.Quality = 0;
-		texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		texDesc.Format = swp_desc.BufferDesc.Format;
-
+		D3D12_RESOURCE_DESC texDesc = i_buffer->GetDesc();
+		UINT16 mip_count = texDesc.MipLevels;
 		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>
 			layouts(mip_count);
 		std::vector<UINT> num_rows(mip_count);
@@ -142,6 +128,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		texture->width = desc->width;
 		texture->height = desc->height;
 		texture->length = static_cast<size_t>(totalUploadSize);
+		texture->mip_maps_count = mip_count;
 		memcpy(texture->mip_maps, mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
 		view->buffer = texture;
 
@@ -163,13 +150,10 @@ const RHI_VIEW* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const sw
 	const size_t surface_index) {
 
 	ASSERT_PTR(swap_chain);
-	ASSERT_EXPR(surface_index < swap_chain->render_targets_count);
-
-	ASSERT_PTR(swap_chain);
 	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
 	ASSERT_PTR(i_swap_chain);
 
-	return swap_chain->render_targets[(surface_index < 0)
+	return swap_chain->render_targets[(surface_index >= swap_chain->render_targets_count)
 		? i_swap_chain->GetCurrentBackBufferIndex()
 		: surface_index].get();
 }

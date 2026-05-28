@@ -46,6 +46,7 @@ enum resource_format
 
 enum resource_type
 {
+	resource_type_none = 0,
 	resource_type_generic_rw_buffer = 1,
 	resource_type_rt_bvh_buffer = 2,
 	resource_type_sampler = 3,

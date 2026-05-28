@@ -144,8 +144,9 @@ struct DX_SAMPLER : public RHI_SAMPLER {
 	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
 };
 
-struct DX_SBT_BUFFER : public RHI_SBT_TABLE, public DX_BUFFER
+struct DX_SBT_TABLE : public RHI_SBT_TABLE, public DX_BUFFER
 {
+	virtual ~DX_SBT_TABLE() = default;
 };
 
 struct DX_SWAP_CHAIN : public RHI_SWAP_CHAIN, public DX_HANDLE<IDXGISwapChain3> {

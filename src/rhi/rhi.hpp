@@ -69,7 +69,7 @@ inline void (*rhi_buffers_map_write)(RHI_BUFFER* const shared_buffer, RHI_VOID_P
 inline void (*rhi_buffers_map_read)(RHI_BUFFER* const shared_buffer, RHI_VOID_PTR* const data,
 									size_t offset, size_t length);
 inline RHI_VIEW* (*rhi_buffers_create_view)(const RHI_VIEW_DESC* const desc);
-
+inline void (*rhi_buffers_update_view)(const RHI_DEVICE* const device, RHI_VIEW* const view, const RHI_BUFFER* const buffer);
 inline void (*rhi_texture_2d_gpu_upload)(RHI_COMMAND_BUFFER* const command_buffer,
 	const RHI_BUFFER* const src_buffer,
 	RHI_TEXTURE_2D* const dest_buffer);
@@ -79,7 +79,7 @@ inline RHI_SAMPLER*(*rhi_sampler_create)(const RHI_RT_SAMPLER_DESC* const des);
 // pipeline
 inline RHI_RT_PIPELINE* (*rhi_rt_pipeline_create)(const RHI_RT_PIPELINE_DESC* const desc);
 inline RHI_RASTER_PIPELINE* (*rhi_raster_pipeline_create)(const RHI_RASTER_PIPELINE_DESC* const pipeline_desc);
-inline RHI_BUFFER* (*rhi_rt_pipeline_create_sbt)(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline);
+inline RHI_SBT_TABLE* (*rhi_rt_pipeline_create_sbt)(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline);
 
 // pipeline layout
 inline RHI_PIPELINE_LAYOUT* (*rhi_pipeline_layout_create)(const RHI_PIPELINE_LAYOUT_DESC* const desc);
@@ -100,7 +100,7 @@ inline void (*rhi_render_pass_execute_rt_mode)(const RHI_RENDER_PASS* const rend
 inline RHI_RT_BVH* (*rhi_rt_bvh_create)(const RHI_RT_BVH_DESC* const desc);
 inline RHI_BUFFER*(*rhi_rt_bvh_build_geometry_instances)(const RT_GEOMETRY_INSTANCES_DESC* const desc);
 inline void (*rhi_command_buffer_ray_trace)(RHI_COMMAND_BUFFER* const command_buffer,
-	RHI_TEXTURE_2D* const render_target, const RHI_RT_PIPELINE* const pipeline,
-	const RHI_BUFFER* const bvh_instances, const RHI_SBT_TABLE* const sbt);
+	RHI_TEXTURE_2D* const render_target, const RHI_BUFFER* const bvh_instances, 
+	const RHI_SBT_TABLE* const sbt);
 
 #endif

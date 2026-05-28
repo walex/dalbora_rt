@@ -51,15 +51,9 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 			i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
 			i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
 			i_command_buffer_5->SetComputeRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);
-			i_command_buffer_5->SetPipelineState1(static_cast<DX_RT_PIPELINE&>(*pipeline_impl));
+			i_command_buffer_5->SetPipelineState1(*static_cast<DX_RT_PIPELINE*>(pipeline_impl));
 			if (callback)
 				callback();
-		});
-	resource_state[0] = D3D12_RESOURCE_STATE_PRESENT;
-	dx12_command_buffer_resource_transition(i_command_buffer_5.Get(),
-		resources,
-		resource_state,
-		restore, 1, [&]() {
 		});
 }
 

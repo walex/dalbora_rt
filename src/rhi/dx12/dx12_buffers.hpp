@@ -29,6 +29,9 @@ void dx12_buffers_map_write(RHI_BUFFER* const buffer, const RHI_VOID_PTR data,
 void dx12_buffers_map_read(RHI_BUFFER* const buffer, RHI_VOID_PTR* const data,
 	const size_t offset, const size_t length);
 RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc);
+void dx12_buffers_update_view(const RHI_DEVICE* const device,
+	RHI_VIEW* const view,
+	const RHI_BUFFER* const buffer);
 RHI_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc);
 RHI_BUFFER* dx12_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc);
 

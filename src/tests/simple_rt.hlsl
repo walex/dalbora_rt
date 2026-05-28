@@ -28,6 +28,7 @@ cbuffer CameraCB : register(b0)
 [shader("raygeneration")]
 void RayGen()
 {
+
 	uint2 pixel = DispatchRaysIndex().xy;
 	uint2 dims  = DispatchRaysDimensions().xy;
 
@@ -51,7 +52,7 @@ void RayGen()
 
     RayPayload payload;
     payload.color = float4(0, 0, 0, 1);
-
+/*
     TraceRay(
         SceneBVH,
         RAY_FLAG_NONE,
@@ -62,8 +63,20 @@ void RayGen()
         ray,
         payload
     );
+*/
+/////////// TEST //////////
+	RayQuery<RAY_FLAG_NONE> q;
+
+    q.TraceRayInline(
+        SceneBVH,
+        RAY_FLAG_NONE,
+        0xFF,
+        ray);
+//	bool hit = q.Proceed();
+/////////// TEST //////////
 
     Output[pixel] = payload.color;
+	
 }
 
 [shader("miss")]

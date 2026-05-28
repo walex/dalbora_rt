@@ -19,9 +19,10 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	std::unique_ptr<RHI_RT_BVH> bvh;
 	std::unique_ptr<RHI_BUFFER> bvh_instances;
 	std::unique_ptr<RHI_VIEW> bvh_instances_view;
-	std::unique_ptr<RHI_BUFFER> sbt;
+	std::unique_ptr<RHI_SBT_TABLE> sbt;
 	std::unique_ptr<RHI_RT_PIPELINE> pipeline;
 	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
+	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
 
@@ -69,8 +70,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	camera.aspect = aspect;
 
 	test_swap_chain([&](RHI_DEVICE& device, RHI_COMMAND_QUEUE& command_queue,
-		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
-		{
+		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain) {
 			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
 			std::unique_ptr<RHI_BUFFER> shared_index_buffer;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> ray_gen_shader;
@@ -89,6 +89,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			tx_desc.height = 600;
 			tx_desc.format = resource_format_R8G8B8A8_norm;
 			tx_desc.is_render_target = true;
+			tx_desc.mips = 1;
 			tx_desc.flags = resource_flags_shader_read_write;
 			render_target.reset(rhi_texture_2d_create(&tx_desc));
 
@@ -144,11 +145,11 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			RHI_RT_PIPELINE_DESC p_desc;
 			p_desc.device = &device;
 			p_desc.layout = pipeline_layout.get();
-
-			const char* ray_gen_id = "RayGen";
-			const char* miss_id = "Miss";
-			const char* hit_group_id_0 = "HG_1";
-			const char* group_id_0_closest_hit_id = "ClosestHit";
+			
+			const char ray_gen_id[16] = "RayGen";
+			const char miss_id[16] = "Miss";
+			const char hit_group_id_0[16] = "HG_1";
+			const char group_id_0_closest_hit_id[16] = "ClosestHit";
 
 			auto& hg_1 = p_desc.hit_groups[p_desc.hit_group_count++];
 			strcpy_s(hg_1.group_id, hit_group_id_0);
@@ -164,9 +165,8 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			ran_gen.blob = ray_gen_shader.get();
 
 			pipeline.reset(rhi_rt_pipeline_create(&p_desc));
-
-			// sbt
 			
+			// sbt			
 			RHI_RT_SBT_DESC sbt_desc;
 			sbt_desc.ray_gen_ids[0] = ray_gen_id;
 			sbt_desc.ray_gen_count = 1;
@@ -175,7 +175,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			sbt_desc.hit_group_ids[0] = hit_group_id_0;
 			sbt_desc.hit_group_count = 1;
 			sbt.reset(rhi_rt_pipeline_create_sbt(&device, &sbt_desc, pipeline.get()));
-
+			
 			// create geometry buffers
 			RHI_VERTEX_BUFFER_DESC vb_desc;
 			vb_desc.device = &device;
@@ -207,99 +207,106 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
 			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
 
+			// camera constant buffer view
+			RHI_VIEW_DESC camera_cb_view_desc;
+			camera_cb_view_desc.device = &device;
+			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
+			camera_cb_view_desc.type = resource_type_constant_buffer;
+			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
+			
 			rhi_command_queue_execute(&command_queue, true, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
 				std::vector<RHI_COMMAND_BUFFER*>* command_buffer_list) {
 
-					rhi_command_buffer_record(&command_buffer, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
+				rhi_command_buffer_record(&command_buffer, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
 
-						auto vertex_size = sizeof(Vertex);
-						auto vertices_ptr = &vertices[0];
+					auto vertex_size = sizeof(Vertex);
+					auto vertices_ptr = &vertices[0];
 
-						// cpu bridge buffer uploading
-						{
-							RHI_BUFFER_DESC shared_buffer_desc;
-							shared_buffer_desc.device = &device;
-							shared_buffer_desc.length = vb_desc.length;
-							shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-							shared_buffer_desc.type = buffer_type_raw;
-							shared_buffer_desc.mips = 1;
-							shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
-							rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
-							rhi_buffers_gpu_upload(&command_buffer, shared_vertex_buffer.get(), vertex_buffer.get());
-						}
+					// cpu bridge buffer uploading
+					{
+						RHI_BUFFER_DESC shared_buffer_desc;
+						shared_buffer_desc.device = &device;
+						shared_buffer_desc.length = vb_desc.length;
+						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
+						shared_buffer_desc.type = buffer_type_raw;
+						shared_buffer_desc.mips = 1;
+						shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+						rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
+						rhi_buffers_gpu_upload(&command_buffer, shared_vertex_buffer.get(), vertex_buffer.get());
+					}
 
-						// cpu bridge buffer uploading
-						{
-							RHI_BUFFER_DESC shared_buffer_desc;
-							shared_buffer_desc.device = &device;
-							shared_buffer_desc.length = ib_desc.length;
-							shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-							shared_buffer_desc.type = buffer_type_raw;
-							shared_buffer_desc.mips = 1;
-							shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
-							rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
-							rhi_buffers_gpu_upload(&command_buffer, shared_index_buffer.get(), index_buffer.get());
-						}
+					// cpu bridge buffer uploading
+					{
+						RHI_BUFFER_DESC shared_buffer_desc;
+						shared_buffer_desc.device = &device;
+						shared_buffer_desc.length = ib_desc.length;
+						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
+						shared_buffer_desc.type = buffer_type_raw;
+						shared_buffer_desc.mips = 1;
+						shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+						rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
+						rhi_buffers_gpu_upload(&command_buffer, shared_index_buffer.get(), index_buffer.get());
+					}
 
-						RHI_RT_BVH_DESC blas_desc;
-						blas_desc.device = &device;
-						blas_desc.command_buffer = &command_buffer;
-						blas_desc.vertex_buffer = vertex_buffer.get();
-						blas_desc.index_buffer = index_buffer.get();
-						bvh.reset(rhi_rt_bvh_create(&blas_desc));
+					RHI_RT_BVH_DESC blas_desc;
+					blas_desc.device = &device;
+					blas_desc.command_buffer = &command_buffer;
+					blas_desc.vertex_buffer = vertex_buffer.get();
+					blas_desc.index_buffer = index_buffer.get();
+					bvh.reset(rhi_rt_bvh_create(&blas_desc));
 												
-						RT_GEOMETRY_INSTANCES_DESC tlas_desc;
-						tlas_desc.device = &device;
-						tlas_desc.command_buffer = &command_buffer;
-						tlas_desc.parent_bvh = bvh.get();
-						tlas_desc.transforms = &rotation_matrix;
-						tlas_desc.instance_count = 1;
-						bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
-
-						// view
-						RHI_VIEW_DESC bvh_instances_view_desc;
-						bvh_instances_view_desc.device = &device;
-						bvh_instances_view_desc.buffer = bvh_instances.get();
-						bvh_instances_view_desc.type = resource_type_rt_bvh_buffer;
-						bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
+					RT_GEOMETRY_INSTANCES_DESC tlas_desc;
+					tlas_desc.device = &device;
+					tlas_desc.command_buffer = &command_buffer;
+					tlas_desc.parent_bvh = bvh.get();
+					tlas_desc.transforms = &rotation_matrix;
+					tlas_desc.instance_count = 1;
+					bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
 						
-					});
-					command_buffer_list->push_back(&command_buffer);
 				});
+				command_buffer_list->push_back(&command_buffer);
+			});
+			// view
+			RHI_VIEW_DESC bvh_instances_view_desc;
+			bvh_instances_view_desc.device = &device;
+			bvh_instances_view_desc.buffer = bvh_instances.get();
+			bvh_instances_view_desc.type = resource_type_rt_bvh_buffer;
+			bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));	
 		}	
 		, [&](RHI_RENDER_PASS&) {
 			// before draw
-
+			
 			rt_render_pass->pipeline = pipeline.get();
 		}
 		, [&] (RHI_DEVICE& device, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
-
+			
 			float dt = get_delta_time();
-			rotation_matrix = rotate_triangle(dt);
+			Eigen::Matrix4f rotation_matrix = rotate_triangle(dt);
 
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));
 
 			rhi_render_pass_execute_rt_mode(rt_render_pass.get(), &command_buffer, [&] {
 								
-				RT_GEOMETRY_INSTANCES_DESC tlas_desc;
-				tlas_desc.device = &device;
-				tlas_desc.command_buffer = &command_buffer;
-				tlas_desc.parent_bvh = bvh.get();
-				tlas_desc.transforms = &rotation_matrix;
-				tlas_desc.instance_count = 1;
-				bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
+				//RT_GEOMETRY_INSTANCES_DESC tlas_desc;
+				//tlas_desc.device = &device;
+				//tlas_desc.command_buffer = &command_buffer;
+				//tlas_desc.parent_bvh = bvh.get();
+				//tlas_desc.transforms = &rotation_matrix;
+				//tlas_desc.instance_count = 1;
+				//bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
+
+				//// view
+				//rhi_buffers_update_view(&device, bvh_instances_view.get(), bvh_instances.get());
 
 				rhi_command_buffer_ray_trace( 
 					&command_buffer, 
-					render_target.get(), 
-					pipeline.get(), 
+					render_target.get(),
 					bvh_instances.get(), 
-					dynamic_cast<RHI_SBT_TABLE*>(sbt.get()));
+					sbt.get());
 			});
-			size_t index = rhi_swap_chain_get_current_buffer_id(swap_chain_ptr);
-			const RHI_VIEW* back_buffer = rhi_swap_chain_get_surface(swap_chain_ptr, index);
-			//rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(back_buffer->buffer), render_target.get());
+			const RHI_VIEW* back_buffer = rhi_swap_chain_get_surface(swap_chain_ptr, INT64_MAX);
+			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(back_buffer->buffer), render_target.get());
 		}
 		, [&](RHI_RENDER_PASS& render_pass, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_BUFFER& command_buffer) {
 
@@ -308,6 +315,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 		},
 		[&](RHI_DEVICE& UNUSED_PARAM(device))
 			{
+				return;
 				// if (on_end)
 				//	on_end(device);
 

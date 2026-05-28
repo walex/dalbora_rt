@@ -19,7 +19,6 @@ void dx12_command_buffer_draw_triangle_list(
 void dx12_command_buffer_ray_trace(
 	RHI_COMMAND_BUFFER* const command_buffer,
 	RHI_TEXTURE_2D* const render_target, 
-	const RHI_RT_PIPELINE* const pipeline,
 	const RHI_BUFFER* const bvh_instances, 
 	const RHI_SBT_TABLE* const sbt);
 void dx12_command_buffer_copy_texture(

@@ -125,13 +125,12 @@ void dx12_command_buffer_draw_triangle_list(
 void dx12_command_buffer_ray_trace(
 	RHI_COMMAND_BUFFER* const command_buffer, 
 	RHI_TEXTURE_2D* const render_target, 
-	const RHI_RT_PIPELINE* const pipeline, 
 	const RHI_BUFFER* const bvh_instances, 
 	const RHI_SBT_TABLE* const sbt) {
 
 	ASSERT_PTR(command_buffer);
 	ASSERT_PTR(render_target);
-	ASSERT_PTR(pipeline);
+
 	ASSERT_PTR(bvh_instances);
 	ASSERT_PTR(sbt);
 
@@ -140,12 +139,12 @@ void dx12_command_buffer_ray_trace(
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer;
 	ASSERT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);	
-	DX_TEXTURE_2D* render_target_impl = static_cast<DX_TEXTURE_2D*>(render_target);
-	ID3D12Resource* i_table = *static_cast<const DX_SBT_BUFFER*>(sbt);	
+	DX_RESOURCE* render_target_impl = static_cast<DX_TEXTURE_2D*>(render_target);
+	ID3D12Resource* i_table = *static_cast<const DX_SBT_TABLE*>(sbt);	
 	ASSERT_PTR(i_table);
 
-	constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
-	static constexpr bool restore[] = {false};
+	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
+	static constexpr bool restore[] = {true};
 	DX_RESOURCE* resources[] = { render_target_impl };
 	dx12_command_buffer_resource_transition(i_command_buffer.Get(),
 		resources,
@@ -172,6 +171,11 @@ void dx12_command_buffer_ray_trace(
 			desc.Height = static_cast<UINT>(render_target->height);
 			desc.Depth = 1;
 			i_command_buffer->DispatchRays(&desc);
+		
+			D3D12_RESOURCE_BARRIER uav_barrier = {};
+			uav_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+			uav_barrier.UAV.pResource = *render_target_impl;
+			i_command_buffer->ResourceBarrier(1, &uav_barrier);
 		});
 }
 
@@ -219,6 +223,7 @@ void dx12_command_buffer_resource_transition(
 	std::vector<D3D12_RESOURCE_BARRIER> barriers(count);
 	std::vector<bool> t_restore(count);
 	std::vector<DX_RESOURCE*> t_resources(count);
+	std::vector<D3D12_RESOURCE_STATES> t_prev_state(count);
 	UINT barrier_index = 0;
 	for (size_t i = 0; i < count; ++i) {
 
@@ -235,22 +240,24 @@ void dx12_command_buffer_resource_transition(
 		barriers[barrier_index].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		t_restore[barrier_index] = restore[i];
 		t_resources[barrier_index] = const_cast<DX_RESOURCE*>(resource_impl[i]);
+		t_resources[barrier_index]->current_state = end_state;
+		t_prev_state[barrier_index] = init_state;
 		barrier_index++;
 	}
 	if (barrier_index) {
 		i_command_buffer->ResourceBarrier(barrier_index, barriers.data());
-		for (size_t i = 0; i < barrier_index; ++i)
-			t_resources[i]->current_state = barriers[i].Transition.StateAfter;
-	}
-	if (cb)	cb();
-	if (!barrier_index)
-		return;
-	for (size_t i = 0; i < barrier_index; ++i) {
-		if (t_restore[i] == true) {
-			D3D12_RESOURCE_STATES init_state = barriers[i].Transition.StateBefore;
-			barriers[i].Transition.StateBefore = barriers[i].Transition.StateAfter;
-			barriers[i].Transition.StateAfter = init_state;
-			i_command_buffer->ResourceBarrier(barrier_index, barriers.data());
+		if (cb)	cb();
+		UINT barrier_index_restore = 0;
+		for (size_t i = 0; i < barrier_index; ++i) {
+			if (t_restore[i] == true) {
+				barrier_index_restore++;
+				barriers[i].Transition.StateBefore = barriers[i].Transition.StateAfter;
+				barriers[i].Transition.StateAfter = t_prev_state[i];
+				t_resources[i]->current_state = t_prev_state[i];
+			}
 		}
-	}
+		if (barrier_index_restore == 0)
+			return;
+		i_command_buffer->ResourceBarrier(barrier_index_restore, barriers.data());
+	} else if (cb)	cb();
 }

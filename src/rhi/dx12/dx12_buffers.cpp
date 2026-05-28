@@ -206,7 +206,20 @@ void dx12_buffers_map_read(RHI_BUFFER* const buffer, RHI_VOID_PTR* const data,
 		length);
 }
 
-RHI_VIEW* d12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
+void dx12_buffers_create_dsv_from_handle(ID3D12Device* const i_device,
+	ID3D12Resource* const i_resource,
+	resource_format format,
+	D3D12_CPU_DESCRIPTOR_HANDLE handle) {
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = dx12_resource_format_type[format];
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+	i_device->CreateDepthStencilView(i_resource, &dsvDesc, handle);
+
+}
+
+RHI_VIEW* dx12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
@@ -228,16 +241,26 @@ RHI_VIEW* d12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 		&result->cpu_descriptor_handle, 
 		&result->gpu_descriptor_handle);
 
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format = dx12_resource_format_type[desc->format];
-	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-	i_device->CreateDepthStencilView(i_resource, &dsvDesc, result->cpu_descriptor_handle);
-
+	dx12_buffers_create_dsv_from_handle(i_device, i_resource, desc->format, result->cpu_descriptor_handle);
+	result->buffer = desc->buffer;
+	result->type = desc->type;
+	result->format = desc->format;
+	result->mip_map_count = 1;
 	return result;
 }
 
-RHI_VIEW* d12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
+void dx12_buffers_create_rtv_from_handle(ID3D12Device* const i_device,
+	ID3D12Resource* const i_resource,
+	resource_format format,
+	D3D12_CPU_DESCRIPTOR_HANDLE handle) {
+
+	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+	rtv_desc.Format = dx12_resource_format_type[format];
+	rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	i_device->CreateRenderTargetView(i_resource, &rtv_desc, handle);
+}
+
+RHI_VIEW* dx12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
@@ -259,15 +282,79 @@ RHI_VIEW* d12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 		&result->cpu_descriptor_handle,
 		&result->gpu_descriptor_handle);
 
-	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
-	rtv_desc.Format = dx12_resource_format_type[desc->format];
-	rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	i_device->CreateRenderTargetView(i_resource, &rtv_desc, result->cpu_descriptor_handle);
+	dx12_buffers_create_rtv_from_handle(i_device, i_resource,
+		desc->format, result->cpu_descriptor_handle);
 	result->buffer = desc->buffer;
+	result->type = desc->type;
+	result->format = desc->format;
+	result->mip_map_count = 1;
 	return result;
 }
 
-RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
+void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device, 
+	ID3D12Resource* const i_resource,
+	resource_type type,
+	size_t buffer_length,
+	resource_format format,
+	size_t mip_maps_count,
+	D3D12_CPU_DESCRIPTOR_HANDLE handle) {
+
+	if (type == resource_type_constant_buffer) {
+		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
+		cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
+		cbv_desc.SizeInBytes = static_cast<UINT>(buffer_length); // MUST BE ALIGNED
+		i_device->CreateConstantBufferView(&cbv_desc, handle);
+	}
+	else if (type == resource_type_generic_rw_buffer) {
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+		uav_desc.Format = dx12_resource_format_type[format];
+		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uav_desc.Buffer.FirstElement = 0;
+		uav_desc.Buffer.NumElements = static_cast<UINT>(buffer_length);
+		uav_desc.Buffer.StructureByteStride = 0;
+		uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
+	}
+	else if (type == resource_type_shader) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = dx12_resource_format_type[format];
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srv_desc.Buffer.FirstElement = 0;
+		srv_desc.Buffer.NumElements = static_cast<UINT>(buffer_length);
+		srv_desc.Buffer.StructureByteStride = 0;
+		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+		i_device->CreateShaderResourceView(i_resource, &srv_desc, handle);
+	}
+	else if (type == resource_type_texture_2d) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = dx12_resource_format_type[format];
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srv_desc.Shader4ComponentMapping =
+			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srv_desc.Texture2D.MipLevels = static_cast<UINT>(mip_maps_count);
+		srv_desc.Texture1D.MostDetailedMip = 0;
+		i_device->CreateShaderResourceView(
+			i_resource,
+			&srv_desc,
+			handle);
+	}
+	else if (type == resource_type_rt_bvh_buffer) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+		srv.ViewDimension =
+			D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+		srv.Shader4ComponentMapping =
+			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srv.RaytracingAccelerationStructure.Location =
+			i_resource->GetGPUVirtualAddress();
+		i_device->CreateShaderResourceView(
+			nullptr,
+			&srv,
+			handle
+		);
+	}
+}
+
+RHI_VIEW* dx12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
@@ -289,66 +376,23 @@ RHI_VIEW* d12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 			&cpu_handle, 
 			&gpu_handle);
 
-	if (desc->type == resource_type_constant_buffer) {
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
-		cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
-		cbv_desc.SizeInBytes = static_cast<UINT>(desc->buffer->length); // MUST BE ALIGNED
-		i_device->CreateConstantBufferView(&cbv_desc, cpu_handle);
-	}
-	else if (desc->type == resource_type_generic_rw_buffer) {
-		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
-		uav_desc.Format = dx12_resource_format_type[desc->format];
-		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-		uav_desc.Buffer.FirstElement = 0;
-		uav_desc.Buffer.NumElements = static_cast<UINT>(desc->buffer->length);
-		uav_desc.Buffer.StructureByteStride = 0;
-		uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, cpu_handle);
-	}
-	else if (desc->type == resource_type_shader) {
-		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-		srv_desc.Format = dx12_resource_format_type[desc->format];
-		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		srv_desc.Buffer.FirstElement = 0;
-		srv_desc.Buffer.NumElements = static_cast<UINT>(desc->buffer->length);
-		srv_desc.Buffer.StructureByteStride = 0;
-		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-		i_device->CreateShaderResourceView(i_resource, &srv_desc, cpu_handle);
-	}
-	else if (desc->type == resource_type_texture_2d) {
-		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-		srv_desc.Format = dx12_resource_format_type[desc->format];
-		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srv_desc.Shader4ComponentMapping =
-			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srv_desc.Texture2D.MipLevels = static_cast<UINT>(desc->mip_maps_count);
-		srv_desc.Texture1D.MostDetailedMip = 0;
-		i_device->CreateShaderResourceView(
-			i_resource,
-			&srv_desc,
-			cpu_handle);
-	}
-	else if (desc->type == resource_type_rt_bvh_buffer) {
-			D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-			srv.ViewDimension =
-				D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-			srv.Shader4ComponentMapping =
-				D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			srv.RaytracingAccelerationStructure.Location =
-				i_resource->GetGPUVirtualAddress();
-			i_device->CreateShaderResourceView(
-				nullptr,
-				&srv,
-				cpu_handle
-			);
-	}
+	dx12_buffers_create_cbv_srv_uav_from_handle(i_device,
+		i_resource,
+		desc->type,
+		desc->buffer->length,
+		desc->format,
+		desc->mip_maps_count,
+		cpu_handle);
+
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 	result->cpu_descriptor_handle = cpu_handle;
 	result->gpu_descriptor_handle = gpu_handle;
 	result->descriptor_size = descriptor_size;
-	//i_resource->AddRef();
 	result->buffer = desc->buffer;
+	result->type = desc->type;
+	result->format = desc->format;
+	result->mip_map_count = desc->mip_maps_count;
 	return result;
 }
 
@@ -358,14 +402,51 @@ RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc) {
 
 	RHI_VIEW* result = nullptr;
 	if (desc->type == resource_type_depth_stencil_target)
-		result = d12_buffers_create_dsv(desc);
+		result = dx12_buffers_create_dsv(desc);
 	else if (desc->type == resource_type_render_target)
-		result = d12_buffers_create_rtv(desc);
+		result = dx12_buffers_create_rtv(desc);
 	else
-		result = d12_buffers_create_cbv_srv_uav(desc);
+		result = dx12_buffers_create_cbv_srv_uav(desc);
 
 	ASSERT_PTR(result);
 	return result;
+}
+
+void dx12_buffers_update_view(const RHI_DEVICE* const device, 
+	RHI_VIEW* const view, 
+	const RHI_BUFFER* const buffer) {
+
+	ASSERT_PTR(device);
+	ASSERT_PTR(view);
+	ASSERT_PTR(buffer);
+
+	ID3D12Device* i_device = *static_cast<const DX_DEVICE*>(device);
+	ASSERT_PTR(i_device);
+
+	ID3D12Resource* i_resource = *static_cast<const DX_BUFFER*>(buffer);
+	ASSERT_PTR(i_resource);
+
+	DX_VIEW* view_impl = static_cast<DX_VIEW*>(view);
+
+	RHI_VIEW* result = nullptr;
+	if (view_impl->type == resource_type_depth_stencil_target)
+		dx12_buffers_create_dsv_from_handle(i_device,
+			i_resource,			
+			view_impl->format,
+			view_impl->cpu_descriptor_handle);
+	else if (view->type == resource_type_render_target)
+		 dx12_buffers_create_rtv_from_handle(i_device,
+			i_resource,
+			view_impl->format,
+			view_impl->cpu_descriptor_handle);
+	else
+		dx12_buffers_create_cbv_srv_uav_from_handle(i_device,
+			i_resource,
+			view_impl->type,
+			view_impl->buffer->length,
+			view_impl->format,
+			view_impl->mip_map_count,
+			view_impl->cpu_descriptor_handle);
 }
 
 RHI_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc) {

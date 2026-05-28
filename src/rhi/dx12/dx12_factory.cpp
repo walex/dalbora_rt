@@ -12,11 +12,13 @@ void dx12_factory_create() {
 	UINT dxgiFactoryFlags = 0;
 #if defined(DEBUG)
 	{
-		ID3D12Debug* debugController = nullptr;
+		ID3D12Debug1* debugController = nullptr;
 		ASSERT_SUCCESS(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
 		ASSERT_PTR(debugController);
 		debugController->EnableDebugLayer();
+		//debugController->SetEnableGPUBasedValidation(TRUE);
 		debugController->Release();
+
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 	}
 #endif

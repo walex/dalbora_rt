@@ -23,6 +23,9 @@ struct RHI_BUFFER {
 struct RHI_VIEW {
 	virtual ~RHI_VIEW() = default;
 	RHI_BUFFER* buffer = nullptr;
+	resource_type type = resource_type_none;
+	resource_format format = resource_format_none;
+	size_t mip_map_count = 0;
 };
 
 struct RHI_DEVICE {
@@ -135,8 +138,8 @@ struct RHI_SAMPLER {
 	virtual ~RHI_SAMPLER() = default;
 };
 
-struct RHI_SBT_TABLE
-{
+struct RHI_SBT_TABLE {
+	virtual ~RHI_SBT_TABLE() = default;
 	size_t ray_gen_offset = 0, miss_offset = 0, hit_group_offset = 0;
 	size_t ray_gen_size = 0, miss_size = 0, hit_group_size = 0;
 	size_t record_size = 0;

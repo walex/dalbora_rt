@@ -220,7 +220,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 	return pipeline_impl;
 }
 
-RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline) {
+RHI_SBT_TABLE* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline) {
 
 	ASSERT_PTR(device);
 	ASSERT_PTR(desc);
@@ -387,7 +387,7 @@ RHI_BUFFER* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RH
 
 	dx12_buffers_map_close(shared_buffer.get(), 0, total_size);
 
-	DX_SBT_BUFFER* result = new DX_SBT_BUFFER();
+	DX_SBT_TABLE* result = new DX_SBT_TABLE();
 	ASSERT_PTR(result);
 	result->set_handle(i_resource);
 	result->ray_gen_offset = ray_gen_offset;
