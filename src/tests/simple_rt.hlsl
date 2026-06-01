@@ -52,7 +52,7 @@ void RayGen()
 
     RayPayload payload;
     payload.color = float4(0, 0, 0, 1);
-/*
+
     TraceRay(
         SceneBVH,
         RAY_FLAG_NONE,
@@ -63,8 +63,9 @@ void RayGen()
         ray,
         payload
     );
-*/
+
 /////////// TEST //////////
+/*
 	RayQuery<RAY_FLAG_NONE> q;
 
     q.TraceRayInline(
@@ -72,6 +73,7 @@ void RayGen()
         RAY_FLAG_NONE,
         0xFF,
         ray);
+*/
 //	bool hit = q.Proceed();
 /////////// TEST //////////
 
