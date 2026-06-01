@@ -1,9 +1,20 @@
 #include "test_api.hpp"
 #include "rhi.hpp"
 
-#include "dx12_alt.hpp"
-#include "dx12_device.hpp"
-#include "dx12_swap_chain.hpp"
+#include "dx12_rhi.hpp"
+
+std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_rw_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, size_t slot) {
+
+	D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+	if (slot + 1 > (int)desc.NumDescriptors) {
+		throw std::exception("Max descriptors reached for type %d", desc.Type);
+	}
+	UINT rtvDescriptorSize =
+		device->GetDescriptorHandleIncrementSize(desc.Type);
+	auto h = heap->GetCPUDescriptorHandleForHeapStart();
+	h.ptr += (slot * rtvDescriptorSize);
+	return std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(h);
+}
 
 void test_rt_triangle(fptr_test_on_init on_init,
 	fptr_test_on_draw on_draw,
@@ -23,19 +34,15 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	std::unique_ptr<RHI_VIEW> bvh_instances_view;
 	std::unique_ptr<RHI_SBT_TABLE> sbt;
 	std::unique_ptr<RHI_RT_PIPELINE> pipeline;
-	//std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
+	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
 	//std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
 
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle;
-	std::unique_ptr<RHI_CONSTANT_BUFFER2> shared_camera_constant_buffer;
-
+	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> cvb_handle;
+	
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 
-
-	std::shared_ptr<RHI_TEXTURE_2D2> rt_alt;
-	DX_RT_PIPELINE rtp;
-	DX_PIPELINE_LAYOUT rtpl;
 
 	float aspect = 800.0f / 600.0f;
 	float x = 0.5f;
@@ -79,14 +86,11 @@ void test_rt_triangle(fptr_test_on_init on_init,
 		0.7002075f;
 
 	camera.aspect = aspect;
-	DX_DEVICE2* device_impl;
+
 	test_swap_chain([&](RHI_DEVICE& dev, RHI_COMMAND_QUEUE& command_queue,
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
 		{
 			DX_DEVICE& dxdev = static_cast<DX_DEVICE&>(dev);
-			device_impl = new DX_DEVICE2(dxdev);
-			DX_DEVICE2& device = *device_impl;
-			device.set_dx_device(&dxdev);
 			
 			swap_chain_ptr = &swap_chain;
 
@@ -125,10 +129,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 				*srv_handle
 			);
 
-			rt_alt = std::make_shared<DX_TEXTURE_2D2>(i_texture, *srv_handle,
-				resource_state_rt_render_target, resource_format_R8G8B8A8_norm,
-				800, 600, rt->hw_length,
-				std::move(mips));
 			// create render pass
 			render_target_view = std::make_shared<DX_VIEW>();
 			render_target_view->buffer = static_cast<DX_BUFFER*>(rt);
@@ -229,40 +229,23 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			ib_desc.type = buffer_type_raw;
 			index_buffer.reset(rhi_buffers_create_indices(&ib_desc));
 
-			
-			//// create shared memory for camera transforms
-			//RHI_BUFFER_DESC shared_camera_buffer_desc;
-			//shared_camera_buffer_desc.device = &dev;
-			//shared_camera_buffer_desc.length = sizeof(CameraCBRT);
-			//shared_camera_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			//shared_camera_buffer_desc.type = buffer_type_raw;
-			//shared_camera_buffer_desc.mips = 1;
-			//shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
-			//
-			//// camera constant buffer view
-			//RHI_VIEW_DESC camera_cb_view_desc;
-			//camera_cb_view_desc.device = &dev;
-			//camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
-			//camera_cb_view_desc.type = resource_type_constant_buffer;
-			//camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
-
-			//camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
-
-
 			// create shared memory for camera transforms
-			RHI_BUFFER_DESC2 shared_camera_buffer_desc(device);
+			RHI_BUFFER_DESC shared_camera_buffer_desc;
+			shared_camera_buffer_desc.device = &dev;
 			shared_camera_buffer_desc.length = sizeof(CameraCBRT);
 			shared_camera_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-			shared_camera_buffer_desc.default_state = resource_state_generic_read;
-			shared_camera_buffer_desc.resource_slot = 2;
-			shared_camera_constant_buffer = dx12_buffers_create_constant2(shared_camera_buffer_desc);
+			shared_camera_buffer_desc.type = buffer_type_raw;
+			shared_camera_buffer_desc.mips = 1;
+			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
+			
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
+			ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(shared_camera_constant_buffer.get());
+			cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
+			cbv_desc.SizeInBytes = static_cast<UINT>(shared_camera_buffer_desc.length); // MUST BE ALIGNED
+			std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> cvb_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, 2);
+			i_device->CreateConstantBufferView(&cbv_desc, *cvb_handle);
 
-
-			DX_BUFFER c_buff;
-			c_buff.set_handle(*shared_camera_constant_buffer);
-			c_buff.com_ptr.Get()->AddRef();
-			c_buff.length = shared_camera_constant_buffer->get_length();
-			camera_constant_buffer_ptr = rhi_buffers_map_open(&c_buff, 0, sizeof(CameraCBRT));
+			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
 
 			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
 			std::unique_ptr<RHI_BUFFER> shared_index_buffer;
@@ -335,23 +318,25 @@ void test_rt_triangle(fptr_test_on_init on_init,
 		}
 		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
 
-			DX_DEVICE2& device = *device_impl;
 			float dt = get_delta_time();
 			auto world = rotate_triangle(dt);
+
+			//RT_GEOMETRY_INSTANCES_DESC tlas_desc;
+			//tlas_desc.device = &dev;
+			//tlas_desc.command_buffer = &command_buffer;
+			//tlas_desc.parent_bvh = bvh.get();
+			//tlas_desc.transforms = &rotation_matrix;
+			//tlas_desc.instance_count = 1;
+			//bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
+
+			//// view
+			//rhi_buffers_update_view(&dev, bvh_instances_view.get(), bvh_instances.get());
 
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));
 
-			rhi_render_pass_execute_rt_mode(rt_render_pass.get(), &command_buffer, [&] {
-				
-				//DX_RT_BVH* bvh_impl = static_cast<DX_RT_BVH*>(bvh.get());
-				//DX_RT_BVH2 bvh2(bvh_impl->com_ptr.Get());
-				//RT_GEOMETRY_INSTANCES_DESC2 tlas_desc(device, command_buffer, bvh2);
-				//tlas_desc.transforms = { world };
-				//tlas_desc.resource_slot = 0;
-				//bvh_instances = dx12_rt_bvh_build_geometry_instances2(tlas_desc);
-
-
+			rhi_render_pass_execute_rt_mode(rt_render_pass.get(), &command_buffer, [&] {				
+		
 				rhi_command_buffer_ray_trace(
 					&command_buffer,
 					render_target.get(),
@@ -372,12 +357,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 				// if (on_end)
 				//	on_end(device);
 
-				// on end
-				DX_BUFFER c_buff;
-				c_buff.set_handle(*shared_camera_constant_buffer);
-				c_buff.com_ptr.Get()->AddRef();
-				c_buff.length = shared_camera_constant_buffer->get_length();
-				rhi_buffers_map_close(*shared_camera_constant_buffer, 0, sizeof(CameraCBRT));
+				rhi_buffers_map_close(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
 			}
 		);
 }
