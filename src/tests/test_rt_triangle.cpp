@@ -1,20 +1,7 @@
 #include "test_api.hpp"
 #include "rhi.hpp"
+#include "dx12_rt_bvh.hpp"
 
-#include "dx12_rhi.hpp"
-
-std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> dx12_helpers_get_rw_descriptor_heap_handle(ID3D12Device* device, ID3D12DescriptorHeap* heap, size_t slot) {
-
-	D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
-	if (slot + 1 > (int)desc.NumDescriptors) {
-		throw std::exception("Max descriptors reached for type %d", desc.Type);
-	}
-	UINT rtvDescriptorSize =
-		device->GetDescriptorHandleIncrementSize(desc.Type);
-	auto h = heap->GetCPUDescriptorHandleForHeapStart();
-	h.ptr += (slot * rtvDescriptorSize);
-	return std::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(h);
-}
 
 void test_rt_triangle(fptr_test_on_init on_init,
 	fptr_test_on_draw on_draw,
@@ -38,9 +25,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
 
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle;
-	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> cvb_handle;
-	
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 
 
@@ -109,13 +93,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			tx_desc.mips = 1;
 			tx_desc.flags = resource_flags_shader_read_write;
 			render_target.reset(rhi_texture_2d_create(&tx_desc));
-			
-			// BORRAR
-
-			
-			DX_TEXTURE_2D* rt = static_cast<DX_TEXTURE_2D*>(render_target.get());			
-			ID3D12Resource* i_texture = static_cast<ID3D12Resource*>(rt->com_ptr.Get());
-			std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, 1);
 			
 			// compile shaders
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
@@ -264,7 +241,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 						blas_desc.index_buffer = index_buffer.get();
 						bvh.reset(rhi_rt_bvh_create(&blas_desc));
 
-						RT_GEOMETRY_INSTANCES_DESC tlas_desc;
+						RHI_RT_BVH_GEOMETRY_INSTANCES_DESC tlas_desc;
 						tlas_desc.device = &dev;
 						tlas_desc.command_buffer = &command_buffer;
 						tlas_desc.parent_bvh = bvh.get();
@@ -320,18 +297,16 @@ void test_rt_triangle(fptr_test_on_init on_init,
 		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
 
 			float dt = get_delta_time();
-			auto world = rotate_triangle(dt);
+			rotation_matrix = rotate_triangle(dt);
 
-			//RT_GEOMETRY_INSTANCES_DESC tlas_desc;
-			//tlas_desc.device = &dev;
-			//tlas_desc.command_buffer = &command_buffer;
-			//tlas_desc.parent_bvh = bvh.get();
-			//tlas_desc.transforms = &rotation_matrix;
-			//tlas_desc.instance_count = 1;
-			//bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
-
-			//// view
-			//rhi_buffers_update_view(&dev, bvh_instances_view.get(), bvh_instances.get());
+			RHI_RT_BVH_GEOMETRY_INSTANCES_DESC tlas_desc;
+			tlas_desc.device = &dev;
+			tlas_desc.command_buffer = &command_buffer;
+			tlas_desc.parent_bvh = bvh.get();
+			tlas_desc.transforms = &rotation_matrix;
+			tlas_desc.instance_count = 1;
+			
+			dx12_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
 
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));

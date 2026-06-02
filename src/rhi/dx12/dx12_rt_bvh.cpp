@@ -103,7 +103,7 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	return result;
 }
 
-RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DESC* const desc)
+RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_INSTANCES_DESC* const desc)
 {
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
@@ -140,44 +140,7 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	ID3D12Resource* i_tlas_inputs_buffer = *tlas_inputs_buffer_impl;
 	ASSERT_PTR(i_tlas_inputs_buffer);
 
-	D3D12_RAYTRACING_INSTANCE_DESC* instances = nullptr;
-	D3D12_RANGE readRange(0, 0);
-
-	i_tlas_inputs_buffer->Map(
-		0,
-		nullptr,
-		reinterpret_cast<void**>(&instances));
-
-	UINT iid = 0;
-	for (size_t i = 0; i < desc->instance_count; i++)
-	{
-		D3D12_RAYTRACING_INSTANCE_DESC& instance = instances[i];
-		instance.InstanceID = iid++;
-		instance.InstanceMask = 0xFF;
-		instance.AccelerationStructure = i_blas_buffer->GetGPUVirtualAddress();
-
-		auto& mat = desc->transforms[i];
-
-		// fila 0
-		instance.Transform[0][0] = mat(0, 0);
-		instance.Transform[0][1] = mat(0, 1);
-		instance.Transform[0][2] = mat(0, 2);
-		instance.Transform[0][3] = mat(0, 3);
-
-		// fila 1
-		instance.Transform[1][0] = mat(1, 0);
-		instance.Transform[1][1] = mat(1, 1);
-		instance.Transform[1][2] = mat(1, 2);
-		instance.Transform[1][3] = mat(1, 3);
-
-		// fila 2
-		instance.Transform[2][0] = mat(2, 0);
-		instance.Transform[2][1] = mat(2, 1);
-		instance.Transform[2][2] = mat(2, 2);
-		instance.Transform[2][3] = mat(2, 3);
-	}
-
-	i_tlas_inputs_buffer->Unmap(0, nullptr);
+	dx12_helpers_copy_eigen_matrices_to_resource(desc->transforms, desc->instance_count, i_blas_buffer->GetGPUVirtualAddress(), i_tlas_inputs_buffer);
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS tlas_inputs = {};
 	tlas_inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
@@ -222,21 +185,6 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	tlas_barrier.UAV.pResource = i_tlas_buffer;
 	i_command_buffer->ResourceBarrier(1, &tlas_barrier);
 
-	//DX_RESOURCE_HEAP_DESCRIPTOR srv_handle = dx12_helpers_get_next_descriptor_heap_handle(device_impl, heap_id_type_resources);
-
-	// CREAR VIEW EN OTRO LADO
-	//D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
-	//srv.ViewDimension =
-	//	D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-	//srv.Shader4ComponentMapping =
-	//	D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	//srv.RaytracingAccelerationStructure.Location =
-	//	i_tlas_buffer->GetGPUVirtualAddress();
-	//i_device->CreateShaderResourceView(
-	//	nullptr,
-	//	&srv,
-	//	srv_handle.cpu_descriptor_handle
-	//);
 	DX_BVH_BUFFER* result = new DX_BVH_BUFFER();
 	ASSERT_PTR(result);
 	i_tlas_buffer->AddRef();
@@ -246,4 +194,77 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RT_GEOMETRY_INSTANCES_DES
 	result->scratch_handle.set_handle(i_scratch_buffer);
 	result->inputs_buffer_handle.set_handle(i_tlas_inputs_buffer);
 	return result;
+}
+
+void dx12_rt_bvh_update_geometry_instances(const RHI_RT_BVH_GEOMETRY_INSTANCES_DESC* const desc, RHI_BUFFER* const buffer) {
+
+	ASSERT_PTR(desc);
+	ASSERT_PTR(buffer);
+
+	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
+	ASSERT_PTR(i_command_buffer_0);
+
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
+	ASSERT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_PTR(i_command_buffer);
+
+	ID3D12Resource* i_blas_buffer = *static_cast<DX_RT_BVH*>(desc->parent_bvh);
+	ASSERT_PTR(i_blas_buffer);
+
+	DX_BVH_BUFFER* buffer_impl = static_cast<DX_BVH_BUFFER*>(buffer);
+	ID3D12Resource* i_tlas_buffer = *buffer_impl;
+	ASSERT_PTR(i_tlas_buffer);
+
+	ID3D12Resource* i_tlas_input_buffer = buffer_impl->inputs_buffer_handle.com_ptr.Get();
+	ASSERT_PTR(i_tlas_input_buffer);
+
+	ID3D12Resource* i_scratch_buffer = buffer_impl->scratch_handle.com_ptr.Get();
+	ASSERT_PTR(i_scratch_buffer);
+
+
+	dx12_helpers_copy_eigen_matrices_to_resource(desc->transforms, desc->instance_count, i_blas_buffer->GetGPUVirtualAddress(), i_tlas_input_buffer);
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC updateDesc = {};
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& tlas_inputs = updateDesc.Inputs;
+
+	tlas_inputs.Type =
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+
+	tlas_inputs.DescsLayout =
+		D3D12_ELEMENTS_LAYOUT_ARRAY;
+
+	tlas_inputs.InstanceDescs =
+		i_tlas_input_buffer->GetGPUVirtualAddress();
+
+	tlas_inputs.NumDescs = desc->instance_count;
+
+	tlas_inputs.Flags =
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE |
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+
+	updateDesc.ScratchAccelerationStructureData =
+		i_scratch_buffer->GetGPUVirtualAddress();
+
+	updateDesc.SourceAccelerationStructureData =
+		i_tlas_buffer->GetGPUVirtualAddress();
+
+	updateDesc.DestAccelerationStructureData =
+		i_tlas_buffer->GetGPUVirtualAddress();
+
+	updateDesc.Inputs.Flags =
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+
+	i_command_buffer->BuildRaytracingAccelerationStructure(
+		&updateDesc,
+		0,
+		nullptr);
+
+	// UAV barrier TLAS
+	D3D12_RESOURCE_BARRIER tlas_barrier = {};
+	tlas_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	tlas_barrier.UAV.pResource = i_tlas_buffer;
+	i_command_buffer->ResourceBarrier(1, &tlas_barrier);
+
 }

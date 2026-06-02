@@ -152,7 +152,7 @@ struct RHI_RT_BVH_DESC  {
 	RHI_BUFFER* index_buffer = nullptr;
 };
 
-struct RT_GEOMETRY_INSTANCES_DESC  {
+struct RHI_RT_BVH_GEOMETRY_INSTANCES_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_BUFFER* command_buffer = nullptr;
 	RHI_RT_BVH* parent_bvh = nullptr;
