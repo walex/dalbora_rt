@@ -123,8 +123,8 @@ struct RHI_RT_PIPELINE_DESC  {
 
 struct RHI_DESCRIPTOR_DESC  {
 	resource_type resource_type = resource_type_generic_rw_buffer;
-	size_t register_start = 0;
-	size_t register_count = 0;
+	size_t shader_register_start = 0;
+	size_t shader_register_max = 0;
 };
 
 #define MAX_PIPELINE_DESCRIPTORS 16
@@ -158,6 +158,7 @@ struct RT_GEOMETRY_INSTANCES_DESC  {
 	RHI_RT_BVH* parent_bvh = nullptr;
 	Eigen::Matrix4f* transforms;
 	size_t instance_count = 0;
+	bool read_only = true;
 };
 
 struct RHI_RENDER_PASS_DESC  {
@@ -187,5 +188,6 @@ struct RHI_VIEW_DESC  {
 	size_t mip_maps_count  = 0;
 	RHI_DEVICE* device = nullptr;
 	RHI_BUFFER* buffer = nullptr;
+	size_t slot_id = 0;
 };
 #endif

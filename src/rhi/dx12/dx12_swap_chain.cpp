@@ -114,6 +114,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		view_desc.type = resource_type_render_target;
 		view_desc.device = desc->device;
 		view_desc.format = desc->color_format;
+		view_desc.slot_id = i;
 		std::unique_ptr<DX_BUFFER> buffer_wrapper
 			= std::make_unique<DX_BUFFER>();
 		buffer_wrapper->com_ptr.Attach(i_buffer);

@@ -4,21 +4,23 @@
 #include "rhi.hpp"
 #include "dx12_api_params.hpp"
 #include "dx12_helpers.hpp"
+
+struct DX_DEVICE_HEAP_SIZES_DESC {
+	size_t resources_count =  0;
+	size_t sampler_count = 0;
+	size_t rtv_count = 0;
+	size_t dsv_count = 0;
+};
+
 struct DX_DEVICE_HEAP_DESC
 {
 	RHI_DEVICE* device;
 	
 	bool resources_heap_enable = false;
-	size_t resources_heap_count = 0;
-
 	bool rtv_heap_enable = false;
-	size_t rtv_heap_slot_count = 0;
-
 	bool dsv_heap_enable = false;
-	size_t dsv_heap_slot_count = 0;
-
 	bool sampler_heap_enable = false;
-	size_t sampler_heap_slot_count = 0;
+	DX_DEVICE_HEAP_SIZES_DESC resources_heap_size;
 };
 
 template <typename T>
@@ -43,8 +45,8 @@ struct DX_HANDLE : public RHI_HANDLE
 enum heap_id_type {
 	heap_id_type_rtv,
 	heap_id_type_dsv,
-	heap_id_type_resources,
 	heap_id_type_sampler,
+	heap_id_type_resources,
 	heap_id_type_count,
 };
 
@@ -58,8 +60,8 @@ struct DX_RESOURCE_HEAP_DESCRIPTOR
 
 struct DX_HEAP : public DX_HANDLE<ID3D12DescriptorHeap> {
 
-	size_t count = 0;
-	size_t max_count = 0;
+	size_t count[heap_id_type_count];
+	size_t max_count[heap_id_type_count];
 	DX_RESOURCE_HEAP_DESCRIPTOR descriptor_handle = { 0 };
 };
 

@@ -35,7 +35,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	std::unique_ptr<RHI_SBT_TABLE> sbt;
 	std::unique_ptr<RHI_RT_PIPELINE> pipeline;
 	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
-	//std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
+	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
 
 	std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle;
@@ -90,8 +90,12 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	test_swap_chain([&](RHI_DEVICE& dev, RHI_COMMAND_QUEUE& command_queue,
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
 		{
+			// BORRAR
 			DX_DEVICE& dxdev = static_cast<DX_DEVICE&>(dev);
-			
+			ID3D12Device* i_device = *static_cast<DX_DEVICE*>(&dev);
+			ID3D12DescriptorHeap* i_heap = *dxdev.resources_heap.get();
+			// FIN BORRAR
+
 			swap_chain_ptr = &swap_chain;
 
 			RHI_TEXTURE_2D_DESC tx_desc;
@@ -106,39 +110,13 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			tx_desc.flags = resource_flags_shader_read_write;
 			render_target.reset(rhi_texture_2d_create(&tx_desc));
 			
-			DX_TEXTURE_2D* rt = static_cast<DX_TEXTURE_2D*>(render_target.get());
-			ID3D12Device* i_device = *static_cast<DX_DEVICE*>(&dev);
-			ID3D12Resource* i_texture = static_cast<ID3D12Resource*>(rt->com_ptr.Get());
-			ID3D12DescriptorHeap* i_heap = *dxdev.resources_heap.get();
-			std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, 1);
+			// BORRAR
 
-			std::vector<RHI_TEXTURE_MIPS> mips(render_target->mip_maps, render_target->mip_maps+render_target->mip_maps_count);
 			
-			D3D12_UNORDERED_ACCESS_VIEW_DESC uav = {};
-
-			uav.Format =
-				dx12_resource_format_type[resource_format_R8G8B8A8_norm];
-
-			uav.ViewDimension =
-				D3D12_UAV_DIMENSION_TEXTURE2D;
-
-			i_device->CreateUnorderedAccessView(
-				i_texture,
-				nullptr,
-				&uav,
-				*srv_handle
-			);
-
-			// create render pass
-			render_target_view = std::make_shared<DX_VIEW>();
-			render_target_view->buffer = static_cast<DX_BUFFER*>(rt);
-
-			// create render pass
-			RHI_RENDER_PASS_DESC render_pass_desc;
-			render_pass_desc.device = &dev;
-			render_pass_desc.render_target_view = render_target_view.get();
-			rt_render_pass.reset(rhi_render_pass_create(&render_pass_desc));
-
+			DX_TEXTURE_2D* rt = static_cast<DX_TEXTURE_2D*>(render_target.get());			
+			ID3D12Resource* i_texture = static_cast<ID3D12Resource*>(rt->com_ptr.Get());
+			std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, 1);
+			
 			// compile shaders
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
 			std::string rt_file = "simple_rt.hlsl";
@@ -147,30 +125,31 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			auto miss_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "Miss", "lib_6_6");
 			auto closest_hit_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "ClosestHit", "lib_6_6");
 
-			// on_layout
-
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
 			pl_desc.device = &dev;
 
-			// descriptors
+			// descriptors ( order mathers )
 
-			// SceneBVH
+			// 1 - GPU read only (Scene BVH)
 			RHI_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			s_desc.resource_type = resource_type_shader;
-			s_desc.register_start = 0;
-			s_desc.register_count = 1;
+			s_desc.shader_register_start = 0;
+			s_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
+												// just need to specify the correct register in the shader
 
-			// Output
+			// 2 - GPU read write (Render Target)
 			RHI_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			o_desc.resource_type = resource_type_generic_rw_buffer;
-			o_desc.register_start = 0;
-			o_desc.register_count = 1;
+			o_desc.shader_register_start = 0;
+			o_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
+												// just need to specify the correct register in the shader
 
-			// Camera
+			// 3 - Constant buffer (Camera)
 			RHI_DESCRIPTOR_DESC& c_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			c_desc.resource_type = resource_type_constant_buffer;
-			c_desc.register_start = 0;
-			c_desc.register_count = 1;
+			c_desc.shader_register_start = 0;
+			c_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
+												// just need to specify the correct register in the shader
 
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 
@@ -238,13 +217,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			shared_camera_buffer_desc.mips = 1;
 			shared_camera_constant_buffer.reset(rhi_buffers_create_constant(&shared_camera_buffer_desc));
 			
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
-			ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(shared_camera_constant_buffer.get());
-			cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
-			cbv_desc.SizeInBytes = static_cast<UINT>(shared_camera_buffer_desc.length); // MUST BE ALIGNED
-			std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> cvb_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, 2);
-			i_device->CreateConstantBufferView(&cbv_desc, *cvb_handle);
-
+			// open cb for write
 			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
 
 			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
@@ -297,18 +270,46 @@ void test_rt_triangle(fptr_test_on_init on_init,
 						tlas_desc.parent_bvh = bvh.get();
 						tlas_desc.transforms = &rotation_matrix;
 						tlas_desc.instance_count = 1;
+						tlas_desc.read_only = false;
 						bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
 
-						// view
-						RHI_VIEW_DESC bvh_instances_view_desc;
-						bvh_instances_view_desc.device = &dev;
-						bvh_instances_view_desc.buffer = bvh_instances.get();
-						bvh_instances_view_desc.type = resource_type_rt_bvh_buffer;
-						bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
+						
 
 					});
 					command_buffer_list->push_back(&command_buffer);
 				});
+
+			// view BVH (GPU read only)
+			RHI_VIEW_DESC bvh_instances_view_desc;
+			bvh_instances_view_desc.device = &dev;
+			bvh_instances_view_desc.buffer = bvh_instances.get();
+			bvh_instances_view_desc.type = resource_type_rt_bvh_buffer;
+			bvh_instances_view_desc.slot_id = 0;
+			bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
+
+			// view render_target (GPU read write)
+			RHI_VIEW_DESC rt_instances_view_desc;
+			rt_instances_view_desc.format = tx_desc.format;
+			rt_instances_view_desc.device = &dev;
+			rt_instances_view_desc.buffer = static_cast<DX_TEXTURE_2D*>(render_target.get());
+			rt_instances_view_desc.type = resource_type_texture_2d_rw;
+			rt_instances_view_desc.slot_id = 100;
+			render_target_view.reset(rhi_buffers_create_view(&rt_instances_view_desc));
+
+			// view camera (constant buffer)
+			RHI_VIEW_DESC cb_instances_view_desc;
+			cb_instances_view_desc.format = tx_desc.format;
+			cb_instances_view_desc.device = &dev;
+			cb_instances_view_desc.buffer = static_cast<DX_TEXTURE_2D*>(shared_camera_constant_buffer.get());
+			cb_instances_view_desc.type = resource_type_constant_buffer;
+			cb_instances_view_desc.slot_id = 200;
+			camera_constant_buffer_view.reset(rhi_buffers_create_view(&cb_instances_view_desc));
+
+			// create render pass
+			RHI_RENDER_PASS_DESC render_pass_desc;
+			render_pass_desc.device = &dev;
+			render_pass_desc.render_target_view = render_target_view.get();
+			rt_render_pass.reset(rhi_render_pass_create(&render_pass_desc));
 		}	
 		, [&](RHI_RENDER_PASS&) {
 			// before draw

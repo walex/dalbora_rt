@@ -117,21 +117,23 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 
 	DX_DEVICE_HEAP_DESC heaps_desc;
 	heaps_desc.resources_heap_enable = RESOURCES_HEAP_ENABLE;
-	heaps_desc.resources_heap_count = RESOURCES_HEAP_SLOT_COUNT;
+	
+	heaps_desc.resources_heap_enable = RTV_HEAP_ENABLE;
+	heaps_desc.resources_heap_size.resources_count = RESOURCES_HEAP_SLOT_COUNT;
 
 	heaps_desc.rtv_heap_enable = RTV_HEAP_ENABLE;
-	heaps_desc.rtv_heap_slot_count = RTV_HEAP_SLOT_COUNT;
+	heaps_desc.resources_heap_size.rtv_count = RTV_HEAP_SLOT_COUNT;
 	
 	heaps_desc.dsv_heap_enable = DSV_HEAP_ENABLE;
-	heaps_desc.dsv_heap_slot_count = DSV_HEAP_SLOT_COUNT;
+	heaps_desc.resources_heap_size.dsv_count = DSV_HEAP_SLOT_COUNT;
 	
 	heaps_desc.sampler_heap_enable = desc->enable_texture_sampling;
-	heaps_desc.sampler_heap_slot_count = SAMPLER_HEAP_SLOT_COUNT;
+	heaps_desc.resources_heap_size.sampler_count = SAMPLER_HEAP_SLOT_COUNT;
 
 	if (heaps_desc.resources_heap_enable == true) {
 		dx_device->resources_heap.reset(dx12_heap_create(dx_device, 
 			resource_type_generic_rw_buffer, 
-			heaps_desc.resources_heap_count, true));
+			&heaps_desc.resources_heap_size, true));
 		if(!dx_device->resources_heap.get())
 			throw std::exception("Failed to create resources heap");
 	}
@@ -139,7 +141,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (heaps_desc.rtv_heap_enable == true) {
 		dx_device->rtv_heap.reset(dx12_heap_create(dx_device,
 			resource_type_render_target,
-			heaps_desc.rtv_heap_slot_count, false));
+			&heaps_desc.resources_heap_size, false));
 		if(!dx_device->rtv_heap.get())
 			throw std::exception("Failed to create RTV heap");
 	}
@@ -147,7 +149,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (heaps_desc.dsv_heap_enable == true) {
 		dx_device->dsv_heap.reset(dx12_heap_create(dx_device,
 			resource_type_depth_stencil_target,
-			heaps_desc.dsv_heap_slot_count, false));
+			&heaps_desc.resources_heap_size, false));
 		if(!dx_device->dsv_heap.get())
 			throw std::exception("Failed to create DSV heap");
 	}
@@ -155,7 +157,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (heaps_desc.sampler_heap_enable == true) {
 		dx_device->sampler_heap.reset(dx12_heap_create(dx_device,
 			resource_type_sampler,
-			heaps_desc.sampler_heap_slot_count, true));
+			&heaps_desc.resources_heap_size, true));
 		if(!dx_device->sampler_heap.get())
 			throw std::exception("Failed to create sampler heap");
 	}

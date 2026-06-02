@@ -147,9 +147,10 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             RHI_VIEW_DESC tex_view_desc;
             tex_view_desc.device = &device;
             tex_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(texture.get());
-            tex_view_desc.type = resource_type_texture_2d;
+            tex_view_desc.type = resource_type_texture_2d_read_only;
             tex_view_desc.format = texture_desc.format;
             tex_view_desc.mip_maps_count = texture->mip_maps_count;
+            tex_view_desc.slot_id = 100;
             texture_view.reset(rhi_buffers_create_view(&tex_view_desc));
 
             // upload buffers
@@ -192,13 +193,13 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             // descriptors
             RHI_DESCRIPTOR_DESC& s_desc = layout.descriptors[layout.descriptor_count++];
             s_desc.resource_type = resource_type_shader;
-            s_desc.register_start = 0;
-            s_desc.register_count = 1;
+            s_desc.shader_register_start = 0;
+            s_desc.shader_register_max = 100;
 
             RHI_DESCRIPTOR_DESC& sm_desc = layout.descriptors[layout.descriptor_count++];
             sm_desc.resource_type = resource_type_sampler;
-            sm_desc.register_start = 0;
-            sm_desc.register_count = 1;
+            sm_desc.shader_register_start = 0;
+            sm_desc.shader_register_max = 1;
 
             // define input layout
             RHI_INPUT_LAYOUT_DESC& desc_pos = input_layouts.emplace_back();

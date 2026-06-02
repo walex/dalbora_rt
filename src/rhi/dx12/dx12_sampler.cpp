@@ -31,7 +31,7 @@ RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc) {
 
     dx12_heap_next_handle(device_impl, 
         heap_id_type_sampler, 
-        resource_type_sampler,
+        0,
         &result->cpu_handle);
     i_device->CreateSampler(&sampDesc, result->cpu_handle);
     return result;

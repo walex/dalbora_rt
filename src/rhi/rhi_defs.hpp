@@ -46,16 +46,20 @@ enum resource_format
 
 enum resource_type
 {
-	resource_type_none = 0,
-	resource_type_generic_rw_buffer = 1,
-	resource_type_rt_bvh_buffer = 2,
-	resource_type_sampler = 3,
-	resource_type_render_target = 4,
-	resource_type_depth_stencil_target = 5,
-	resource_type_constant_buffer = 6,
-	resource_type_shader = 7,
-	resource_type_texture_2d = 8
+	resource_type_none,
+	resource_type_generic_rw_buffer,
+	resource_type_rt_bvh_buffer,
+	resource_type_sampler,
+	resource_type_render_target,
+	resource_type_depth_stencil_target,
+	resource_type_constant_buffer,
+	resource_type_shader,
+	resource_type_texture_2d_rw,
+	resource_type_texture_2d_read_only,
+	resource_type_count
 };
+
+constexpr size_t resources_count = static_cast<size_t>(resource_type_count);
 
 enum buffer_type
 {

@@ -70,8 +70,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			// add constant buffer descriptors for camera and object transforms;
 			RHI_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			cb_desc.resource_type = resource_type_constant_buffer;
-			cb_desc.register_start = 0; // ie: b0 in hlsl
-			cb_desc.register_count = 2; // ie: b0, b1 in hlsl
+			cb_desc.shader_register_start = 0; // ie: b0 in hlsl
+			cb_desc.shader_register_max = 100;
 			
 			// create shaders layouts
 			std::vector<RHI_INPUT_LAYOUT_DESC> input_layouts;
@@ -142,6 +142,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			camera_cb_view_desc.device = &device;
 			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
 			camera_cb_view_desc.type = resource_type_constant_buffer;
+			camera_cb_view_desc.slot_id = 0;
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
 			
 			// create shared memory for object transforms
@@ -158,8 +159,9 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			object_cb_view_desc.device = &device;
 			object_cb_view_desc.buffer = shared_object_constant_buffer.get();
 			object_cb_view_desc.type = resource_type_constant_buffer;
+			object_cb_view_desc.slot_id = 1;
 			object_constant_buffer_view.reset(rhi_buffers_create_view(&object_cb_view_desc));
-
+			
 			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
 			object_constant_buffer_ptr = rhi_buffers_map_open(shared_object_constant_buffer.get(), 0, sizeof(ObjectCB));
 
@@ -229,6 +231,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			db_view_desc.buffer = depth_buffer.get();
 			db_view_desc.type = resource_type_depth_stencil_target;
 			db_view_desc.format = db_desc.format;
+			db_view_desc.slot_id = 0;
 			depth_buffer_view.reset(rhi_buffers_create_view(&db_view_desc));
 			
 			// create pipeline

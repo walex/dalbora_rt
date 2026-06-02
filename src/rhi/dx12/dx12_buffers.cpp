@@ -237,7 +237,7 @@ RHI_VIEW* dx12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	result->descriptor_size = dx12_heap_next_handle(
 		static_cast<DX_DEVICE*>(desc->device), 
 		heap_id_type_dsv, 
-		resource_type_depth_stencil_target,
+		desc->slot_id,
 		&result->cpu_descriptor_handle, 
 		&result->gpu_descriptor_handle);
 
@@ -278,7 +278,7 @@ RHI_VIEW* dx12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	dx12_heap_next_handle(
 		static_cast<DX_DEVICE*>(desc->device), 
 		heap_id_type_rtv, 
-		resource_type_render_target,
+		desc->slot_id,
 		&result->cpu_descriptor_handle,
 		&result->gpu_descriptor_handle);
 
@@ -325,7 +325,17 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 		i_device->CreateShaderResourceView(i_resource, &srv_desc, handle);
 	}
-	else if (type == resource_type_texture_2d) {
+	else if (type == resource_type_texture_2d_rw) {
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+		uav_desc.Format = dx12_resource_format_type[format];
+		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	//	uav_desc.Buffer.FirstElement = 0;
+	//	uav_desc.Buffer.NumElements = static_cast<UINT>(buffer_length);
+	//	uav_desc.Buffer.StructureByteStride = 0;
+	//	uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
+	}
+	else if (type == resource_type_texture_2d_read_only) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = dx12_resource_format_type[format];
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -372,7 +382,7 @@ RHI_VIEW* dx12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 		dx12_heap_next_handle(
 			static_cast<DX_DEVICE*>(desc->device), 
 			heap_id_type_resources, 
-			desc->type,
+			desc->slot_id,
 			&cpu_handle, 
 			&gpu_handle);
 
