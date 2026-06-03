@@ -139,6 +139,9 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	return swap_chain_impl;
 }
 
+
+
+
 void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 
 	ASSERT_PTR(swap_chain);
@@ -147,7 +150,7 @@ void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 	i_swap_chain->Present(1, 0);
 }
 
-const RHI_VIEW* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const swap_chain, 
+RHI_VIEW* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const swap_chain, 
 	const size_t surface_index) {
 
 	ASSERT_PTR(swap_chain);

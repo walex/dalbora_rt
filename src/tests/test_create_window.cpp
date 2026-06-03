@@ -44,7 +44,8 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 			});
 	}
 
-	strcpy_s(window_desc.title, "pbr test create window");
+	const char* title = "pbr test for create window";
+	window_desc.title = const_cast<char*>(title);
 
 	// create window
 	std::unique_ptr<RHI_WINDOW> window(rhi_create_window(&window_desc));
@@ -53,4 +54,29 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 	rhi_window_main_loop(window.get());
 }
 
+void test_create_window_obj(RhiUnitTestCallbacks* callbacks) {
+
+	RhiUnitTest unit_test;
+	RHI_WINDOW_CALLBACKS window_callbacks;
+	window_callbacks.on_init = [&](RHI_WINDOW* hwindow) {
+		
+		unit_test.window = RhiWindow(hwindow);
+		if (callbacks)
+			callbacks->on_init(unit_test);
+	};
+	window_callbacks.main_loop = [&](RHI_WINDOW* hwindow) {
+		
+		if (callbacks)
+			callbacks->on_process(unit_test);
+	};
+	window_callbacks.on_end = [&](RHI_WINDOW* hwindow) {
+		
+		if (callbacks)
+			callbacks->on_end(unit_test);
+	};
+
+	RhiWindow wnd;
+	wnd.create("test", 800, 600, false, window_callbacks);
+	wnd.mainLoop();
+}
 #endif

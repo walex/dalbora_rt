@@ -108,6 +108,8 @@ RHI_WINDOW* dx12_window_create(const RHI_WINDOW_DESC* const desc) {
     ASSERT_PTR(result);
 	result->handle = hwnd;
 	result->callbacks = desc->callbacks;
+	result->width = desc->width;
+	result->height = desc->height;
     return result;
 }
 

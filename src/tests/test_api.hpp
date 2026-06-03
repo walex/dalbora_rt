@@ -42,4 +42,24 @@ void test_rt_triangle(fptr_test_on_init on_init = nullptr,
 #define TEST_RASTER_TRIANGLE
 #define TEST_RASTER_TEXTURED_TRIANGLE
 #define TEST_RT_TRIANGLE
+
+struct RhiUnitTest {
+
+	RhiWindow window;
+	RhiDevice device;
+	RhiGraphicsCommandQueue command_queue;
+	RhiCommandBuffer command_buffer;
+	RhiSwapChain swap_chain;
+	RhiRenderPass render_pass;
+};
+
+struct RhiUnitTestCallbacks {
+	std::function<void(RhiUnitTest&)> on_init = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
+	std::function<void(RhiUnitTest&)> on_process = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
+	std::function<void(RhiUnitTest&)> on_end = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
+};
+
+void test_create_window_obj(RhiUnitTestCallbacks* callbacks = nullptr);
+void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks = nullptr);
+
 #endif

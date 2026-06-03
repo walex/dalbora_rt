@@ -1,7 +1,5 @@
 #include "test_api.hpp"
 #include "rhi.hpp"
-#include "dx12_rt_bvh.hpp"
-
 
 void test_rt_triangle(fptr_test_on_init on_init,
 	fptr_test_on_draw on_draw,
@@ -74,12 +72,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	test_swap_chain([&](RHI_DEVICE& dev, RHI_COMMAND_QUEUE& command_queue,
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
 		{
-			// BORRAR
-			DX_DEVICE& dxdev = static_cast<DX_DEVICE&>(dev);
-			ID3D12Device* i_device = *static_cast<DX_DEVICE*>(&dev);
-			ID3D12DescriptorHeap* i_heap = *dxdev.resources_heap.get();
-			// FIN BORRAR
-
 			swap_chain_ptr = &swap_chain;
 
 			RHI_TEXTURE_2D_DESC tx_desc;
@@ -268,7 +260,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			RHI_VIEW_DESC rt_instances_view_desc;
 			rt_instances_view_desc.format = tx_desc.format;
 			rt_instances_view_desc.device = &dev;
-			rt_instances_view_desc.buffer = static_cast<DX_TEXTURE_2D*>(render_target.get());
+			rt_instances_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(render_target.get());
 			rt_instances_view_desc.type = resource_type_texture_2d_rw;
 			rt_instances_view_desc.slot_id = 100;
 			render_target_view.reset(rhi_buffers_create_view(&rt_instances_view_desc));
@@ -277,7 +269,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			RHI_VIEW_DESC cb_instances_view_desc;
 			cb_instances_view_desc.format = tx_desc.format;
 			cb_instances_view_desc.device = &dev;
-			cb_instances_view_desc.buffer = static_cast<DX_TEXTURE_2D*>(shared_camera_constant_buffer.get());
+			cb_instances_view_desc.buffer = static_cast<RHI_BUFFER*>(shared_camera_constant_buffer.get());
 			cb_instances_view_desc.type = resource_type_constant_buffer;
 			cb_instances_view_desc.slot_id = 200;
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&cb_instances_view_desc));
@@ -285,8 +277,8 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			// create render pass
 			RHI_RENDER_PASS_DESC render_pass_desc;
 			render_pass_desc.device = &dev;
-			render_pass_desc.render_target_view = render_target_view.get();
 			rt_render_pass.reset(rhi_render_pass_create(&render_pass_desc));
+			rt_render_pass->render_target_view = render_target_view.get();
 		}	
 		, [&](RHI_RENDER_PASS&) {
 			// before draw
@@ -306,7 +298,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			tlas_desc.transforms = &rotation_matrix;
 			tlas_desc.instance_count = 1;
 			
-			dx12_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
+			rhi_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
 
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));

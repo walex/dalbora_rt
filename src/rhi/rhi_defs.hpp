@@ -8,9 +8,9 @@
 struct RHI_WINDOW;
 struct RHI_COMMAND_BUFFER;
 typedef void* RHI_VOID_PTR;
-using fptr_window_main_loop_callback = std::function<void(const RHI_WINDOW* const window)>;
+using fptr_window_main_loop_callback = std::function<void(RHI_WINDOW* const window)>;
 using fptr_window_on_init = std::function<void(RHI_WINDOW* const window)>;
-using fptr_window_on_end = std::function<void(const RHI_WINDOW* const window)>;
+using fptr_window_on_end = std::function<void(RHI_WINDOW* const window)>;
 using fptr_command_queue_on_execute = std::function<void(RHI_VOID_PTR native_command_queue_impl,
 														 std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list)>;
 using fptr_command_buffer_on_record = std::function<void(RHI_VOID_PTR native_command_buffer_impl)>;
@@ -148,10 +148,9 @@ constexpr __int64 device_features_mesh_shaders = 0x4;
 
 struct RHI_WINDOW_CALLBACKS
 {
-
-	fptr_window_on_init on_init;
-	fptr_window_main_loop_callback main_loop;
-	fptr_window_on_end on_end;
+	fptr_window_on_init on_init = [](RHI_WINDOW* const) {};
+	fptr_window_main_loop_callback main_loop = [](RHI_WINDOW* const) {};
+	fptr_window_on_end on_end = [](RHI_WINDOW* const) {};
 };
 
 #endif

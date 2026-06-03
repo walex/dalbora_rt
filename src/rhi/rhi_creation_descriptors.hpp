@@ -35,7 +35,7 @@ struct RHI_INDEX_BUFFER_DESC : public RHI_BUFFER_DESC {
 };
 
 struct RHI_WINDOW_DESC  {
-	char title[_MAX_FNAME];
+	char* title;
 	size_t width;
 	size_t height;
 	bool full_screen;
@@ -162,7 +162,6 @@ struct RHI_RT_BVH_GEOMETRY_INSTANCES_DESC  {
 };
 
 struct RHI_RENDER_PASS_DESC  {
-	RHI_VIEW* render_target_view = nullptr;
 	RHI_DEVICE* device = nullptr;
 };
 

@@ -6,12 +6,10 @@ RHI_RENDER_PASS* dx12_render_pass_create(const RHI_RENDER_PASS_DESC* const desc)
 
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
-	ASSERT_PTR(desc->render_target_view);
 
 	DX_RENDER_PASS* result = new DX_RENDER_PASS();
 	ASSERT_PTR(result);
 	result->device = desc->device;
-	result->render_target_view = desc->render_target_view;
 
 	return result;
 }

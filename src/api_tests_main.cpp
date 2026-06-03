@@ -1,9 +1,8 @@
 #include "dalbora_rt_api.hpp"
 #include "test_api.hpp"
 
-int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
+void test_api()
 {
-
 	// init rhi
 	rhi_init(device_type_dx12);
 
@@ -24,6 +23,27 @@ int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 
 	// end rhi
 	rhi_end();
+}
+
+
+void test_objects() {
+
+	// init rhi
+	rhi_init(device_type_dx12);
+
+	// test_create_window_obj();
+
+	 test_create_swap_chain_obj();
+
+	// end rhi
+	rhi_end();
+}
+
+int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
+{
+
+	// test_api();
+	test_objects();
 
 	return 0;
 }

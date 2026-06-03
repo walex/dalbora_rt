@@ -128,6 +128,8 @@ struct RHI_WINDOW {
 	virtual ~RHI_WINDOW() = default;
 	RHI_VOID_PTR handle = nullptr;
 	RHI_WINDOW_CALLBACKS* callbacks = nullptr;
+	size_t width = 0;
+	size_t height = 0;
 };
 
 struct RHI_RT_BVH {

@@ -225,7 +225,7 @@ void dx12_rhi_end();
 #ifdef DEBUG
 	#define ASSERT_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)
 #else
-	#define ASSERT_FAILED(expr)
+	#define ASSERT_SUCCESS(expr) expr
 #endif
 
 #endif

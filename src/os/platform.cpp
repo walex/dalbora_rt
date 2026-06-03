@@ -114,3 +114,31 @@ void dummy() {}
 
 #endif
 
+
+void print_fps(const char* label, const double inteval_secs) {
+    using clock = std::chrono::high_resolution_clock;
+    static std::mutex s_mutex;
+    static clock::time_point s_start = clock::now();
+    static size_t s_frames = 0;
+
+    std::lock_guard<std::mutex> lock(s_mutex);
+    ++s_frames;
+    auto now = clock::now();
+    std::chrono::duration<double> elapsed = now - s_start;
+    if (elapsed.count() >= inteval_secs) {
+        double fps = static_cast<double>(s_frames) / elapsed.count();
+        char buf[128];
+        if (label && label[0] != '\0') {
+            std::snprintf(buf, sizeof(buf), "%s: %.2f fps\n", label, fps);
+        }
+        else {
+            std::snprintf(buf, sizeof(buf), "FPS: %.2f\n", fps);
+        }
+#ifndef WINDOWS_PLATFORM
+        OutputDebugStringA(buf);
+#endif
+        std::printf("%s", buf);
+        s_frames = 0;
+        s_start = now;
+    }
+}

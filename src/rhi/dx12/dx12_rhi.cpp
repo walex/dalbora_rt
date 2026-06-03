@@ -40,6 +40,7 @@ void dx12_rhi_init()
 	rhi_command_queue_create_for_compute = &dx12_command_queue_create_for_compute;
 	rhi_command_queue_create_for_copy = &dx12_command_queue_create_for_copy;
 	rhi_command_queue_execute = &dx12_command_queue_execute;
+	rhi_command_queue_sync = &dx12_command_queue_sync;
 
 	// command buffer
 	rhi_command_buffer_create_for_copy = &dx12_command_buffer_create_for_copy;
@@ -94,6 +95,7 @@ void dx12_rhi_init()
 	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
 	rhi_rt_bvh_create = &dx12_rt_bvh_create;
 	rhi_rt_bvh_build_geometry_instances = &dx12_rt_bvh_build_geometry_instances;
+	rhi_rt_bvh_update_geometry_instances = &dx12_rt_bvh_update_geometry_instances;
 	rhi_rt_pipeline_create_sbt = &dx12_rt_pipeline_create_sbt;
 
 	

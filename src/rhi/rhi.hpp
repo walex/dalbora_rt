@@ -21,7 +21,7 @@ inline RHI_DEVICE* (*rhi_create_device)(const RHI_DEVICE_DESC* const desc);
 // swap chain api
 inline RHI_SWAP_CHAIN* (*rhi_swap_chain_create)(const RHI_SWAP_CHAIN_DESC* const swpc_desc);
 inline void (*rhi_swap_chain_present)(const RHI_SWAP_CHAIN* const);
-inline const RHI_VIEW* const (*rhi_swap_chain_get_surface)(const RHI_SWAP_CHAIN* const swap_chain, const size_t surface_index);
+inline RHI_VIEW* const (*rhi_swap_chain_get_surface)(const RHI_SWAP_CHAIN* const swap_chain, const size_t surface_index);
 inline uint32_t (*rhi_swap_chain_get_current_buffer_id)(const RHI_SWAP_CHAIN* const swap_chain);
 inline void (*rhi_swap_chain_copy_direct)(RHI_SWAP_CHAIN& swap_chain, RHI_TEXTURE_2D& render_target);
 
@@ -30,6 +30,7 @@ inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create_for_render)(const RHI_COMMA
 inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create_for_compute)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
 inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create_for_copy)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
 inline void (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE* const command_queue, bool wait_completion, fptr_command_queue_on_execute callback);
+inline void (*rhi_command_queue_sync)(RHI_COMMAND_QUEUE* const command_queue);
 
 // command buffer
 inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_copy)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
@@ -102,5 +103,6 @@ inline RHI_BUFFER*(*rhi_rt_bvh_build_geometry_instances)(const RHI_RT_BVH_GEOMET
 inline void (*rhi_command_buffer_ray_trace)(RHI_COMMAND_BUFFER* const command_buffer,
 	RHI_TEXTURE_2D* const render_target, const RHI_BUFFER* const bvh_instances, 
 	const RHI_SBT_TABLE* const sbt);
-
+inline void (*rhi_rt_bvh_update_geometry_instances)(const RHI_RT_BVH_GEOMETRY_INSTANCES_DESC* const desc,
+	RHI_BUFFER* const buffer);
 #endif

@@ -1,5 +1,4 @@
 #include "test_api.hpp"
-#include "dx12_rhi.hpp"
 
 #ifdef TEST_SWAP_CHAIN
 void test_swap_chain(fptr_test_on_init on_init
@@ -13,7 +12,7 @@ void test_swap_chain(fptr_test_on_init on_init
 	std::unique_ptr<RHI_COMMAND_QUEUE> command_queue;
 	std::unique_ptr<RHI_SWAP_CHAIN> swap_chain;
 	std::unique_ptr<RHI_COMMAND_BUFFER> command_buffer;
-	std::vector<std::unique_ptr<RHI_RENDER_PASS>> render_passes;
+	std::unique_ptr<RHI_RENDER_PASS> render_pass;
 	
 	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
 	callbacks.get()->on_init = ([&](RHI_WINDOW* const window) {
@@ -54,26 +53,18 @@ void test_swap_chain(fptr_test_on_init on_init
 		vp.min_z = 0.0f;
 		vp.max_z = 1.0f;
 
-		for (size_t i = 0; i < swap_chain->render_targets_count; i++) {
+		RHI_RENDER_PASS_DESC render_pass_desc;
+		render_pass_desc.device = device.get();
+		render_pass.reset(rhi_render_pass_create(&render_pass_desc));
+		render_pass->view_port = vp;
 
-			RHI_VIEW* rt = swap_chain->render_targets[i].get();
-			RHI_RENDER_PASS_DESC render_pass_desc;
-			render_pass_desc.device = device.get();
-			render_pass_desc.render_target_view = rt;
-			RHI_RENDER_PASS* render_pass = rhi_render_pass_create(&render_pass_desc);
-			render_pass->view_port = vp;
-			render_passes.emplace_back(render_pass);
-		}
 		if (on_init)
 			on_init(*device, *command_queue, *command_buffer, *swap_chain);
 		});
 
 	callbacks.get()->main_loop = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
 
-		// get current back buffer
-		unsigned int id = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
-		// get associated render pass
-		auto& render_pass = render_passes[id];
+		render_pass->render_target_view = rhi_swap_chain_get_surface(swap_chain.get(), UINT64_MAX);
 		
 		if (on_before_draw)
 			on_before_draw(*render_pass);
@@ -99,6 +90,7 @@ void test_swap_chain(fptr_test_on_init on_init
 
 		// present
 		rhi_swap_chain_present(swap_chain.get());
+		print_fps();
 	});
 	test_create_window(callbacks);
 
@@ -110,8 +102,7 @@ void test_swap_chain(fptr_test_on_init on_init
 		swap_chain.reset();
 		command_buffer.reset();
 		command_queue.reset();
-		for (auto& rp : render_passes)
-			rp.reset();
+		render_pass.reset();
 		swap_chain.reset();
 		device.reset();
 	}
@@ -119,4 +110,68 @@ void test_swap_chain(fptr_test_on_init on_init
 
 }
 
+void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
+	
+	
+	RHI_VIEWPORT vp;
+	vp.x = 0;
+	vp.y = 0;
+	vp.width = 800;
+	vp.height = 600;
+	vp.min_z = 0.0f;
+	vp.max_z = 1.0f;
+
+	RhiUnitTestCallbacks unit_test_callbacks;
+	unit_test_callbacks.on_init = [&](RhiUnitTest& unit_test) {
+		
+		RhiWindow& window = unit_test.window;
+		RhiDevice& device = unit_test.device;
+		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
+		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
+		RhiSwapChain& swap_chain = unit_test.swap_chain;
+		RhiRenderPass& render_pass = unit_test.render_pass;
+		
+		device.create(0, device_features_none);
+		command_queue.create(device);
+		command_buffer.create(device, command_queue);
+		swap_chain.create(window, device, command_queue);
+		render_pass.create(device);
+		if (callbacks)
+			callbacks->on_init(unit_test);
+	};
+
+	unit_test_callbacks.on_process = ([&](RhiUnitTest& unit_test) {
+
+		RhiWindow& window = unit_test.window;
+		RhiDevice& device = unit_test.device;
+		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
+		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
+		RhiSwapChain& swap_chain = unit_test.swap_chain;
+		RhiRenderPass& render_pass = unit_test.render_pass;
+
+		command_buffer.record([&] {
+			
+			RhiTextureView render_target_view = swap_chain.get_next_render_target();
+			render_pass.set_view_port(vp);
+			render_pass.set_render_target(&render_target_view);
+			render_pass.rasterize(command_buffer, [&](RhiCommandBuffer& command_buffer) {
+				
+				if (callbacks)
+					callbacks->on_process(unit_test);
+			});
+		});
+
+		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
+			
+			list.add_command_buffer(command_buffer);
+		});
+		swap_chain.present();
+	});
+
+	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
+
+	});
+
+	test_create_window_obj(&unit_test_callbacks);
+}
 #endif

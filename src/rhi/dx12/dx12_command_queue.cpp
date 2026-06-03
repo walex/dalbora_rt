@@ -61,12 +61,12 @@ void dx12_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue, const bo
 			native_list[i] = *static_cast<DX_COMMAND_BUFFER*>(command_buffer_list[i]);
 		i_cmd_queue->ExecuteCommandLists(1, native_list.data());
 		if (wait_completion == true) {
-			dx12_command_queue_wait(command_queue);
+			dx12_command_queue_sync(command_queue);
 		}
 	}
 }
 
-void dx12_command_queue_wait(RHI_COMMAND_QUEUE* command_queue) {
+void dx12_command_queue_sync(RHI_COMMAND_QUEUE* command_queue) {
 
 	ASSERT_PTR(command_queue);
 

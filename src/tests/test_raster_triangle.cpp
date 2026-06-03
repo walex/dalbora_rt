@@ -295,4 +295,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	return;
 }
 
+void test_raster_triangle() {
+
+}
 #endif
