@@ -1,6 +1,7 @@
 #include "rhi_command_buffer.hpp"
 #include "rhi_command_queue.hpp"
 #include "rhi_device.hpp"
+#include "rhi_gpu_buffer.hpp"
 
 RhiCommandBuffer::RhiCommandBuffer(RHI_COMMAND_BUFFER* handle) : RhiImpl<RHI_COMMAND_BUFFER>(handle) {
 }
@@ -18,4 +19,12 @@ void RhiCommandBuffer::record(RhiCommandBufferRecordCallback callback) {
 			
 			callback();			
 	});
+}
+
+void RhiCommandBuffer::draw_triangle_list(RhiGPUBuffer& vertex_buffer, RhiGPUBuffer* index_buffer) {
+
+	if (index_buffer)
+		rhi_command_buffer_draw_triangle_list(*this, vertex_buffer, *index_buffer);
+	else
+		rhi_command_buffer_draw_triangle_list(*this, vertex_buffer, nullptr);
 }

@@ -135,7 +135,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
 		swap_chain_impl->render_targets[swap_chain_impl->render_targets_count++].reset(view);
 	}
-
+	swap_chain_impl->format = desc->color_format;
 	return swap_chain_impl;
 }
 

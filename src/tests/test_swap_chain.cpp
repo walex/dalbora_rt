@@ -122,7 +122,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 	vp.max_z = 1.0f;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
-	unit_test_callbacks.on_init = [&](RhiUnitTest& unit_test) {
+	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 		
 		RhiWindow& window = unit_test.window;
 		RhiDevice& device = unit_test.device;
@@ -138,9 +138,9 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		render_pass.create(device);
 		if (callbacks)
 			callbacks->on_init(unit_test);
-	};
+	});
 
-	unit_test_callbacks.on_process = ([&](RhiUnitTest& unit_test) {
+	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
 
 		RhiWindow& window = unit_test.window;
 		RhiDevice& device = unit_test.device;
@@ -153,11 +153,11 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 			
 			RhiTextureView render_target_view = swap_chain.get_next_render_target();
 			render_pass.set_view_port(vp);
-			render_pass.set_render_target(&render_target_view);
+			render_pass.set_render_target(render_target_view);
 			render_pass.rasterize(command_buffer, [&](RhiCommandBuffer& command_buffer) {
 				
 				if (callbacks)
-					callbacks->on_process(unit_test);
+					callbacks->on_draw(unit_test);
 			});
 		});
 

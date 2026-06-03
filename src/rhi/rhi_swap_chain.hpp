@@ -18,6 +18,7 @@ public:
 	void create(const RhiWindow& window, const RhiDevice& device, const RhiCommandQueue& command_queue, const size_t buffers_count = 3) override;
 	RhiTextureView get_next_render_target();
 	void present();
+	resource_format get_format();
 };
 
 #endif // __rhi_swap_chain_hpp__

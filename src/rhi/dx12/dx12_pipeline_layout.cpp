@@ -18,7 +18,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 			|| desc->descriptors[i].shader_register_max == -1) {
 			break;
 		}
-		const RHI_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
+		const RHI_SHADER_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
 		switch (descriptor.resource_type) {
 		case resource_type_shader:
@@ -95,5 +95,8 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	ASSERT_PTR(i_root_signature);
 	DX_PIPELINE_LAYOUT* result = new DX_PIPELINE_LAYOUT();
 	result->set_handle(i_root_signature);
+	result->topology = desc->topology;
+	result->surface_format = desc->surface_format;
+	result->depth_buffer_format = desc->depth_buffer_format;
 	return result;
 }

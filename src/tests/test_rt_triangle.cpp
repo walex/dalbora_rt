@@ -100,21 +100,21 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			// descriptors ( order mathers )
 
 			// 1 - GPU read only (Scene BVH)
-			RHI_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
+			RHI_SHADER_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			s_desc.resource_type = resource_type_shader;
 			s_desc.shader_register_start = 0;
 			s_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 2 - GPU read write (Render Target)
-			RHI_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
+			RHI_SHADER_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			o_desc.resource_type = resource_type_generic_rw_buffer;
 			o_desc.shader_register_start = 0;
 			o_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 3 - Constant buffer (Camera)
-			RHI_DESCRIPTOR_DESC& c_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
+			RHI_SHADER_DESCRIPTOR_DESC& c_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			c_desc.resource_type = resource_type_constant_buffer;
 			c_desc.shader_register_start = 0;
 			c_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,

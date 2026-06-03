@@ -82,7 +82,7 @@ struct RHI_RASTER_PIPELINE_DESC  {
 	RHI_COMPILED_SHADER_BUFFER* tess_shader = nullptr;
 	RHI_COMPILED_SHADER_BUFFER* domain_shader = nullptr;
 	primitive_topology topology = primitive_topology_none;
-	resource_format surface_format = resource_format_none;
+	resource_format format = resource_format_none;
 	resource_format depth_buffer_format = resource_format_none;
 };
 
@@ -121,7 +121,7 @@ struct RHI_RT_PIPELINE_DESC  {
 	size_t ray_gen_count = 0;
 };
 
-struct RHI_DESCRIPTOR_DESC  {
+struct RHI_SHADER_DESCRIPTOR_DESC  {
 	resource_type resource_type = resource_type_generic_rw_buffer;
 	size_t shader_register_start = 0;
 	size_t shader_register_max = 0;
@@ -130,7 +130,10 @@ struct RHI_DESCRIPTOR_DESC  {
 #define MAX_PIPELINE_DESCRIPTORS 16
 struct RHI_PIPELINE_LAYOUT_DESC  {
 	RHI_DEVICE* device = nullptr;
-	RHI_DESCRIPTOR_DESC descriptors[MAX_PIPELINE_DESCRIPTORS];
+	primitive_topology topology = primitive_topology_none;
+	resource_format	surface_format = resource_format_none;
+	resource_format depth_buffer_format = resource_format_none;
+	RHI_SHADER_DESCRIPTOR_DESC descriptors[MAX_PIPELINE_DESCRIPTORS];
 	size_t descriptor_count = 0;
 };
 

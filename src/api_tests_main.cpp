@@ -33,7 +33,9 @@ void test_objects() {
 
 	// test_create_window_obj();
 
-	 test_create_swap_chain_obj();
+	// test_create_swap_chain_obj();
+
+	test_raster_triangle_obj();
 
 	// end rhi
 	rhi_end();

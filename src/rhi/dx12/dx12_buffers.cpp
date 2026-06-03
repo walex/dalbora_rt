@@ -438,7 +438,6 @@ void dx12_buffers_update_view(const RHI_DEVICE* const device,
 
 	DX_VIEW* view_impl = static_cast<DX_VIEW*>(view);
 
-	RHI_VIEW* result = nullptr;
 	if (view_impl->type == resource_type_depth_stencil_target)
 		dx12_buffers_create_dsv_from_handle(i_device,
 			i_resource,			

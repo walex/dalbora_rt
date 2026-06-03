@@ -28,3 +28,7 @@ RhiTextureView RhiSwapChain::get_next_render_target() {
 void RhiSwapChain::present() {
 	rhi_swap_chain_present(*this);
 }
+
+resource_format RhiSwapChain::get_format() {
+	return static_cast<RHI_SWAP_CHAIN*>(*this)->format;
+}

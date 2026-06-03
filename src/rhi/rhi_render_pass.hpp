@@ -6,6 +6,8 @@
 class RhiCommandBuffer;
 class RhiDevice;
 class RhiTextureView;
+class RhiView;
+class RhiRasterPipeline;
 using RhiRenderPassRenderCallback = std::function<void(RhiCommandBuffer&)>;
 class RhiRenderPass 
 	: public ICreateRhiObject<const RhiDevice&>
@@ -16,9 +18,9 @@ public:
 	virtual ~RhiRenderPass() = default;
 	void create(const RhiDevice& device) override;
 	void rasterize(RhiCommandBuffer& command_buffer, RhiRenderPassRenderCallback callback);
-	void set_render_target(RhiTextureView* const rt);
-	void set_depth_buffer(RhiTextureView* const depth);
-	void set_pipeline(RHI_PIPELINE* const pipeline);
+	void set_render_target(RhiView& rt);
+	void set_depth_buffer(RhiView& depth);
+	void set_pipeline(RhiRasterPipeline& pipeline);
 	void set_view_port(const RHI_VIEWPORT& vp);
 };
 

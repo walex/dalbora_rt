@@ -57,6 +57,7 @@ struct RHI_TEXTURE_2D {
 struct RHI_SWAP_CHAIN {
 	virtual ~RHI_SWAP_CHAIN() = default;
 	std::unique_ptr<RHI_VIEW> render_targets[MAX_RENDER_TARGETS];
+	resource_format format;
 	size_t render_targets_count = 0;
 };
 
@@ -66,6 +67,9 @@ struct RHI_COMPILED_SHADER_BUFFER {
 
 struct RHI_PIPELINE_LAYOUT {
 	virtual ~RHI_PIPELINE_LAYOUT() = default;
+	primitive_topology topology = primitive_topology_none;
+	resource_format	surface_format = resource_format_none;
+	resource_format depth_buffer_format = resource_format_none;
 };
 
 struct RHI_COMMAND_BUFFER {

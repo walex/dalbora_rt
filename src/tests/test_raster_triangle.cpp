@@ -3,6 +3,28 @@
 
 #ifdef TEST_RASTER_TRIANGLE
 
+constexpr float aspect = 800.0f / 600.0f;
+constexpr float x = 0.5f;
+
+struct Vertex
+{
+	float x, y, z;
+};
+
+Vertex vertices[] =
+{
+	{0.0f, x, 0.0f}, // top
+	{x, -x, 0.0f},	 // right
+	{-x, -x, 0.0f}	 // left
+};
+constexpr unsigned int vertex_count = sizeof(vertices) / sizeof(Vertex);
+
+uint16_t indices[] =
+{
+	0, 1, 2 
+};
+constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
+
 void test_raster_triangle(fptr_test_on_init on_init,
 						  fptr_test_on_draw on_draw,
 						  fptr_test_on_end on_end,
@@ -26,31 +48,11 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 	RHI_VOID_PTR object_constant_buffer_ptr;
 
-	float aspect = 800.0f / 600.0f;
-	float x = 0.5f;
-
+	
 	CameraCB camera;
 	ObjectCB triangle_transforms;
 
-	get_transforms(triangle_transforms.world, camera.view, camera.projection);
-
-	struct Vertex
-	{
-		float x, y, z;
-	};
-
-	Vertex vertices[] =
-		{
-			{0.0f, x, 0.0f}, // top
-			{x, -x, 0.0f},	 // right
-			{-x, -x, 0.0f}	 // left
-		};
-	constexpr unsigned int vertex_count = sizeof(vertices) / sizeof(Vertex);
-
-	uint16_t indices[] =
-		{
-			0, 1, 2};
-	constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
+	get_transforms(triangle_transforms.world, camera.view, camera.projection);	
 
 	const std::filesystem::path shaders_folder(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests)");
 
@@ -68,7 +70,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pl_desc.device = &device;
 
 			// add constant buffer descriptors for camera and object transforms;
-			RHI_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
+			RHI_SHADER_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			cb_desc.resource_type = resource_type_constant_buffer;
 			cb_desc.shader_register_start = 0; // ie: b0 in hlsl
 			cb_desc.shader_register_max = 100;
@@ -167,7 +169,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			constants_buffer_array = {shared_camera_constant_buffer.get(), shared_object_constant_buffer.get()};
 
-			// create copy command queue ad buffer
+			// create copy command queue and buffer
 			RHI_COMMAND_QUEUE_DESC queue_desc; 
 			queue_desc.device = &device;
 			copy_command_queue.reset(rhi_command_queue_create_for_copy(&queue_desc));
@@ -243,7 +245,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipe_desc.vertex_shader = vertex_shader.get();
 			pipe_desc.pixel_shader = pixel_shader.get();
 			pipe_desc.topology = primitive_topology_triangle;
-			pipe_desc.surface_format = resource_format_R8G8B8A8_norm;
+			pipe_desc.format = resource_format_R8G8B8A8_norm;
 			pipe_desc.depth_buffer_format = resource_format_d24_norm_s8_uint;
 			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));
 
@@ -295,7 +297,132 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	return;
 }
 
-void test_raster_triangle() {
+void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
+	RhiShaderProgram vertex_shader;
+	RhiShaderProgram pixel_shader;
+	RhiGPUBuffer vertex_buffer;
+	RhiGPUBuffer index_buffer;
+	RhiDepthBuffer depth_buffer;
+	RhiPipelineLayout pipeline_layout;
+	RhiRasterPipeline pipeline;
+	RhiSharedBuffer camera_transforms;
+	RhiSharedBuffer object_transforms;
+	RhiView camera_transform_view;
+	RhiView object_transform_view;
+	RhiView depth_buffer_view;
+	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
+	std::unique_ptr<RhiSharedBufferMap> object_constant_buffer_map;
+	
+	CameraCB camera_matrices;
+	ObjectCB object_matrices;
+
+	get_transforms(object_matrices.world, camera_matrices.view, camera_matrices.projection);
+
+	RhiUnitTestCallbacks unit_test_callbacks;
+	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
+
+		RhiWindow& window = unit_test.window;
+		RhiDevice& device = unit_test.device;
+		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
+		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
+		RhiSwapChain& swap_chain = unit_test.swap_chain;
+
+		RhiSharedBuffer shared_vertex_buffer;
+		RhiSharedBuffer shared_index_buffer;
+
+		// compile shaders
+		vertex_shader.create(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)",
+			"VSMain", "vs_6_0");
+		pixel_shader.create(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)",
+			"PSMain", "ps_6_0");
+
+		// create pipeline layout
+		pipeline_layout.add_constants_buffer_descriptors(0, 100);
+		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
+		
+		// create pipeline
+		RhiPipelineShaderPrograms shader_programs;
+		shader_programs.vertex_shader = &vertex_shader;
+		shader_programs.pixel_shader = &pixel_shader;
+		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
+		pipeline.create(device, pipeline_layout, shader_programs);
+
+		// copy vertices to cpu visible memory
+		vertex_buffer.create(device, sizeof(vertices), sizeof(vertices[0]), resource_format_float3);
+		shared_vertex_buffer.create(device, sizeof(vertices));
+		auto v_map_info = shared_vertex_buffer.map(0, sizeof(vertices));
+		memcpy(v_map_info.get_data(), vertices, v_map_info.get_length());
+		shared_vertex_buffer.unmap(v_map_info);
+
+		// copy indices to cpu visible memory
+		index_buffer.create(device, sizeof(indices), sizeof(uint16_t), resource_format_uint16);
+		shared_index_buffer.create(device, sizeof(indices));
+		auto i_map_info = shared_index_buffer.map(0, sizeof(indices));
+		memcpy(i_map_info.get_data(), indices, i_map_info.get_length());
+		shared_index_buffer.unmap(i_map_info);
+
+		// upload vertices e indices data to gpu only memory
+		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
+				
+			command_buffer.record([&] {
+
+				vertex_buffer.upload(command_buffer, shared_vertex_buffer);
+				index_buffer.upload(command_buffer, shared_index_buffer);
+			});
+			
+			list.add_command_buffer(command_buffer);
+		});
+
+		// create depth buffers
+		depth_buffer.create(device, window.get_width(), window.get_height(), resource_format_d24_norm_s8_uint);
+
+		// create camera transform buffer
+		camera_transforms.create(device, sizeof(CameraCB));
+
+		// create triangle transform buffer
+		object_transforms.create(device, sizeof(ObjectCB));
+
+		// views
+		depth_buffer_view = depth_buffer.new_depth_buffer_view(device);
+
+		// add views for transform buffers for shader visibility
+		// creation order is related with shader constant buffer registers ids
+		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
+		object_transform_view = object_transforms.new_constant_buffer_view(device);	// cb reg 1
+
+		// map constant buffers
+		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
+		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms.map(0, sizeof(ObjectCB)));
+		if (callbacks)
+			callbacks->on_init(unit_test);
+		unit_test.render_pass.set_depth_buffer(depth_buffer_view);
+		unit_test.render_pass.set_pipeline(pipeline);
+	});
+
+	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
+
+		float dt = get_delta_time();
+		object_matrices.world = rotate_triangle(dt);
+
+		// upload shaders constants
+		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));
+		memcpy(object_constant_buffer_map->get_data(), &object_matrices, sizeof(ObjectCB));
+		unit_test.command_buffer.draw_triangle_list(vertex_buffer, &index_buffer);
+		
+
+		if (callbacks)
+			callbacks->on_draw(unit_test);
+	});
+
+	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
+			
+		if (callbacks)
+			callbacks->on_end(unit_test);
+		camera_transforms.unmap(*camera_constant_buffer_map);
+		object_transforms.unmap(*object_constant_buffer_map);
+	});
+
+	test_create_swap_chain_obj(&unit_test_callbacks);
 }
 #endif

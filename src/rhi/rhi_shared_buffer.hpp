@@ -1,0 +1,36 @@
+#ifndef __rhi_shared_buffer_hpp__
+#define __rhi_shared_buffer_hpp__
+
+#include "rhi_impl.hpp"
+#include "rhi_view.hpp"
+class RhiSharedBufferMap {
+
+public:
+	RhiSharedBufferMap(size_t offset, size_t length, uint8_t* data)
+		: m_offset(offset)
+		, m_length(length)
+		, m_data(data) { }
+	size_t get_offset() const { return m_offset; }
+	size_t get_length() const { return m_length; }
+	uint8_t* get_data() const { return m_data; }
+private:
+	size_t m_offset;
+	size_t m_length;
+	uint8_t* m_data;
+};
+
+class RhiSharedBuffer : public ICreateRhiObject<const RhiDevice&, const size_t, const size_t>
+	, public RhiImpl<RHI_BUFFER>
+	, public IRhiViewCreator {
+
+public:
+	RhiSharedBuffer(RHI_BUFFER* handle = nullptr);
+	virtual ~RhiSharedBuffer() = default;
+	void create(const RhiDevice& device, const size_t length, const size_t stride = 0);
+	RhiSharedBufferMap map(const size_t offset, const size_t length);
+	void unmap(const RhiSharedBufferMap& map_info);
+	RhiView new_depth_buffer_view(RhiDevice& device) override;
+	RhiView new_constant_buffer_view(RhiDevice& device) override;
+};
+
+#endif // __rhi_shared_buffer_hpp__

@@ -191,12 +191,12 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             // on_layout
             
             // descriptors
-            RHI_DESCRIPTOR_DESC& s_desc = layout.descriptors[layout.descriptor_count++];
+            RHI_SHADER_DESCRIPTOR_DESC& s_desc = layout.descriptors[layout.descriptor_count++];
             s_desc.resource_type = resource_type_shader;
             s_desc.shader_register_start = 0;
             s_desc.shader_register_max = 100;
 
-            RHI_DESCRIPTOR_DESC& sm_desc = layout.descriptors[layout.descriptor_count++];
+            RHI_SHADER_DESCRIPTOR_DESC& sm_desc = layout.descriptors[layout.descriptor_count++];
             sm_desc.resource_type = resource_type_sampler;
             sm_desc.shader_register_start = 0;
             sm_desc.shader_register_max = 1;

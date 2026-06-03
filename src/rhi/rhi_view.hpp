@@ -7,9 +7,20 @@ class RhiView
 	: public RhiImpl<RHI_VIEW> {
 
 public:	
-	virtual ~RhiView() = default;
+	RhiView(RHI_VIEW* handle = nullptr);
+	RhiView(RhiView&&) noexcept = default;
+	RhiView& operator=(RhiView&&) noexcept = default;
+	RhiView(const RhiView&) = delete;
+	RhiView& operator=(const RhiView&) = delete;
+	virtual ~RhiView() = default;	
+};
+
+class RhiDevice;
+class IRhiViewCreator {
+	virtual RhiView new_depth_buffer_view(RhiDevice& device) = 0;
+	virtual RhiView new_constant_buffer_view(RhiDevice& device) = 0;
 protected:
-	RhiView(RHI_VIEW* handle);
+	IRhiViewCreator() = default;
 };
 
 #endif // __rhi_view_hpp__

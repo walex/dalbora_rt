@@ -1,7 +1,8 @@
 #include "rhi_render_pass.hpp"
 #include "rhi_device.hpp"
 #include "rhi_command_buffer.hpp"
-#include "rhi_texture_view.hpp"
+#include "rhi_raster_pipeline.hpp"
+#include "rhi_view.hpp"
 
 RhiRenderPass::RhiRenderPass(RHI_RENDER_PASS* handle) : RhiImpl<RHI_RENDER_PASS>(handle) {}
 
@@ -19,18 +20,18 @@ void RhiRenderPass::rasterize(RhiCommandBuffer& command_buffer, RhiRenderPassRen
 		});
 }
 
-void RhiRenderPass::set_render_target(RhiTextureView* const rt) {
-	ASSERT_PTR(rt);
-	static_cast<RHI_RENDER_PASS*>(*this)->render_target_view = *rt;
+void RhiRenderPass::set_render_target(RhiView& rt) {
+	
+	static_cast<RHI_RENDER_PASS*>(*this)->render_target_view = rt;
 }
 
-void RhiRenderPass::set_depth_buffer(RhiTextureView* const depth) {
-	ASSERT_PTR(depth);
-	static_cast<RHI_RENDER_PASS*>(*this)->depth_buffer_view = *depth;
+void RhiRenderPass::set_depth_buffer(RhiView& depth) {
+	
+	static_cast<RHI_RENDER_PASS*>(*this)->depth_buffer_view = depth;
 }
 
-void RhiRenderPass::set_pipeline(RHI_PIPELINE* const pipeline) {
-	ASSERT_PTR(pipeline);
+void RhiRenderPass::set_pipeline(RhiRasterPipeline& pipeline) {
+	
 	static_cast<RHI_RENDER_PASS*>(*this)->pipeline = pipeline;
 }
 

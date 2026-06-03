@@ -3,6 +3,8 @@
 static std::string g_shaders_folder;
 
 void dx12_shaders_compiler_set_folder(const char* const folder) {
+    if (std::filesystem::exists(folder) == false)
+        throw "shader path not found";
     g_shaders_folder = folder;
 }
 

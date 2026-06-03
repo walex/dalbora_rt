@@ -87,7 +87,7 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 	psoDesc.InputLayout = input_layout;
 	psoDesc.PrimitiveTopologyType = dx12_primitive_topology_type[desc->topology];
 	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = dx12_resource_format_type[(int)desc->surface_format];
+	psoDesc.RTVFormats[0] = dx12_resource_format_type[(int)desc->format];
 	psoDesc.SampleDesc.Count = 1;
 
 	ID3D12PipelineState* pipelineState = nullptr;
