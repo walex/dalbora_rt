@@ -81,25 +81,27 @@ resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
     return static_cast<resource_format>(std::distance(s.begin(), it));
 }
 
+static struct Vertex
+{
+    float x, y, z;
+    float u, v;
+};
+
+static Vertex vertices[] =
+{
+    // position  // uv
+    {0.0f, 0.5f, 0.0f, 0.5f, 0.0f},
+    {0.5f, -0.5f, 0.0f, 1.0f, 1.0f},
+    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f},
+};
+
 void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                                    fptr_test_on_draw UNUSED_PARAM(on_draw),
                                    fptr_test_on_end UNUSED_PARAM(on_end),
                                    fptr_test_on_layout UNUSED_PARAM(on_layout),
                                    fptr_test_on_configure_device on_configure_device)
 {
-    struct Vertex
-    {
-        float x, y, z;
-        float u, v;
-    };
-
-    Vertex vertices[] =
-        {
-            // position  // uv
-            {0.0f, 0.5f, 0.0f, 0.5f, 0.0f},
-            {0.5f, -0.5f, 0.0f, 1.0f, 1.0f},
-            {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f},
-        };
+    
 
     std::string texture_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\test_texture.dds)";
     tinyddsloader::DDSFile dds;
@@ -224,6 +226,89 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                 on_configure_device(desc);
             desc.enable_texture_sampling = true;
         });
+}
+
+void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
+    
+    std::string texture_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\test_texture.dds)";
+    tinyddsloader::DDSFile dds;
+    auto ret = dds.Load(texture_path.c_str());
+    if (tinyddsloader::Result::Success != ret)
+    {
+        throw std::exception("Failed to load texture");
+    }
+    if (dds.GetTextureDimension() !=
+        tinyddsloader::DDSFile::TextureDimension::Texture2D)
+    {
+        throw std::exception("Failed is not a 2D texture");
+    }
+
+    RhiSampler sampler;
+    RhiTexture texture;
+    RhiView texture_view;
+
+    RhiUnitTestCallbacks unit_test_callbacks;
+    unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
+
+        RhiWindow& window = unit_test.window;
+        RhiDevice& device = unit_test.device;
+        RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
+        RhiCommandBuffer& command_buffer = unit_test.command_buffer;
+        RhiSwapChain& swap_chain = unit_test.swap_chain;
+        RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
+        RhiRasterPipeline& pipeline = unit_test.pipeline;
+
+        //sampler.create(device);
+        //texture.create(device,
+        //    dxgi_to_resource(dds.GetFormat()),
+        //    static_cast<size_t>(dds.GetWidth()),
+        //    static_cast<size_t>(dds.GetHeight()),
+        //    dds.IsCubemap(),
+        //    static_cast<size_t>(dds.GetDepth()),
+        //    static_cast<size_t>(dds.GetTextureDimension()) - 1,
+        //    static_cast<size_t>(dds.GetMipCount()));
+        //texture_view = texture.create_view();
+
+        //// add layout descriptors
+        //pipeline_layout.add_shader_descriptors(0, 100);
+        //pipeline_layout.add_sampler_descriptors(0, 1);
+
+        // add input descriptor
+        pipeline.add_input_descriptor("TEXCOORD", 12, resource_format_float2);
+
+        // upload texture buffer
+        // upload vertices e indices data to gpu only memory
+        command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
+
+            command_buffer.record([&] {
+
+       
+            });
+
+            list.add_command_buffer(command_buffer);
+        });
+
+        // set shader file
+        unit_test.vertex_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
+        unit_test.pixel_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
+
+        // updata vertex and index buffer
+        unit_test.vertices.resize(sizeof(vertices));
+        memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
+        unit_test.vertices_stride = sizeof(vertices[0]);
+    });
+
+    unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
+
+    
+    });
+
+    unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
+
+
+    });
+
+    test_raster_triangle_obj(&unit_test_callbacks);
 }
 
 #endif

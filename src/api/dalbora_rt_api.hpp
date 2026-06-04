@@ -26,3 +26,4 @@
 #include "rhi_pipeline_layout.hpp"
 #include "rhi_raster_pipeline.hpp"
 #include "rhi_depth_buffer.hpp"
+#include "rhi_sampler.hpp"

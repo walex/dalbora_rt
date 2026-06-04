@@ -3,27 +3,29 @@
 
 #ifdef TEST_RASTER_TRIANGLE
 
-constexpr float aspect = 800.0f / 600.0f;
-constexpr float x = 0.5f;
+static constexpr float aspect = 800.0f / 600.0f;
+static constexpr float x = 0.5f;
 
-struct Vertex
+
+static struct Vertex
 {
 	float x, y, z;
+	float u, v;
 };
 
-Vertex vertices[] =
+static Vertex vertices[] =
 {
 	{0.0f, x, 0.0f}, // top
 	{x, -x, 0.0f},	 // right
 	{-x, -x, 0.0f}	 // left
 };
-constexpr unsigned int vertex_count = sizeof(vertices) / sizeof(Vertex);
+static constexpr unsigned int vertex_count = sizeof(vertices) / sizeof(Vertex);
 
-uint16_t indices[] =
+static uint16_t indices[] =
 {
 	0, 1, 2 
 };
-constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
+static constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
 
 void test_raster_triangle(fptr_test_on_init on_init,
 						  fptr_test_on_draw on_draw,
@@ -304,8 +306,6 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiGPUBuffer vertex_buffer;
 	RhiGPUBuffer index_buffer;
 	RhiDepthBuffer depth_buffer;
-	RhiPipelineLayout pipeline_layout;
-	RhiRasterPipeline pipeline;
 	RhiSharedBuffer camera_transforms;
 	RhiSharedBuffer object_transforms;
 	RhiView camera_transform_view;
@@ -327,39 +327,60 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
+		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
+		RhiRasterPipeline& pipeline = unit_test.pipeline;
 
 		RhiSharedBuffer shared_vertex_buffer;
 		RhiSharedBuffer shared_index_buffer;
 
-		// compile shaders
-		vertex_shader.create(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)",
-			"VSMain", "vs_6_0");
-		pixel_shader.create(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)",
-			"PSMain", "ps_6_0");
-
-		// create pipeline layout
+		// setup pipeline layout
 		pipeline_layout.add_constants_buffer_descriptors(0, 100);
-		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
 		
-		// create pipeline
+		// setup pipeline
 		RhiPipelineShaderPrograms shader_programs;
 		shader_programs.vertex_shader = &vertex_shader;
 		shader_programs.pixel_shader = &pixel_shader;
-		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
+		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);		
+
+		// setup shaders
+		unit_test.vertex_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)";
+		unit_test.pixel_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)";
+		
+		// save geometry buffers
+		unit_test.vertices.resize(sizeof(vertices));
+		memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
+		unit_test.vertices_stride = sizeof(vertices[0]);
+		unit_test.indices.resize(sizeof(indices));
+		memcpy(unit_test.indices.data(), &indices[0], sizeof(indices));
+		unit_test.indices_stride = sizeof(uint16_t);
+
+		if (callbacks)
+			callbacks->on_init(unit_test);
+
+		// compile shaders
+		vertex_shader.create(unit_test.vertex_shader_file,
+			"VSMain", "vs_6_0");
+		pixel_shader.create(unit_test.pixel_shader_file,
+			"PSMain", "ps_6_0");
+
+		// create pipeline layout
+		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
+
+		// create pipeline
 		pipeline.create(device, pipeline_layout, shader_programs);
 
 		// copy vertices to cpu visible memory
-		vertex_buffer.create(device, sizeof(vertices), sizeof(vertices[0]), resource_format_float3);
-		shared_vertex_buffer.create(device, sizeof(vertices));
-		auto v_map_info = shared_vertex_buffer.map(0, sizeof(vertices));
-		memcpy(v_map_info.get_data(), vertices, v_map_info.get_length());
+		vertex_buffer.create(device, unit_test.vertices.size(), unit_test.vertices_stride, resource_format_float3);
+		shared_vertex_buffer.create(device, unit_test.vertices.size());
+		auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
+		memcpy(v_map_info.get_data(), unit_test.vertices.data(), v_map_info.get_length());
 		shared_vertex_buffer.unmap(v_map_info);
 
 		// copy indices to cpu visible memory
-		index_buffer.create(device, sizeof(indices), sizeof(uint16_t), resource_format_uint16);
-		shared_index_buffer.create(device, sizeof(indices));
-		auto i_map_info = shared_index_buffer.map(0, sizeof(indices));
-		memcpy(i_map_info.get_data(), indices, i_map_info.get_length());
+		index_buffer.create(device, unit_test.indices.size(), unit_test.indices_stride, resource_format_uint16);
+		shared_index_buffer.create(device, unit_test.indices.size());
+		auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
+		memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
 		shared_index_buffer.unmap(i_map_info);
 
 		// upload vertices e indices data to gpu only memory
@@ -394,9 +415,10 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
 		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms.map(0, sizeof(ObjectCB)));
-		if (callbacks)
-			callbacks->on_init(unit_test);
+		
+		// set depth buffer to render pass
 		unit_test.render_pass.set_depth_buffer(depth_buffer_view);
+		// set pipeline to render pass
 		unit_test.render_pass.set_pipeline(pipeline);
 	});
 
