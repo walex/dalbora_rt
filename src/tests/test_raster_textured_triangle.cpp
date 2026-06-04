@@ -5,12 +5,11 @@
 
 #ifdef TEST_RASTER_TEXTURED_TRIANGLE
 
-void copy_bc1_image_data(tinyddsloader::DDSFile& dds, RHI_TEXTURE_2D& texture, RHI_VOID_PTR buff_ptr) {
-
+void copy_bc1_image_data_with_mips(tinyddsloader::DDSFile & dds, const RHI_TEXTURE_MIPS* const mips,
+        size_t mip_count, RHI_VOID_PTR buff_ptr) {
     
-    auto& mips = texture.mip_maps;
     for (size_t mipIndex = 0;
-        mipIndex < texture.mip_maps_count;
+        mipIndex < mip_count;
         ++mipIndex)
     {
         const tinyddsloader::DDSFile::ImageData* image =
@@ -51,6 +50,12 @@ void copy_bc1_image_data(tinyddsloader::DDSFile& dds, RHI_TEXTURE_2D& texture, R
                 srcRowSize);
         }
     }
+}
+
+void copy_bc1_image_data(tinyddsloader::DDSFile& dds, RHI_TEXTURE_2D& texture, RHI_VOID_PTR buff_ptr) {
+
+    copy_bc1_image_data_with_mips(dds, texture.mip_maps,
+        texture.mip_maps_count, buff_ptr);
 }
 
 resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
@@ -246,6 +251,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
     RhiSampler sampler;
     RhiTexture texture;
     RhiView texture_view;
+    RhiSharedBuffer texture_buffer;
 
     RhiUnitTestCallbacks unit_test_callbacks;
     unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
@@ -258,23 +264,31 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
         RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
         RhiRasterPipeline& pipeline = unit_test.pipeline;
 
-        //sampler.create(device);
-        //texture.create(device,
-        //    dxgi_to_resource(dds.GetFormat()),
-        //    static_cast<size_t>(dds.GetWidth()),
-        //    static_cast<size_t>(dds.GetHeight()),
-        //    dds.IsCubemap(),
-        //    static_cast<size_t>(dds.GetDepth()),
-        //    static_cast<size_t>(dds.GetTextureDimension()) - 1,
-        //    static_cast<size_t>(dds.GetMipCount()));
-        //texture_view = texture.create_view();
+        sampler.create(device);
+        texture.create(device,
+            dxgi_to_resource(dds.GetFormat()),
+            static_cast<size_t>(dds.GetWidth()),
+            static_cast<size_t>(dds.GetHeight()),
+            dds.IsCubemap(),
+            static_cast<size_t>(dds.GetDepth()),
+            static_cast<size_t>(dds.GetTextureDimension()) - 1,
+            static_cast<size_t>(dds.GetMipCount()));
+        texture_view = texture.create_read_only_view(device);
 
-        //// add layout descriptors
-        //pipeline_layout.add_shader_descriptors(0, 100);
-        //pipeline_layout.add_sampler_descriptors(0, 1);
+        // add layout descriptors
+        pipeline_layout.add_resources_buffer_descriptors(0, 100);
+        pipeline_layout.add_samplers_buffer_descriptors(0, 1);
 
         // add input descriptor
         pipeline.add_input_descriptor("TEXCOORD", 12, resource_format_float2);
+
+        // copy texture data        
+        texture_buffer.create(device, texture.get_hw_length());
+        auto map_info = texture_buffer.map(0, texture.get_hw_length());
+        size_t mip_count;
+        const RHI_TEXTURE_MIPS* const mips = texture.get_mips(mip_count);
+        copy_bc1_image_data_with_mips(dds, mips, mip_count, map_info.get_data());
+        texture_buffer.unmap(map_info);
 
         // upload texture buffer
         // upload vertices e indices data to gpu only memory
@@ -282,7 +296,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
             command_buffer.record([&] {
 
-       
+                texture.upload(command_buffer, texture_buffer);
             });
 
             list.add_command_buffer(command_buffer);

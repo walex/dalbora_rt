@@ -1,5 +1,6 @@
 #include "rhi_shared_buffer.hpp"
 #include "rhi_device.hpp"
+#include "rhi_view.hpp"
 
 RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle)
 	: RhiImpl<RHI_BUFFER>(handle) {}

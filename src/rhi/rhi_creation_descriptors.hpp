@@ -7,7 +7,7 @@
 struct RHI_DEVICE_DESC  {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
-	bool enable_texture_sampling = false;
+	bool enable_texture_sampling = true;
 };
 
 struct RHI_BUFFER_DESC  {

@@ -9,8 +9,7 @@ class RhiSharedBuffer;
 class RhiCommandBuffer;
 class RhiGPUBuffer : public ICreateRhiObject<const RhiDevice&, const size_t, 
 	const size_t, const resource_format >
-	, public RhiImpl<RHI_BUFFER>
-	, public IRhiViewCreator {
+	, public RhiImpl<RHI_BUFFER> {
 		
 
 public:
@@ -20,8 +19,8 @@ public:
 		const size_t stride, const resource_format format = resource_format_none);
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb);
 	resource_format get_format();
-	RhiView new_depth_buffer_view(RhiDevice& device) override;
-	RhiView new_constant_buffer_view(RhiDevice& device) override;
+	RhiView new_depth_buffer_view(RhiDevice& device);
+	RhiView new_constant_buffer_view(RhiDevice& device);
 };
 
 #endif // __rhi_gpu_buffer_hpp__

@@ -30,6 +30,12 @@ struct RHI_VIEW {
 
 struct RHI_DEVICE {
 	virtual ~RHI_DEVICE() = default;
+	size_t constant_buffer_slot_start;
+	size_t rw_buffer_slot_start;
+	size_t read_only_buffer_slot_start;
+	size_t render_target_slot_start;
+	size_t depth_buffer_slot_start;
+	size_t sampler_slot_start;
 };
 
 struct RHI_TEXTURE_MIPS {

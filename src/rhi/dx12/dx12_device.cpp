@@ -115,6 +115,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	ASSERT_PTR(dx_device);
 	dx_device->set_handle(i_device);
 
+	// FixME: get from config
 	DX_DEVICE_HEAP_DESC heaps_desc;
 	heaps_desc.resources_heap_enable = RESOURCES_HEAP_ENABLE;
 	
@@ -129,6 +130,14 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	
 	heaps_desc.sampler_heap_enable = desc->enable_texture_sampling;
 	heaps_desc.resources_heap_size.sampler_count = SAMPLER_HEAP_SLOT_COUNT;
+
+	// FixME: get from config
+	dx_device->constant_buffer_slot_start = 0;
+	dx_device->rw_buffer_slot_start = 200;
+	dx_device->read_only_buffer_slot_start = 100;
+	dx_device->render_target_slot_start = 0;
+	dx_device->depth_buffer_slot_start = 0;
+	dx_device->sampler_slot_start = 0;
 
 	if (heaps_desc.resources_heap_enable == true) {
 		dx_device->resources_heap.reset(dx12_heap_create(dx_device, 

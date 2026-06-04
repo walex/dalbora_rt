@@ -23,6 +23,22 @@ void RhiPipelineLayout::add_constants_buffer_descriptors(const size_t offset, co
 	cbd.shader_register_max = count;
 }
 
+void RhiPipelineLayout::add_resources_buffer_descriptors(const size_t offset, const size_t count) {
+
+	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
+	cbd.resource_type = resource_type_shader;
+	cbd.shader_register_start = offset;
+	cbd.shader_register_max = count;
+}
+
+void RhiPipelineLayout::add_samplers_buffer_descriptors(const size_t offset, const size_t count) {
+	
+	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
+	cbd.resource_type = resource_type_sampler;
+	cbd.shader_register_start = offset;
+	cbd.shader_register_max = count;
+}
+
 primitive_topology RhiPipelineLayout::get_topology() const {
 	return static_cast<RHI_PIPELINE_LAYOUT*>(*this)->topology;
 }

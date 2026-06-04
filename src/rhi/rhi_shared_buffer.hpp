@@ -19,9 +19,10 @@ private:
 	uint8_t* m_data;
 };
 
+class RhiDevice;
+class RhiView;
 class RhiSharedBuffer : public ICreateRhiObject<const RhiDevice&, const size_t, const size_t>
-	, public RhiImpl<RHI_BUFFER>
-	, public IRhiViewCreator {
+						, public RhiImpl<RHI_BUFFER> {
 
 public:
 	RhiSharedBuffer(RHI_BUFFER* handle = nullptr);
@@ -29,8 +30,8 @@ public:
 	void create(const RhiDevice& device, const size_t length, const size_t stride = 0);
 	RhiSharedBufferMap map(const size_t offset, const size_t length);
 	void unmap(const RhiSharedBufferMap& map_info);
-	RhiView new_depth_buffer_view(RhiDevice& device) override;
-	RhiView new_constant_buffer_view(RhiDevice& device) override;
+	RhiView new_depth_buffer_view(RhiDevice& device);
+	RhiView new_constant_buffer_view(RhiDevice& device);
 };
 
 #endif // __rhi_shared_buffer_hpp__

@@ -15,12 +15,4 @@ public:
 	virtual ~RhiView() = default;	
 };
 
-class RhiDevice;
-class IRhiViewCreator {
-	virtual RhiView new_depth_buffer_view(RhiDevice& device) = 0;
-	virtual RhiView new_constant_buffer_view(RhiDevice& device) = 0;
-protected:
-	IRhiViewCreator() = default;
-};
-
 #endif // __rhi_view_hpp__
