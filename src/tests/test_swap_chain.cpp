@@ -129,7 +129,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
-		RhiRenderPass& render_pass = unit_test.render_pass;
+		RhiRenderPass& render_pass = unit_test.raster_render_pass;
 		
 		device.create(0, device_features_none);
 		command_queue.create(device);
@@ -147,14 +147,14 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
-		RhiRenderPass& render_pass = unit_test.render_pass;
+		RhiRenderPass& render_pass = unit_test.raster_render_pass;
 
 		command_buffer.record([&] {
 			
-			RhiTextureView render_target_view = swap_chain.get_next_render_target();
+			RhiView render_target_view = swap_chain.get_next_render_target();
 			render_pass.set_view_port(vp);
 			render_pass.set_render_target(render_target_view);
-			render_pass.rasterize(command_buffer, [&](RhiCommandBuffer& command_buffer) {
+			render_pass.render(command_buffer, [&](RhiCommandBuffer& command_buffer) {
 				
 				if (callbacks)
 					callbacks->on_draw(unit_test);

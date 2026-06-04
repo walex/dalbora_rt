@@ -328,7 +328,7 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
-		RhiRasterPipeline& pipeline = unit_test.pipeline;
+		RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
 		RhiSharedBuffer shared_vertex_buffer;
 		RhiSharedBuffer shared_index_buffer;
@@ -337,7 +337,7 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		pipeline_layout.add_constants_buffer_descriptors(0, 100);
 		
 		// setup pipeline
-		RhiPipelineShaderPrograms shader_programs;
+		RhiRasterPipelineShaderPrograms shader_programs;
 		shader_programs.vertex_shader = &vertex_shader;
 		shader_programs.pixel_shader = &pixel_shader;
 		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);		
@@ -417,9 +417,9 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms.map(0, sizeof(ObjectCB)));
 		
 		// set depth buffer to render pass
-		unit_test.render_pass.set_depth_buffer(depth_buffer_view);
+		unit_test.raster_render_pass.set_depth_buffer(depth_buffer_view);
 		// set pipeline to render pass
-		unit_test.render_pass.set_pipeline(pipeline);
+		unit_test.raster_render_pass.set_pipeline(pipeline);
 	});
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {

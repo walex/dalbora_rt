@@ -37,8 +37,10 @@ void test_objects() {
 
 	// test_raster_triangle_obj();
 
-	test_raster_textured_triangle_obj();
+	// test_raster_textured_triangle_obj();
 
+	test_rt_triangle_obj();
+	 
 	// end rhi
 	rhi_end();
 }
@@ -46,7 +48,7 @@ void test_objects() {
 int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 {
 
-	// test_api();
+	//test_api();
 	test_objects();
 
 	return 0;

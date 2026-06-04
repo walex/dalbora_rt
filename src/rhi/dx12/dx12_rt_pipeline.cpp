@@ -64,7 +64,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 		auto& hit_group_dx = hit_groups_desc.at(hit_group_index);
 		auto& hit_group_name = hit_group_names.at(hit_group_index++);
 
-		hit_group_name = std::move(to_wstring_ascii(hit_group_rhi.group_id));
+		hit_group_name = std::move(to_wstring_ascii(hit_group_rhi.name_id));
 		hit_group_dx.HitGroupExport = hit_group_name.c_str();
 		hit_group_dx.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
 		auto& unit_1 = desc->hit_groups[i].closest_hit;
@@ -210,9 +210,9 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 		pipeline_impl->shader_table_entries_count++;
 	}
 	for (size_t i = 0; i < hit_group_max_elements; i++) {
-		std::wstring group_id = std::move(to_wstring_ascii(desc->hit_groups[i].group_id));
+		std::wstring group_id = std::move(to_wstring_ascii(desc->hit_groups[i].name_id));
 		ste[pipeline_impl->shader_table_entries_count].shader_id = props->GetShaderIdentifier(group_id.c_str());
-		strcpy_s(ste[pipeline_impl->shader_table_entries_count].name, desc->hit_groups[i].group_id);
+		strcpy_s(ste[pipeline_impl->shader_table_entries_count].name, desc->hit_groups[i].name_id);
 		pipeline_impl->shader_table_entries_count++;
 	}
 	pipeline_impl->set_handle(i_state_object);

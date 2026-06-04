@@ -4,10 +4,10 @@
 #include "rhi_shader_program.hpp"
 
 RhiRasterPipeline::RhiRasterPipeline(RHI_RASTER_PIPELINE* handle)
-: RhiImpl<RHI_RASTER_PIPELINE>(handle){}
+: RhiPipeline<RHI_RASTER_PIPELINE>(handle){}
 
 void RhiRasterPipeline::create(const RhiDevice& device, const RhiPipelineLayout& layout,
-	const RhiPipelineShaderPrograms& shader_programs) {
+	const RhiRasterPipelineShaderPrograms& shader_programs) {
 		
 	RHI_RASTER_PIPELINE_DESC desc;
 	desc.device = device;

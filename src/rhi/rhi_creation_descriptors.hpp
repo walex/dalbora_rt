@@ -104,7 +104,7 @@ struct RHI_RT_SHADER_UNIT_DESC {
 };
 
 struct RHI_RT_HIT_GROUP_DESC {
-	char group_id[MAX_SHADER_UNIT_NAME_LENGTH];
+	char name_id[MAX_SHADER_UNIT_NAME_LENGTH];
 	RHI_RT_SHADER_UNIT_DESC closest_hit;
 	RHI_RT_SHADER_UNIT_DESC any_hit;
 	RHI_RT_SHADER_UNIT_DESC intersection;	
@@ -159,7 +159,7 @@ struct RHI_RT_BVH_GEOMETRY_INSTANCES_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_BUFFER* command_buffer = nullptr;
 	RHI_RT_BVH* parent_bvh = nullptr;
-	Eigen::Matrix4f* transforms;
+	float** transforms;
 	size_t instance_count = 0;
 	bool read_only = true;
 };

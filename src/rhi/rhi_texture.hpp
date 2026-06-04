@@ -21,8 +21,8 @@ public:
         const size_t width, const size_t height,
         const bool is_cube_map, const size_t depth,
         const size_t dimension, const size_t mip_count);
-    RhiView create_read_only_view(const RhiDevice& device);
-    RhiView create_rw_view(const RhiDevice& device);
+    RhiView new_read_only_view(RhiDevice& device);
+    RhiView new_rw_view(RhiDevice& device);
     size_t get_hw_length();
     const RHI_TEXTURE_MIPS* const get_mips(size_t& mip_count);
     void upload(RhiCommandBuffer& command_buffer, RhiSharedBuffer& buffer);

@@ -262,7 +262,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
         RhiCommandBuffer& command_buffer = unit_test.command_buffer;
         RhiSwapChain& swap_chain = unit_test.swap_chain;
         RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
-        RhiRasterPipeline& pipeline = unit_test.pipeline;
+        RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
         sampler.create(device);
         texture.create(device,
@@ -273,11 +273,11 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
             static_cast<size_t>(dds.GetDepth()),
             static_cast<size_t>(dds.GetTextureDimension()) - 1,
             static_cast<size_t>(dds.GetMipCount()));
-        texture_view = texture.create_read_only_view(device);
+        texture_view = texture.new_read_only_view(device);
 
         // add layout descriptors
-        pipeline_layout.add_resources_buffer_descriptors(0, 100);
-        pipeline_layout.add_samplers_buffer_descriptors(0, 1);
+        pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+        pipeline_layout.add_sampler_buffer_descriptors(0, 1);
 
         // add input descriptor
         pipeline.add_input_descriptor("TEXCOORD", 12, resource_format_float2);

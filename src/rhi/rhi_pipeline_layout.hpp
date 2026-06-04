@@ -16,8 +16,9 @@ public:
 	void create(const RhiDevice& device, const primitive_topology topology,
 				const resource_format surface_format, const resource_format depth_buffer_format);
 	void add_constants_buffer_descriptors(const size_t offset, const size_t count);
-	void add_resources_buffer_descriptors(const size_t offset, const size_t count);
-	void add_samplers_buffer_descriptors(const size_t offset, const size_t count);
+	void add_read_only_buffer_descriptors(const size_t offset, const size_t count);
+	void add_rw_buffer_descriptors(const size_t offset, const size_t count);
+	void add_sampler_buffer_descriptors(const size_t offset, const size_t count);
 	primitive_topology get_topology() const;
 	resource_format get_format() const;
 	resource_format get_depth_buffer_format() const;

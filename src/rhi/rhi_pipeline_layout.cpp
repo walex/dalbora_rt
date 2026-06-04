@@ -23,7 +23,7 @@ void RhiPipelineLayout::add_constants_buffer_descriptors(const size_t offset, co
 	cbd.shader_register_max = count;
 }
 
-void RhiPipelineLayout::add_resources_buffer_descriptors(const size_t offset, const size_t count) {
+void RhiPipelineLayout::add_read_only_buffer_descriptors(const size_t offset, const size_t count) {
 
 	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
 	cbd.resource_type = resource_type_shader;
@@ -31,7 +31,15 @@ void RhiPipelineLayout::add_resources_buffer_descriptors(const size_t offset, co
 	cbd.shader_register_max = count;
 }
 
-void RhiPipelineLayout::add_samplers_buffer_descriptors(const size_t offset, const size_t count) {
+void RhiPipelineLayout::add_rw_buffer_descriptors(const size_t offset, const size_t count) {
+
+	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
+	cbd.resource_type = resource_type_generic_rw_buffer;
+	cbd.shader_register_start = offset;
+	cbd.shader_register_max = count;
+}
+
+void RhiPipelineLayout::add_sampler_buffer_descriptors(const size_t offset, const size_t count) {
 	
 	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
 	cbd.resource_type = resource_type_sampler;

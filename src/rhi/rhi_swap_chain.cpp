@@ -1,7 +1,9 @@
 #include "rhi_swap_chain.hpp"
-#include "rhi_command_queue.hpp"
-#include "rhi_device.hpp"
 #include "rhi_window.hpp"
+#include "rhi_device.hpp"
+#include "rhi_command_queue.hpp"
+#include "rhi_command_buffer.hpp"
+#include "rhi_texture.hpp"
 
 RhiSwapChain::RhiSwapChain(RHI_SWAP_CHAIN* handle) : RhiImpl<RHI_SWAP_CHAIN>(handle) {}
 
@@ -20,15 +22,21 @@ void RhiSwapChain::create(const RhiWindow& window, const RhiDevice& device,
 	this->set_handle(rhi_swap_chain_create(&desc));
 }
 
-RhiTextureView RhiSwapChain::get_next_render_target() {
+RhiView RhiSwapChain::get_next_render_target() {
 
-	return RhiTextureView(const_cast<RHI_VIEW*>(rhi_swap_chain_get_surface(*this, UINT64_MAX)));
+	return RhiView(const_cast<RHI_VIEW*>(rhi_swap_chain_get_surface(*this, UINT64_MAX)));
+}
+
+resource_format RhiSwapChain::get_format() {
+	return static_cast<RHI_SWAP_CHAIN*>(*this)->format;
+}
+
+void RhiSwapChain::blit(RhiCommandBuffer& command_buffer, RhiTexture& image) {
+	const RHI_VIEW* back_buffer = rhi_swap_chain_get_surface(*this, INT64_MAX);
+	rhi_command_buffer_copy_texture(command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(back_buffer->buffer), image);
 }
 
 void RhiSwapChain::present() {
 	rhi_swap_chain_present(*this);
 }
 
-resource_format RhiSwapChain::get_format() {
-	return static_cast<RHI_SWAP_CHAIN*>(*this)->format;
-}

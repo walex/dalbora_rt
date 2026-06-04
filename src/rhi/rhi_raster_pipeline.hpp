@@ -1,10 +1,10 @@
 #ifndef __rhi_raster_pipeline_hpp__
 #define __rhi_raster_pipeline_hpp__
 
-#include "rhi_impl.hpp"
+#include "rhi_pipeline.hpp"
 
 class RhiShaderProgram;
-class RhiPipelineShaderPrograms {	
+class RhiRasterPipelineShaderPrograms {	
 public:
 	RhiShaderProgram* vertex_shader = nullptr;
 	RhiShaderProgram* pixel_shader = nullptr;
@@ -18,16 +18,16 @@ public:
 class RhiDevice;
 class RhiPipelineLayout;
 class RhiRasterPipeline
-	: public ICreateRhiObject<const RhiDevice&, const RhiPipelineLayout&,
-	const RhiPipelineShaderPrograms&>
-	, public RhiImpl<RHI_RASTER_PIPELINE> {
+	: public RhiPipeline<RHI_RASTER_PIPELINE>
+	, public ICreateRhiObject<const RhiDevice&, const RhiPipelineLayout&,
+	const RhiRasterPipelineShaderPrograms&> {
 public:
 
 	RhiRasterPipeline(RHI_RASTER_PIPELINE* handle = nullptr);
 	virtual ~RhiRasterPipeline() = default;
 
 	void create(const RhiDevice& device, const RhiPipelineLayout& layout,
-		const RhiPipelineShaderPrograms& shader_programs);
+		const RhiRasterPipelineShaderPrograms& shader_programs);
 	std::vector<RHI_INPUT_LAYOUT_DESC>& get_input_descriptors() { return m_input_descriptors; }
 	void add_input_descriptor(const std::string& name, size_t offset, resource_format format);
 private:

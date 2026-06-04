@@ -39,8 +39,10 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	geomDesc.Triangles.VertexCount = static_cast<UINT>(vb_impl->length / vb_impl->stride);
 	geomDesc.Triangles.VertexFormat = dx12_resource_format_type[vb_impl->format];
 
+	size_t resource_count = 1;
 	if (ib_impl)
 	{
+		resource_count++;
 		ID3D12Resource *i_ib = *ib_impl;
 		ASSERT_PTR(i_ib);
 		geomDesc.Triangles.IndexBuffer =
@@ -85,7 +87,20 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	build_desc.Inputs = inputs;
 	build_desc.DestAccelerationStructureData = i_blas_buffer->GetGPUVirtualAddress();
 	build_desc.ScratchAccelerationStructureData = i_scratch_buffer->GetGPUVirtualAddress();
-	i_command_buffer->BuildRaytracingAccelerationStructure(&build_desc, 0, nullptr);
+
+	static constexpr D3D12_RESOURCE_STATES resource_states[] = {
+		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+	};
+	static constexpr bool restores[2] = { true,true };
+	const DX_RESOURCE* resources[2]{ vb_impl, ib_impl };
+
+	dx12_command_buffer_resource_transition(*static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer),
+		resources,
+		resource_states,
+		restores, resource_count, [&]() {
+			i_command_buffer->BuildRaytracingAccelerationStructure(&build_desc, 0, nullptr);
+	});
 
 	// UAV barrier BLAS
 	D3D12_RESOURCE_BARRIER blas_barrier = {};
@@ -140,7 +155,7 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_INSTA
 	ID3D12Resource* i_tlas_inputs_buffer = *tlas_inputs_buffer_impl;
 	ASSERT_PTR(i_tlas_inputs_buffer);
 
-	dx12_helpers_copy_eigen_matrices_to_resource(desc->transforms, desc->instance_count, i_blas_buffer->GetGPUVirtualAddress(), i_tlas_inputs_buffer);
+	dx12_helpers_copy_4x4Matrix_to_rt_instance(desc->transforms, desc->instance_count, i_blas_buffer->GetGPUVirtualAddress(), i_tlas_inputs_buffer);
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS tlas_inputs = {};
 	tlas_inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
@@ -222,7 +237,7 @@ void dx12_rt_bvh_update_geometry_instances(const RHI_RT_BVH_GEOMETRY_INSTANCES_D
 	ASSERT_PTR(i_scratch_buffer);
 
 
-	dx12_helpers_copy_eigen_matrices_to_resource(desc->transforms, desc->instance_count, i_blas_buffer->GetGPUVirtualAddress(), i_tlas_input_buffer);
+	dx12_helpers_copy_4x4Matrix_to_rt_instance(desc->transforms, desc->instance_count, i_blas_buffer->GetGPUVirtualAddress(), i_tlas_input_buffer);
 
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC updateDesc = {};
 

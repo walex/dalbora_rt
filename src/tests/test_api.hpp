@@ -50,11 +50,15 @@ struct RhiUnitTest {
 	RhiGraphicsCommandQueue command_queue;
 	RhiCommandBuffer command_buffer;
 	RhiSwapChain swap_chain;
-	RhiRenderPass render_pass;
+	RhiRasterRenderPass raster_render_pass;
 	RhiPipelineLayout pipeline_layout;
-	RhiRasterPipeline pipeline;
+	RhiRasterPipeline raster_pipeline;
+	RhiRayTracePipeline ray_trace_pipeline;
 	std::string vertex_shader_file;
 	std::string pixel_shader_file;
+	std::string ray_gen_shader_file;
+	std::string miss_shader_file;
+	std::string closest_hit_shader_file;
 	std::vector<uint8_t> vertices;
 	std::vector<uint16_t> indices;
 	size_t vertices_stride;
@@ -71,4 +75,5 @@ void test_create_window_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
+void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 #endif

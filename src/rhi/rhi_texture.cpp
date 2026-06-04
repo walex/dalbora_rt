@@ -24,7 +24,7 @@ void RhiTexture::create(const RhiDevice& device, const resource_format format,
     this->set_handle(rhi_texture_2d_create(&desc));
 }
 
-RhiView RhiTexture::create_read_only_view(const RhiDevice& device) {
+RhiView RhiTexture::new_read_only_view(RhiDevice& device) {
 
     RHI_VIEW_DESC tex_view_desc;
     tex_view_desc.device = device;
@@ -32,18 +32,18 @@ RhiView RhiTexture::create_read_only_view(const RhiDevice& device) {
     tex_view_desc.type = resource_type_texture_2d_read_only;
     tex_view_desc.format = static_cast<RHI_TEXTURE_2D*>(*this)->hw_format;
     tex_view_desc.mip_maps_count = static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps_count;
-    tex_view_desc.slot_id = 100;
+    tex_view_desc.slot_id = device.next_read_only_buffer_slot_id();
     return RhiView(rhi_buffers_create_view(&tex_view_desc));
 }
 
-RhiView RhiTexture::create_rw_view(const RhiDevice& device) {
+RhiView RhiTexture::new_rw_view(RhiDevice& device) {
     RHI_VIEW_DESC tex_view_desc;
     tex_view_desc.device = device;
-    tex_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(this);
+    tex_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(static_cast<RHI_TEXTURE_2D*>(*this));
     tex_view_desc.type = resource_type_texture_2d_rw;
     tex_view_desc.format = static_cast<RHI_TEXTURE_2D*>(*this)->hw_format;
     tex_view_desc.mip_maps_count = static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps_count;
-    tex_view_desc.slot_id = 100;
+    tex_view_desc.slot_id = device.next_rw_buffer_slot_id();
     return RhiView(rhi_buffers_create_view(&tex_view_desc));
 }
 
