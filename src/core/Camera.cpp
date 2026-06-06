@@ -2,7 +2,7 @@
 #include "Scene.hpp"
 #include "Samples.hpp"
 
-std::shared_ptr<Samples> Camera::generateSamples(const Eigen::Vector4i& UNUSED_PARAM(grid)) {
+Samples Camera::generateSamples(const size_t grid[4]) const {
 
-	return std::shared_ptr<Samples>();
+	return Samples();
 }

@@ -6,9 +6,9 @@
 class RhiShaderProgram;
 class RhiRayTracePipelineShaderPrograms {	
 public:
-	RhiShaderProgram* ray_gen_shader = nullptr;
-	RhiShaderProgram* miss_shader = nullptr;
-	RhiShaderProgram* closest_hit_shader = nullptr;
+	const RhiShaderProgram* ray_gen_shader = nullptr;
+	const RhiShaderProgram* miss_shader = nullptr;
+	const RhiShaderProgram* closest_hit_shader = nullptr;
 	std::vector<RHI_RT_SHADER_UNIT_DESC> ray_gen_shaders_desc;
 	std::vector<RHI_RT_SHADER_UNIT_DESC> miss_shaders_desc;
 	std::vector<RHI_RT_HIT_GROUP_DESC> hit_groups_desc;

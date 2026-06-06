@@ -1,10 +1,8 @@
 #include "rhi_gpu_buffer.hpp"
-#include "rhi_device.hpp"
-#include "rhi_command_buffer.hpp"
-#include "rhi_shared_buffer.hpp"
+#include "rhi.hpp"
 
 RhiGPUBuffer::RhiGPUBuffer(RHI_BUFFER* handle)
-	: RhiImpl<RHI_BUFFER>(handle) {}
+	: RhiBuffer(handle) {}
 
 void RhiGPUBuffer::create(const RhiDevice& device, const size_t length, const size_t stride, resource_format format) {
 

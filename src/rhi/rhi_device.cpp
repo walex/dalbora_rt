@@ -1,4 +1,5 @@
 #include "rhi_device.hpp"
+#include "rhi.hpp"
 
 RhiDevice::RhiDevice(RHI_DEVICE* handle)
 	: RhiImpl<RHI_DEVICE>(handle) {}

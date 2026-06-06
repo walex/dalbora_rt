@@ -8,6 +8,7 @@
 class AreaLight_Circular : public AreaLight
 {
 public:
+	AreaLight_Circular(RhiDevice& device) : AreaLight(device) {}
 	virtual ~AreaLight_Circular() = default;
 };
 

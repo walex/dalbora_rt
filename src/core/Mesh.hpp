@@ -8,9 +8,80 @@ class Mesh
 {
 public:
 	virtual ~Mesh() = default;
-	void setMaterial(std::shared_ptr<Material> material) { mMaterial = material; }
-private: 
-	std::shared_ptr<Material> mMaterial;
+	void setMaterial(const Material& material) { m_material = &material; }
+	const Material* getMaterial() const { return m_material; }
+	virtual const RhiBuffer& get_vertices() const = 0;
+	virtual const RhiBuffer& get_indices() const = 0;
+protected:
+	Mesh(const buffer_memory_type type,
+		const size_t vertices_length, const size_t vertices_stride,
+		const size_t indices_length, const size_t indices_stride)
+		: m_type(type)
+		, m_vertices_length(vertices_length)
+		, m_vertices_stride(vertices_stride)
+		, m_indices_length(indices_length)
+		, m_indices_stride(indices_stride) {
+	}
+	size_t get_vertices_length() const { return m_vertices_length; }
+	size_t get_indices_length() const { return m_indices_length; }
+	size_t get_vertices_stride() const { return m_vertices_stride; }
+	size_t get_indices_stride() const { return m_indices_stride; }
+private:
+	const Material* m_material = nullptr;
+	buffer_memory_type m_type;
+	size_t m_vertices_length = 0;
+	size_t m_vertices_stride = 0;
+	size_t m_indices_length = 0;
+	size_t m_indices_stride = 0;
+
+};
+
+class SharedMesh : public Mesh {
+public:
+	SharedMesh(RhiDevice& device, 
+		const size_t vertices_length, const size_t vertices_stride,
+		const size_t indices_length = 0, const size_t indices_stride = 0)
+		: Mesh(buffer_memory_type_shared_rw,
+			vertices_length, vertices_stride,
+			indices_length, indices_stride) {
+
+		m_vertices.create(device, vertices_length, vertices_stride, resource_format_float3);
+		m_indices.create(device, vertices_length, vertices_stride, resource_format_uint16);
+	}
+	virtual ~SharedMesh() = default;
+	void store(uint8_t* vertices, uint8_t* indices = nullptr);
+	const RhiBuffer& get_vertices() const override { return m_vertices; }
+	const RhiBuffer& get_indices() const override { return m_indices; }
+private:
+	RhiSharedBuffer m_vertices;
+	RhiSharedBuffer m_indices;
+};
+
+class ReadOnlyMesh : public Mesh {
+public:
+	ReadOnlyMesh(RhiDevice& device, 
+		const size_t vertices_length, const size_t vertices_stride,
+		const size_t indices_length = 0, const size_t indices_stride = 0)
+		: Mesh(buffer_memory_type_gpu_only,
+			vertices_length, vertices_stride,
+			indices_length, indices_stride)
+		, m_shared_mesh(std::make_unique<SharedMesh>(device,
+			vertices_length, vertices_stride,
+			indices_length, indices_stride)) {
+
+		m_vertices.create(device, vertices_length, vertices_stride, resource_format_float3);
+		m_indices.create(device, vertices_length, vertices_stride, resource_format_uint16);
+	}
+	virtual ~ReadOnlyMesh() = default;
+	void upload(RhiCommandBuffer& command_buffer,
+		uint8_t* vertices, uint8_t* indices = nullptr);
+	void release_shared_buffer() { m_shared_mesh.reset(); }
+	const RhiBuffer& get_vertices() const override { return m_vertices; }
+	const RhiBuffer& get_indices() const override { return m_indices; }
+private:
+	RhiGPUBuffer m_vertices;
+	RhiGPUBuffer m_indices;
+	std::unique_ptr<SharedMesh> m_shared_mesh;
 };
 
 #endif

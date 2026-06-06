@@ -1,8 +1,5 @@
 #include "rhi_ray_trace_geometry_buffer.hpp"
-#include "rhi_device.hpp"
-#include "rhi_command_buffer.hpp"
-#include "rhi_gpu_buffer.hpp"
-#include "rhi_view.hpp"
+#include "rhi.hpp"
 
 void RhiRayTraceGeometrydBufferInstances::create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 	RhiRayTraceGeometrydBuffer& geometry_buffer, const std::vector<float*>& instance_transforms) {

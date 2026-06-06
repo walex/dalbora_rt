@@ -1,18 +1,18 @@
 #include "rhi_shared_buffer.hpp"
-#include "rhi_device.hpp"
-#include "rhi_view.hpp"
+#include "rhi.hpp"
 
 RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle)
-	: RhiImpl<RHI_BUFFER>(handle) {}
+	: RhiBuffer(handle) {}
 
-void RhiSharedBuffer::create(const RhiDevice& device, const size_t length, const size_t stride) {
+void RhiSharedBuffer::create(const RhiDevice& device, const size_t length, 
+	const size_t stride, const resource_format format) {
 
 	RHI_BUFFER_DESC desc;
 	desc.device = device;
 	desc.length = length;
 	desc.memory_type = buffer_memory_type_shared_rw;
 	desc.type = buffer_type_raw;
-	desc.format = resource_format_none;
+	desc.format = format;
 	desc.stride = stride;
 	desc.mips = 1;
 	this->set_handle(rhi_buffers_create_raw(&desc));

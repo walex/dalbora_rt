@@ -1,5 +1,5 @@
 #include "rhi_sampler.hpp"
-#include "rhi_device.hpp"
+#include "rhi.hpp"
 
 RhiSampler::RhiSampler(RHI_SAMPLER* handle) : RhiImpl<RHI_SAMPLER>(handle) {}
 

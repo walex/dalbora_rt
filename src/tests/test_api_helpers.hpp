@@ -1,6 +1,7 @@
 #ifndef __test_api_helpers_hpp__
 #define __test_api_helpers_hpp__
 
+#include <Eigen/Dense>
 #include <DirectXMath.h>
 using namespace DirectX;
 

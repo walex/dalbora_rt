@@ -8,11 +8,11 @@ class Mesh;
 class Culler
 {
 public:
-	const std::vector< std::shared_ptr<Mesh>>& getGeometries() { return mGeometries; }
-	const std::vector< std::shared_ptr<Mesh>>& getLights() { return mGeometries; } // FixME: should be a separate list
+	const std::vector<Mesh*>& getGeometries() { return m_geemetries; }
+	const std::vector<Mesh*>& getLights() { return m_geemetries; } // FixME: should be a separate list
 	virtual void cull() {}
 private: 
-	std::vector< std::shared_ptr<Mesh>> mGeometries;
+	std::vector<Mesh*> m_geemetries;
 };
 
 #endif

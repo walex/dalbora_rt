@@ -1,5 +1,4 @@
 #include "test_api.hpp"
-#include "rhi.hpp"
 #define TINYDDSLOADER_IMPLEMENTATION
 #include "tinyddsloader.h"
 

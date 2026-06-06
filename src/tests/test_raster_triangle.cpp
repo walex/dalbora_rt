@@ -1,5 +1,4 @@
 #include "test_api.hpp"
-#include "rhi.hpp"
 
 #ifdef TEST_RASTER_TRIANGLE
 

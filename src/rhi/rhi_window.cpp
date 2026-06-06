@@ -1,4 +1,5 @@
 #include "rhi_window.hpp"
+#include "rhi.hpp"
 
 RhiWindow::RhiWindow(RHI_WINDOW* handle)
 : RhiImpl<RHI_WINDOW>(handle){}

@@ -1,7 +1,5 @@
 #include "rhi_texture.hpp"
-#include "rhi_device.hpp"
-#include "rhi_shared_buffer.hpp"
-#include "rhi_command_buffer.hpp"
+#include "rhi.hpp"
 
 RhiTexture::RhiTexture(RHI_TEXTURE_2D* handle) : RhiImpl<RHI_TEXTURE_2D>(handle) {}
 

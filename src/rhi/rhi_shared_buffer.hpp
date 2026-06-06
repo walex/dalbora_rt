@@ -1,8 +1,9 @@
 #ifndef __rhi_shared_buffer_hpp__
 #define __rhi_shared_buffer_hpp__
 
-#include "rhi_impl.hpp"
+#include "rhi_buffer.hpp"
 #include "rhi_view.hpp"
+
 class RhiSharedBufferMap {
 
 public:
@@ -21,13 +22,12 @@ private:
 
 class RhiDevice;
 class RhiView;
-class RhiSharedBuffer : public ICreateRhiObject<const RhiDevice&, const size_t, const size_t>
-						, public RhiImpl<RHI_BUFFER> {
+class RhiSharedBuffer: public RhiBuffer {
 
 public:
 	RhiSharedBuffer(RHI_BUFFER* handle = nullptr);
 	virtual ~RhiSharedBuffer() = default;
-	void create(const RhiDevice& device, const size_t length, const size_t stride = 0);
+	void create(const RhiDevice& device, const size_t length, const size_t stride = 0, const resource_format format = resource_format_none) override;
 	RhiSharedBufferMap map(const size_t offset, const size_t length);
 	void unmap(const RhiSharedBufferMap& map_info);
 	RhiView new_depth_buffer_view(RhiDevice& device);

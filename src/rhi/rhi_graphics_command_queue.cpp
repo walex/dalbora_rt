@@ -1,6 +1,5 @@
 #include "rhi_graphics_command_queue.hpp"
-#include "rhi_device.hpp"
-#include "rhi_impl.hpp"
+#include "rhi.hpp"
 
 RhiGraphicsCommandQueue::RhiGraphicsCommandQueue(RHI_COMMAND_QUEUE* handle) : RhiCommandQueue(handle) {}
 

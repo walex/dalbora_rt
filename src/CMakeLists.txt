@@ -46,7 +46,7 @@ add_subdirectory(./api)
 add_subdirectory(./tests)
 
 # eigen
-set(Eigen3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eigen-5.0.1/share/eigen3/cmake)
+set(Eigen3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../eigen-5.0.1/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED NO_MODULE)
 
 #slang

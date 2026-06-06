@@ -1,4 +1,5 @@
 #include "rhi_shader_program.hpp"
+#include "rhi.hpp"
 
 RhiShaderProgram::RhiShaderProgram(RHI_COMPILED_SHADER_BUFFER* handle)
 	: RhiImpl<RHI_COMPILED_SHADER_BUFFER>(handle) {}

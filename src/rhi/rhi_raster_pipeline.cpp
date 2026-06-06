@@ -1,7 +1,5 @@
 #include "rhi_raster_pipeline.hpp"
-#include "rhi_device.hpp"
-#include "rhi_pipeline_layout.hpp"
-#include "rhi_shader_program.hpp"
+#include "rhi.hpp"
 
 RhiRasterPipeline::RhiRasterPipeline(RHI_RASTER_PIPELINE* handle)
 : RhiPipeline<RHI_RASTER_PIPELINE>(handle){}

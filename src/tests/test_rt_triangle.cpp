@@ -1,5 +1,4 @@
 #include "test_api.hpp"
-#include "rhi.hpp"
 
 float aspect = 800.0f / 600.0f;
 float x = 0.5f;
@@ -313,7 +312,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 				rhi_command_buffer_ray_trace(
 					&command_buffer,
 					render_target.get(),
-					bvh_instances.get(),
 					sbt.get());
 			});
 
@@ -525,7 +523,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		rt_render_pass.render(unit_test.command_buffer, [&](RhiCommandBuffer& command_buffer) {
 
-			command_buffer.ray_trace(render_target, geometry_buffer, sbt);
+			command_buffer.ray_trace(render_target, sbt);
 		});
 
 		if (callbacks)

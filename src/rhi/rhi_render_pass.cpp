@@ -1,8 +1,5 @@
 #include "rhi_render_pass.hpp"
-#include "rhi_device.hpp"
-#include "rhi_command_buffer.hpp"
-#include "rhi_raster_pipeline.hpp"
-#include "rhi_view.hpp"
+#include "rhi.hpp"
 
 RhiRenderPass::RhiRenderPass(RHI_RENDER_PASS* handle) : RhiImpl<RHI_RENDER_PASS>(handle) {}
 

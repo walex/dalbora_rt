@@ -11,12 +11,12 @@ class Camera
 {
 public:
 	virtual ~Camera() = default;
-	void setSampler(std::shared_ptr<Sampler> sampler) { mSampler = sampler; }
-	std::shared_ptr<Samples> generateSamples(const Eigen::Vector4i& grid);
+	void setSampler(const Sampler* const sampler) { m_sampler = sampler; }
+	Samples generateSamples(const size_t grid[4]) const;
 	virtual void setPosition(float UNUSED_PARAM(x), float UNUSED_PARAM(x), float UNUSED_PARAM(z)) {};
 	virtual void setLookAt(float UNUSED_PARAM(x), float UNUSED_PARAM(x), float UNUSED_PARAM(z)) {};
 private: 
-	std::shared_ptr<Sampler> mSampler;
+	const Sampler* m_sampler;
 };
 
 #endif

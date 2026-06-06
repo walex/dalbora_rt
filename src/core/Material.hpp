@@ -6,6 +6,7 @@
 class Material
 {
 public:
+	Material(RhiDevice& device);
 	virtual ~Material() = default;
 protected:
 

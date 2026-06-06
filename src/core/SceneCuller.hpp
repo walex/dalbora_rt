@@ -8,10 +8,10 @@ class Scene;
 class SceneCuller: public Culler
 {
 public: 
-	void setScene(std::shared_ptr<Scene> scene) { mScene.push_back(scene); }
+	void setScene(const Scene* const scene) { m_scene = scene; }
 
 private: 
-	std::vector<std::shared_ptr<Scene>> mScene;
+	const Scene* m_scene;
 };
 
 #endif

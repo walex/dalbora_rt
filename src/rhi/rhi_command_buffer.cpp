@@ -1,10 +1,5 @@
 #include "rhi_command_buffer.hpp"
-#include "rhi_command_queue.hpp"
-#include "rhi_device.hpp"
-#include "rhi_gpu_buffer.hpp"
-#include "rhi_render_target.hpp"
-#include "rhi_ray_trace_geometry_buffer.hpp"
-#include "rhi_shader_binding_table.hpp"
+#include "rhi.hpp"
 
 RhiCommandBuffer::RhiCommandBuffer(RHI_COMMAND_BUFFER* handle) : RhiImpl<RHI_COMMAND_BUFFER>(handle) {
 }
@@ -33,8 +28,8 @@ void RhiCommandBuffer::draw_triangle_list(RhiGPUBuffer& vertex_buffer, RhiGPUBuf
 }
 
 
-void RhiCommandBuffer::ray_trace(RhiRenderTarget& render_target, RhiRayTraceGeometrydBuffer& geometry_buffer, RhiShaderBindingTable& sbt) {
+void RhiCommandBuffer::ray_trace(RhiRenderTarget& render_target, RhiShaderBindingTable& sbt) {
 
-	rhi_command_buffer_ray_trace(*this, render_target, reinterpret_cast<RHI_BUFFER*>(static_cast<RHI_RT_BVH*>(geometry_buffer)), sbt);
+	rhi_command_buffer_ray_trace(*this, render_target, sbt);
 
 };

@@ -1,7 +1,5 @@
 #include "rhi_depth_buffer.hpp"
-#include "rhi_device.hpp"
-#include "rhi_command_buffer.hpp"
-#include "rhi_shared_buffer.hpp"
+#include "rhi.hpp"
 
 RhiDepthBuffer::RhiDepthBuffer(RHI_BUFFER* handle)
 	: RhiGPUBuffer(handle) {}

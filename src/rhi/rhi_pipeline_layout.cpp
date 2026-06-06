@@ -1,5 +1,5 @@
 #include "rhi_pipeline_layout.hpp"
-#include "rhi_device.hpp"
+#include "rhi.hpp"
 
 RhiPipelineLayout::RhiPipelineLayout(RHI_PIPELINE_LAYOUT* handle)
 	: RhiImpl<RHI_PIPELINE_LAYOUT>(handle)

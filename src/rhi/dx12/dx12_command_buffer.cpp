@@ -124,14 +124,12 @@ void dx12_command_buffer_draw_triangle_list(
 
 void dx12_command_buffer_ray_trace(
 	RHI_COMMAND_BUFFER* const command_buffer, 
-	RHI_TEXTURE_2D* const render_target, 
-	const RHI_BUFFER* const bvh_instances, 
+	RHI_TEXTURE_2D* const render_target,
 	const RHI_SBT_TABLE* const sbt) {
 
 	ASSERT_PTR(command_buffer);
 	ASSERT_PTR(render_target);
 
-	ASSERT_PTR(bvh_instances);
 	ASSERT_PTR(sbt);
 
 	DX_COMMAND_BUFFER* cmd_buffer_impl = static_cast<DX_COMMAND_BUFFER*>(command_buffer);

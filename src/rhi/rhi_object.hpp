@@ -1,7 +1,8 @@
 #ifndef __rhi_object_hpp__
 #define __rhi_object_hpp__
 
-#include "rhi.hpp"
+#include "platform.hpp"
+
 template<typename... Args>
 class ICreateRhiObject {
 	

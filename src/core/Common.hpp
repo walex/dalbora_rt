@@ -2,7 +2,6 @@
 #define __Common_hpp__
 
 #include "platform.hpp"
-#include <Eigen/Dense>
 #include "queue.hpp"
 #include "worker.hpp"
 #include "task_pool.hpp"

@@ -1,5 +1,5 @@
 #include "rhi_command_queue.hpp"
-#include "rhi_command_buffer.hpp"
+#include "rhi.hpp"
 
 RhiCommandQueueBufferList::RhiCommandQueueBufferList() {
 	

@@ -1,7 +1,7 @@
 #ifndef __test_api_h__
 #define __test_api_h__
 
-#include "dalbora_rt_api.hpp"
+#include "rhi.hpp"
 #include "test_api_helpers.hpp"
 
 constexpr rhi_api render_api = rhi_api_dx12;

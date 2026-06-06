@@ -1,6 +1,5 @@
 #include "rhi_shader_binding_table.hpp"
-#include "rhi_device.hpp"
-#include "rhi_ray_trace_pipeline.hpp"
+#include "rhi.hpp"
 
 RhiShaderBindingTable::RhiShaderBindingTable(RHI_SBT_TABLE* handle)
 	: RhiImpl<RHI_SBT_TABLE>(handle) {}

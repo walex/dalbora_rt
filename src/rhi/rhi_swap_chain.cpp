@@ -1,9 +1,5 @@
 #include "rhi_swap_chain.hpp"
-#include "rhi_window.hpp"
-#include "rhi_device.hpp"
-#include "rhi_command_queue.hpp"
-#include "rhi_command_buffer.hpp"
-#include "rhi_texture.hpp"
+#include "rhi.hpp"
 
 RhiSwapChain::RhiSwapChain(RHI_SWAP_CHAIN* handle) : RhiImpl<RHI_SWAP_CHAIN>(handle) {}
 

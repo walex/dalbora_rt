@@ -10,13 +10,13 @@ class Scene;
 class Scene
 {
 public:
-	void addGeometry(std::shared_ptr<Mesh> geometry) { mGeometry.push_back(geometry); }
-	void addCamera(std::shared_ptr<Camera> camera) { mCamera.push_back(camera); }
-	void addLight(std::shared_ptr<Light> light) { mLight.push_back(light); }
+	void addGeometry(const Mesh* const geometry) { m_geometries.push_back(geometry); }
+	void addCamera(const Camera* const camera) { m_cameras.push_back(camera); }
+	void addLight(const Light* const light) { m_ligths.push_back(light); }
 private: 
-	std::vector<std::shared_ptr<Mesh>> mGeometry;
-	std::vector<std::shared_ptr<Camera>> mCamera;
-	std::vector<std::shared_ptr<Light>> mLight;
+	std::vector<const Mesh*> m_geometries;
+	std::vector<const Camera*> m_cameras;
+	std::vector<const Light*> m_ligths;
 
 };
 
