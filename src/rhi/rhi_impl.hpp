@@ -8,10 +8,7 @@ template<typename T>
 class RhiImpl: public RhiObject {
 	
 public:
-	RhiImpl(RhiImpl&&) noexcept = default;
-	RhiImpl& operator=(RhiImpl&&) noexcept = default;
-	RhiImpl(const RhiImpl&) = delete;
-	RhiImpl& operator=(const RhiImpl&) = delete;
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiImpl);
 
 	virtual ~RhiImpl() {
 		if (m_owner == false)

@@ -151,15 +151,16 @@ struct RHI_FENCE_DESC  {
 struct RHI_RT_BVH_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_BUFFER* command_buffer = nullptr;
-	RHI_BUFFER* vertex_buffer = nullptr;
-	RHI_BUFFER* index_buffer = nullptr;
+	RHI_BUFFER*const* vertex_buffer = nullptr;
+	RHI_BUFFER*const* index_buffer = nullptr;
+	size_t count;
 };
 
 struct RHI_RT_BVH_GEOMETRY_INSTANCES_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_BUFFER* command_buffer = nullptr;
 	RHI_RT_BVH* parent_bvh = nullptr;
-	float** transforms;
+	float*const* transforms;
 	size_t instance_count = 0;
 	bool read_only = true;
 };

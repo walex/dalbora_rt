@@ -9,7 +9,7 @@ class RhiDevice;
 class RhiCommandQueue;
 class RhiGPUBuffer;
 class RhiRenderTarget;
-class RhiRayTraceGeometrydBuffer;
+class RhiRayTraceGeometryBuffer;
 class RhiShaderBindingTable;
 class RhiCommandBuffer 
 	: public ICreateRhiObject<const RhiDevice&, const RhiCommandQueue&>

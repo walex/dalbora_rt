@@ -11,10 +11,12 @@ class RhiGPUBuffer: public RhiBuffer {
 		
 
 public:
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiGPUBuffer);
+
 	RhiGPUBuffer(RHI_BUFFER* handle = nullptr);
 	virtual ~RhiGPUBuffer() = default;
 	virtual void create(const RhiDevice& device, const size_t length, 
-		const size_t stride, const resource_format format = resource_format_none) override;
+		const size_t stride, const resource_format format = resource_format_none);
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb);
 	resource_format get_format();
 	RhiView new_depth_buffer_view(RhiDevice& device);

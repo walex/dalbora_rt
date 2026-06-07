@@ -14,9 +14,11 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	ASSERT_PTR(i_device_0);
 	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
 	ASSERT_PTR(i_command_buffer_0);
-	DX_BUFFER* vb_impl = static_cast<DX_BUFFER*>(desc->vertex_buffer);
+	RHI_BUFFER*const* v_buffer = desc->vertex_buffer;
+	RHI_BUFFER* const* i_buffer = desc->vertex_buffer;
+	DX_BUFFER* vb_impl = static_cast<DX_BUFFER*>(*v_buffer);
 	ASSERT_PTR(vb_impl);
-	DX_BUFFER* ib_impl = static_cast<DX_BUFFER*>(desc->index_buffer);
+	DX_BUFFER* ib_impl = static_cast<DX_BUFFER*>(*i_buffer);
 	
 	ID3D12Resource* i_vb = *vb_impl;
 	ASSERT_PTR(i_vb);
@@ -66,7 +68,7 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	RHI_BUFFER_DESC buffer_desc;
 	buffer_desc.device = desc->device;
 	buffer_desc.type = buffer_type_rt_bvh;
-	buffer_desc.format = desc->vertex_buffer->format;
+	buffer_desc.format = (*v_buffer)->format;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = blasInfo.ResultDataMaxSizeInBytes;
 	buffer_desc.mips = 1;

@@ -309,4 +309,10 @@ void print_fps(const char* label = nullptr, const double inteval_secs = 2.0);
 #define ALIGN(value, alignment) \
     (((value) + ((alignment) - 1)) & ~((alignment) - 1))
 
+#define IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(class_name)      \
+    class_name(const class_name&) = default;            \
+    class_name& operator=(const class_name&) = default; \
+    class_name(class_name&&) noexcept = default;        \
+    class_name& operator=(class_name&&) noexcept = default;
+
 #endif

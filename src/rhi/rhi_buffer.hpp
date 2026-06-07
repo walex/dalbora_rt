@@ -9,7 +9,9 @@ class RhiBuffer: public ICreateRhiObject<const RhiDevice&, const size_t,
 	, public RhiImpl<RHI_BUFFER> {
 
 public:
-	RhiBuffer(RHI_BUFFER* handle) : RhiImpl<RHI_BUFFER>(handle) {}
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiBuffer);
+
+	RhiBuffer(RHI_BUFFER* handle = nullptr) : RhiImpl<RHI_BUFFER>(handle) {}
 	virtual ~RhiBuffer() = default;
 	virtual void create(const RhiDevice& device, const size_t length,
 		const size_t stride, const resource_format format = resource_format_none) = 0;
