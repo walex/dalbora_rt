@@ -72,13 +72,10 @@ void dx12_buffers_gpu_upload_region(RHI_COMMAND_BUFFER* const command_buffer, co
 	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 	
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_COPY_DEST };
-	static constexpr bool restore[] = { true };
-	DX_RESOURCE* resources[] = { dest };
-	dx12_command_buffer_resource_transition(i_command_buffer, 
-		resources,
-		resource_state,
-		restore,1, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
+		{ dest },
+		{ D3D12_RESOURCE_STATE_COPY_DEST },
+		[&]() {
 			dx12_buffers_copy_buffer_region(command_buffer, *src,
 				offset_src, *dest, offset_dest, length);
 		});
@@ -96,13 +93,10 @@ void dx12_buffers_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer, const RHI
 	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = {D3D12_RESOURCE_STATE_COPY_DEST};
-	static constexpr bool restore[] = { true };
-	DX_RESOURCE* resources[] = { dest };
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
+		{ dest },
+		{ D3D12_RESOURCE_STATE_COPY_DEST },
+		[&]() {
 			dx12_buffers_copy_buffer(command_buffer, src,
 				dest);
 		});
@@ -121,13 +115,10 @@ void dx12_buffers_gpu_download_region(RHI_COMMAND_BUFFER* const command_buffer, 
 	DX_BUFFER* src = const_cast<DX_BUFFER*>(static_cast<const DX_BUFFER*>(src_buffer));
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = {D3D12_RESOURCE_STATE_COPY_SOURCE};
-	static constexpr bool restore[] = {true};
-	DX_RESOURCE* resources[] = { src };
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
+		{ src },
+		{ D3D12_RESOURCE_STATE_COPY_SOURCE },
+		[&]() {
 			dx12_buffers_copy_buffer_region(command_buffer, *src,
 				offset_src, *dest, offset_dest, length);
 		});
@@ -145,13 +136,10 @@ void dx12_buffers_gpu_download(RHI_COMMAND_BUFFER* const command_buffer, const R
 	DX_BUFFER* src = const_cast<DX_BUFFER*>(static_cast<const DX_BUFFER*>(src_buffer));
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_COPY_SOURCE };
-	static constexpr bool restore[] = { true };
-	DX_RESOURCE* resources[] = { src };
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
+		{ src },
+		{ D3D12_RESOURCE_STATE_COPY_SOURCE },
+		[&]() {
 			dx12_buffers_copy_buffer(command_buffer, *src, *dest);
 		});
 }

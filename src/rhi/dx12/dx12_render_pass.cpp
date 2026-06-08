@@ -38,21 +38,13 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	{
 		*device_impl->resources_heap.get()
 	};
-	D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
-	static constexpr bool restore[] = {false};
-	DX_RESOURCE* resources[] = { static_cast<DX_BUFFER*>(render_target_view_impl->buffer) };
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {
 
-			i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
-			i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
-			i_command_buffer_5->SetComputeRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);
-			i_command_buffer_5->SetPipelineState1(*static_cast<DX_RT_PIPELINE*>(pipeline_impl));
-			if (callback)
-				callback();
-		});
+	i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
+	i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
+	i_command_buffer_5->SetComputeRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);
+	i_command_buffer_5->SetPipelineState1(*static_cast<DX_RT_PIPELINE*>(pipeline_impl));
+	if (callback)
+		callback();
 }
 
 void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass, 
@@ -95,13 +87,10 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 		dsv_handle = &depth_buffer_view_impl->cpu_descriptor_handle;
 	}
 
-	D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_RENDER_TARGET };
-	static constexpr bool restore[] = {false};
-	DX_RESOURCE* resources[] = { resource_impl };
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {
+	dx12_command_buffer_resource_barrier_transition(i_command_buffer,
+		{ resource_impl },
+		{ D3D12_RESOURCE_STATE_RENDER_TARGET },
+		[&]() {
 		
 			// configure heap
 			ASSERT_PTR(device_impl->resources_heap.get());
@@ -159,9 +148,8 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 
 	});
 
-	resource_state[0] = D3D12_RESOURCE_STATE_PRESENT;
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {});
+	dx12_command_buffer_resource_barrier_transition(i_command_buffer,
+		{ resource_impl },
+		{ D3D12_RESOURCE_STATE_PRESENT },
+		nullptr);
 }

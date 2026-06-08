@@ -33,8 +33,8 @@ inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_compute)(const RHI_CO
 inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_render)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
 inline void (*rhi_command_buffer_record)(RHI_COMMAND_BUFFER* const command_buffer,
 										 fptr_command_buffer_on_record callback);
-inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const vb,
-	const RHI_BUFFER* const ib);
+inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER* const command_buffer, RHI_BUFFER* const vb,
+	RHI_BUFFER* const ib);
 inline void (*rhi_command_buffer_copy_texture)(RHI_COMMAND_BUFFER* const command_buffer, RHI_TEXTURE_2D* const dest_texture,
 	const RHI_TEXTURE_2D* const src_texture);
 

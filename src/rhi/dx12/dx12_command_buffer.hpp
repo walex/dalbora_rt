@@ -14,8 +14,8 @@ void dx12_command_buffer_record(
 	fptr_command_buffer_on_record callback);
 void dx12_command_buffer_draw_triangle_list(
 	RHI_COMMAND_BUFFER* const command_buffer, 
-	const RHI_BUFFER* const vb,
-	const RHI_BUFFER* const ib);
+	RHI_BUFFER* const vb,
+	RHI_BUFFER* const ib);
 void dx12_command_buffer_ray_trace(
 	RHI_COMMAND_BUFFER* const command_buffer,
 	RHI_TEXTURE_2D* const render_target, 
@@ -24,11 +24,17 @@ void dx12_command_buffer_copy_texture(
 	RHI_COMMAND_BUFFER* const command_buffer, 
 	RHI_TEXTURE_2D* const dest_texture, 
 	const RHI_TEXTURE_2D* const src_texture);
-void dx12_command_buffer_resource_transition(
+
+void dx12_command_buffer_resource_barrier_transition(
 	ID3D12GraphicsCommandList* const i_command_buffer,
-	const DX_RESOURCE* const resource_impl[],
-	const D3D12_RESOURCE_STATES states[],
-	const bool restore[],
-	const size_t count,
+	const std::vector<DX_RESOURCE*>& resources_impl,
+	const std::vector<D3D12_RESOURCE_STATES>& states,
 	std::function<void()> cb);
+
+void dx12_command_buffer_resource_barrier_transition_and_restore(
+	ID3D12GraphicsCommandList* const i_command_buffer,
+	const std::vector<DX_RESOURCE*>& resources_impl,
+	const std::vector<D3D12_RESOURCE_STATES>& states,
+	std::function<void()> cb);
+
 #endif

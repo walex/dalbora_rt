@@ -65,8 +65,8 @@ void dx12_command_buffer_record(
 
 void dx12_command_buffer_draw_triangle_list(
 	RHI_COMMAND_BUFFER* const command_buffer, 
-	const RHI_BUFFER* const vb,
-	const RHI_BUFFER* const ib) {
+	RHI_BUFFER* const vb,
+	RHI_BUFFER* const ib) {
 
 	ASSERT_PTR(command_buffer);
 	ASSERT_PTR(vb);
@@ -75,11 +75,11 @@ void dx12_command_buffer_draw_triangle_list(
 	ID3D12GraphicsCommandList* i_command_buffer = *cmd_buffer_impl;
 	ASSERT_PTR(i_command_buffer);
 	
-	const DX_BUFFER* vb_impl = static_cast<const DX_BUFFER*>(vb);
+	DX_BUFFER* vb_impl = static_cast<DX_BUFFER*>(vb);
 	ID3D12Resource* i_vb = *vb_impl;
 	ASSERT_PTR(i_vb);
 
-	const DX_BUFFER* ib_impl = static_cast<const DX_BUFFER*>(ib);
+	DX_BUFFER* ib_impl = static_cast<DX_BUFFER*>(ib);
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view;
 	vb_view.BufferLocation = i_vb->GetGPUVirtualAddress();
@@ -89,20 +89,16 @@ void dx12_command_buffer_draw_triangle_list(
 	i_command_buffer->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	i_command_buffer->IASetVertexBuffers(0, 1, &vb_view);
 	
-	static constexpr D3D12_RESOURCE_STATES resource_states[] = {
-		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-		D3D12_RESOURCE_STATE_INDEX_BUFFER
-	};
-	static constexpr bool restores[2] = { false,false };
-	const DX_RESOURCE* resources[2] { vb_impl, ib_impl };
-	size_t resource_count = 1;
+	std::vector<DX_RESOURCE*> resources;
+	resources.reserve(2);
+	resources.push_back(vb_impl);
 	if (ib_impl != nullptr) {
-		resource_count++;
+		resources.push_back(ib_impl);
 	}
-	dx12_command_buffer_resource_transition(i_command_buffer,
+	dx12_command_buffer_resource_barrier_transition(i_command_buffer,
 		resources,
-		resource_states,
-		restores, resource_count, [&]() {
+		{D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,D3D12_RESOURCE_STATE_INDEX_BUFFER },
+		[&]() {
 		
 			if (ib_impl != nullptr) {
 				
@@ -141,13 +137,10 @@ void dx12_command_buffer_ray_trace(
 	ID3D12Resource* i_table = *static_cast<const DX_SBT_TABLE*>(sbt);	
 	ASSERT_PTR(i_table);
 
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_UNORDERED_ACCESS };
-	static constexpr bool restore[] = {true};
-	DX_RESOURCE* resources[] = { render_target_impl };
-	dx12_command_buffer_resource_transition(i_command_buffer.Get(),
-		resources,
-		resource_state,
-		restore, 1, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer.Get(),
+		{ render_target_impl },
+		{ D3D12_RESOURCE_STATE_UNORDERED_ACCESS },
+		[&]() {
 
 			D3D12_DISPATCH_RAYS_DESC desc = {};
 			desc.RayGenerationShaderRecord.StartAddress =
@@ -190,72 +183,90 @@ void dx12_command_buffer_copy_texture(
 	ASSERT_PTR(i_command_buffer);
 	DX_TEXTURE_2D* dest_texture_impl = static_cast<DX_TEXTURE_2D*>(dest_texture);
 	DX_TEXTURE_2D* src_texture_impl = const_cast<DX_TEXTURE_2D*>(static_cast<const DX_TEXTURE_2D*>(src_texture));
-	
-	static constexpr D3D12_RESOURCE_STATES resource_states[] = {
-		D3D12_RESOURCE_STATE_COPY_SOURCE,
-		D3D12_RESOURCE_STATE_COPY_DEST
-	};
-	static constexpr bool restores[2] = { true,true };
-	const DX_RESOURCE* resources[2]{ src_texture_impl, dest_texture_impl };
 
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_states,
-		restores, 2, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
+		{ src_texture_impl, dest_texture_impl },
+		{D3D12_RESOURCE_STATE_COPY_SOURCE,D3D12_RESOURCE_STATE_COPY_DEST},
+		[&]() {
 			i_command_buffer->CopyResource(
 				*dest_texture_impl,
 				*src_texture_impl);
 		});
 }
-void dx12_command_buffer_resource_transition(
+
+void dx12_command_buffer_resource_barrier_transition(
 	ID3D12GraphicsCommandList* const i_command_buffer,
-	const DX_RESOURCE* const resource_impl[],
-	const D3D12_RESOURCE_STATES states[],
-	const bool restore[],
-	const size_t count,
+	const std::vector<DX_RESOURCE*>& resources_impl,
+	const std::vector<D3D12_RESOURCE_STATES>& states,
 	std::function<void()> cb) {
-
+	
 	ASSERT_PTR(i_command_buffer);
-	ASSERT_PTR(resource_impl);
 
-	std::vector<D3D12_RESOURCE_BARRIER> barriers(count);
-	std::vector<bool> t_restore(count);
-	std::vector<DX_RESOURCE*> t_resources(count);
-	std::vector<D3D12_RESOURCE_STATES> t_prev_state(count);
-	UINT barrier_index = 0;
-	for (size_t i = 0; i < count; ++i) {
+	std::vector<D3D12_RESOURCE_BARRIER> barriers;
+	barriers.reserve(resources_impl.size());
+	for (size_t i = 0; i < resources_impl.size(); ++i) {
 
-		D3D12_RESOURCE_STATES init_state = resource_impl[i]->current_state;
+		D3D12_RESOURCE_STATES init_state = resources_impl[i]->current_state;
 		D3D12_RESOURCE_STATES end_state = states[i];
 		if (init_state == end_state) {
 			continue;
 		}
-		barriers[barrier_index].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barriers[barrier_index].Transition.pResource = *resource_impl[i];
-		ASSERT_PTR(barriers[barrier_index].Transition.pResource);
-		barriers[barrier_index].Transition.StateBefore = init_state;
-		barriers[barrier_index].Transition.StateAfter = end_state;
-		barriers[barrier_index].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		t_restore[barrier_index] = restore[i];
-		t_resources[barrier_index] = const_cast<DX_RESOURCE*>(resource_impl[i]);
-		t_resources[barrier_index]->current_state = end_state;
-		t_prev_state[barrier_index] = init_state;
-		barrier_index++;
+		D3D12_RESOURCE_BARRIER& barrier = barriers.emplace_back();
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Transition.pResource = *resources_impl[i];
+		ASSERT_PTR(barrier.Transition.pResource);
+		barrier.Transition.StateBefore = init_state;
+		barrier.Transition.StateAfter = end_state;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		resources_impl[i]->current_state.store(end_state);
 	}
-	if (barrier_index) {
-		i_command_buffer->ResourceBarrier(barrier_index, barriers.data());
-		if (cb)	cb();
-		UINT barrier_index_restore = 0;
-		for (size_t i = 0; i < barrier_index; ++i) {
-			if (t_restore[i] == true) {
-				barrier_index_restore++;
-				barriers[i].Transition.StateBefore = barriers[i].Transition.StateAfter;
-				barriers[i].Transition.StateAfter = t_prev_state[i];
-				t_resources[i]->current_state = t_prev_state[i];
-			}
-		}
-		if (barrier_index_restore == 0)
-			return;
-		i_command_buffer->ResourceBarrier(barrier_index_restore, barriers.data());
-	} else if (cb)	cb();
+	if (barriers.size() > 0) {
+		i_command_buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+	}
+	if (cb)	cb();
 }
+
+
+void dx12_command_buffer_resource_barrier_transition_and_restore(
+	ID3D12GraphicsCommandList* const i_command_buffer,
+	const std::vector<DX_RESOURCE*>& resources_impl,
+	const std::vector<D3D12_RESOURCE_STATES>& states,
+	std::function<void()> cb) {
+
+	ASSERT_PTR(i_command_buffer);
+
+	std::vector<D3D12_RESOURCE_BARRIER> barriers;
+	std::vector<D3D12_RESOURCE_STATES> prev_states;
+	barriers.reserve(resources_impl.size());
+	prev_states.reserve(resources_impl.size());
+	for (size_t i = 0; i < resources_impl.size(); ++i) {
+
+		D3D12_RESOURCE_STATES init_state = resources_impl[i]->current_state;
+		D3D12_RESOURCE_STATES end_state = states[i];
+		if (init_state == end_state) {
+			continue;
+		}
+		prev_states.push_back(init_state);
+		D3D12_RESOURCE_BARRIER& barrier = barriers.emplace_back();
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Transition.pResource = *resources_impl[i];
+		ASSERT_PTR(barrier.Transition.pResource);
+		barrier.Transition.StateBefore = init_state;
+		barrier.Transition.StateAfter = end_state;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		resources_impl[i]->current_state.store(end_state);
+	}
+	if (barriers.size() > 0) {		
+		i_command_buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+		if (cb)	cb();
+		for (size_t i = 0; i < barriers.size(); ++i) {
+			D3D12_RESOURCE_BARRIER& barrier = barriers.at(i);
+			barrier.Transition.StateBefore = barrier.Transition.StateAfter;
+			barrier.Transition.StateAfter = prev_states.at(i);
+			resources_impl[i]->current_state.store(barrier.Transition.StateAfter);
+		}
+		i_command_buffer->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+	}
+	else if (cb) { cb();	}
+}
+

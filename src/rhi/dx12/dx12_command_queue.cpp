@@ -76,11 +76,12 @@ void dx12_command_queue_sync(RHI_COMMAND_QUEUE* command_queue) {
 	ID3D12Fence* i_fence = *static_cast<const DX_FENCE*>(command_queue->fence.get());
 	ASSERT_PTR(i_fence);
 	HANDLE eventHandle = command_queue_impl->event_handle;
-	uint64_t fc = command_queue->fence_counter++;
+	const uint64_t fc = ++command_queue->fence_counter;
+	ASSERT_EXPR(fc != UINT64_MAX);
 	i_cmd_queue->Signal(i_fence, fc);
 	if (i_fence->GetCompletedValue() < fc) {
 		// Wait for the fence to be signaled
 		i_fence->SetEventOnCompletion(fc, eventHandle);
-		WaitForSingleObjectEx(eventHandle, INFINITE, FALSE);
+;		WaitForSingleObjectEx(eventHandle, INFINITE, FALSE);
 	}
 }

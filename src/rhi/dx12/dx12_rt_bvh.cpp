@@ -14,14 +14,6 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	ASSERT_PTR(i_device_0);
 	ID3D12CommandList* i_command_buffer_0 = *static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer);
 	ASSERT_PTR(i_command_buffer_0);
-	RHI_BUFFER*const* v_buffer = desc->vertex_buffer;
-	RHI_BUFFER* const* i_buffer = desc->vertex_buffer;
-	DX_BUFFER* vb_impl = static_cast<DX_BUFFER*>(*v_buffer);
-	ASSERT_PTR(vb_impl);
-	DX_BUFFER* ib_impl = static_cast<DX_BUFFER*>(*i_buffer);
-	
-	ID3D12Resource* i_vb = *vb_impl;
-	ASSERT_PTR(i_vb);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
 	ASSERT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
@@ -31,33 +23,56 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	ASSERT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);
 
-	// create blas
-	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc = {};
-	geomDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-	geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-	geomDesc.Triangles.VertexBuffer.StartAddress =
-		i_vb->GetGPUVirtualAddress();
-	geomDesc.Triangles.VertexBuffer.StrideInBytes = static_cast<UINT64>(vb_impl->stride);
-	geomDesc.Triangles.VertexCount = static_cast<UINT>(vb_impl->length / vb_impl->stride);
-	geomDesc.Triangles.VertexFormat = dx12_resource_format_type[vb_impl->format];
+	//static constexpr bool restore_resources_states[2] = { true,true };
+	//const DX_RESOURCE* resources[2]{ vb_impl, ib_impl };
 
-	size_t resource_count = 1;
-	if (ib_impl)
-	{
-		resource_count++;
-		ID3D12Resource *i_ib = *ib_impl;
-		ASSERT_PTR(i_ib);
-		geomDesc.Triangles.IndexBuffer =
-			i_ib->GetGPUVirtualAddress();
-		geomDesc.Triangles.IndexCount = static_cast<UINT>(ib_impl->length / ib_impl->stride);
-		geomDesc.Triangles.IndexFormat = dx12_resource_format_type[ib_impl->format];
+	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geoemtries_desc(desc->count);
+	std::vector<DX_RESOURCE*> resources;
+	std::vector<D3D12_RESOURCE_STATES> resources_states;
+	resources_states.reserve(desc->count * 2);
+	resources.reserve(desc->count*2);
+	for (size_t i = 0; i < geoemtries_desc.size(); i++) {
+
+		D3D12_RAYTRACING_GEOMETRY_DESC& geom_desc = geoemtries_desc.at(i);
+
+		RHI_BUFFER* v_buffer = desc->vertex_buffer[i];
+		RHI_BUFFER* i_buffer = desc->index_buffer[i];
+		DX_BUFFER* vb_impl = static_cast<DX_BUFFER*>(v_buffer);
+		ASSERT_PTR(vb_impl);
+		DX_BUFFER* ib_impl = static_cast<DX_BUFFER*>(i_buffer);
+
+		ID3D12Resource* i_vb = *vb_impl;
+		ASSERT_PTR(i_vb);
+
+		geom_desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+		geom_desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+		geom_desc.Triangles.VertexBuffer.StartAddress =
+			i_vb->GetGPUVirtualAddress();
+		geom_desc.Triangles.VertexBuffer.StrideInBytes = static_cast<UINT64>(vb_impl->stride);
+		geom_desc.Triangles.VertexCount = static_cast<UINT>(vb_impl->length / vb_impl->stride);
+		geom_desc.Triangles.VertexFormat = dx12_resource_format_type[vb_impl->format];
+
+		resources.push_back(vb_impl);
+		resources_states.push_back(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		if (ib_impl)
+		{
+			ID3D12Resource* i_ib = *ib_impl;
+			ASSERT_PTR(i_ib);
+			geom_desc.Triangles.IndexBuffer =
+				i_ib->GetGPUVirtualAddress();
+			geom_desc.Triangles.IndexCount = static_cast<UINT>(ib_impl->length / ib_impl->stride);
+			geom_desc.Triangles.IndexFormat = dx12_resource_format_type[ib_impl->format];
+			resources.push_back(ib_impl);
+			resources_states.push_back(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		}
 	}
 
+	// create blas
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
 	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	inputs.NumDescs = 1;
-	inputs.pGeometryDescs = &geomDesc;
+	inputs.NumDescs = static_cast<UINT>(geoemtries_desc.size());
+	inputs.pGeometryDescs = geoemtries_desc.data();
 
 	// pre build info
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO blasInfo = {};
@@ -68,7 +83,7 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	RHI_BUFFER_DESC buffer_desc;
 	buffer_desc.device = desc->device;
 	buffer_desc.type = buffer_type_rt_bvh;
-	buffer_desc.format = (*v_buffer)->format;
+	buffer_desc.format = resource_format_none;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = blasInfo.ResultDataMaxSizeInBytes;
 	buffer_desc.mips = 1;
@@ -89,18 +104,11 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	build_desc.Inputs = inputs;
 	build_desc.DestAccelerationStructureData = i_blas_buffer->GetGPUVirtualAddress();
 	build_desc.ScratchAccelerationStructureData = i_scratch_buffer->GetGPUVirtualAddress();
-
-	static constexpr D3D12_RESOURCE_STATES resource_states[] = {
-		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
-	};
-	static constexpr bool restores[2] = { true,true };
-	const DX_RESOURCE* resources[2]{ vb_impl, ib_impl };
-
-	dx12_command_buffer_resource_transition(*static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer),
+	
+	dx12_command_buffer_resource_barrier_transition_and_restore(*static_cast<DX_COMMAND_BUFFER*>(desc->command_buffer),
 		resources,
-		resource_states,
-		restores, resource_count, [&]() {
+		resources_states,
+		[&]() {
 			i_command_buffer->BuildRaytracingAccelerationStructure(&build_desc, 0, nullptr);
 	});
 

@@ -30,27 +30,6 @@ void model_3d_from_file(const std::string& filename, tinygltf::Model& model) {
 
 
 static constexpr float aspect = 800.0f / 600.0f;
-static constexpr float x = 0.5f;
-
-static struct Vertex
-{
-	float x, y, z;
-};
-
-static Vertex vertices[] =
-{
-	{0.0f, x, 0.0f}, // top
-	{x, -x, 0.0f},	 // right
-	{-x, -x, 0.0f}	 // left
-};
-static constexpr unsigned int vertex_count = sizeof(vertices) / sizeof(Vertex);
-
-static uint16_t indices[] =
-{
-	0, 1, 2 
-};
-static constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
-
 
 static struct Mesh {
 
@@ -70,13 +49,46 @@ static struct Model {
 	std::string name;
 };
 
+resource_format gltfFormatToDxgiFormat(
+	int componentType,
+	int type)
+{
+	if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+	{
+		switch (type)
+		{
+		case TINYGLTF_TYPE_SCALAR:
+			return resource_format_float;
+
+		case TINYGLTF_TYPE_VEC2:
+			return resource_format_float2;
+
+		case TINYGLTF_TYPE_VEC3:
+			return resource_format_float3;
+
+		case TINYGLTF_TYPE_VEC4:
+			return resource_format_float4;
+		}
+	}
+	else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+		return resource_format_uint16;
+	}
+	else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+		return resource_format_uint32;
+	}
+
+	return resource_format_none;
+}
+
 void load_gltf_models(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const std::string& file_path, std::vector<Model>& models) {
 
 	tinygltf::Model gltf_model;
 	model_3d_from_file(file_path, gltf_model);
 	models.reserve(gltf_model.nodes.size());
+	int node_count = 0;
 	for (auto& gltf_node : gltf_model.nodes) {
+
 		if (gltf_node.mesh >= 0) {
 			Model& model = models.emplace_back();
 			model.name = gltf_node.name;
@@ -124,8 +136,8 @@ void load_gltf_models(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 			memcpy(
 				transform_array,
 				M.data(),
-				sizeof(transform_array));
-			model.transform.reset(&transform_array[0]);
+				sizeof(float) * 16);
+			model.transform.reset(transform_array);
 			auto& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 			model.vertices_ptr.reserve(gltf_mesh.primitives.size());
 			model.indices_ptr.reserve(gltf_mesh.primitives.size());
@@ -157,7 +169,9 @@ void load_gltf_models(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 				size_t vertexBytes =
 					positionAccessor.count * vertexSize;
 
-				mesh.vb.create(device, vertexBytes, vertexSize);
+				mesh.vb.create(device, vertexBytes, vertexSize, gltfFormatToDxgiFormat(
+					positionAccessor.componentType,
+					positionAccessor.type));
 				mesh.vb_shared.create(device, vertexBytes);
 				// copy vertices from cpu visible memory to gpu
 				auto v_map_info = mesh.vb_shared.map(0, vertexBytes);
@@ -177,37 +191,51 @@ void load_gltf_models(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 					const auto& indexBuffer =
 						gltf_model.buffers[indexBufferView.buffer];
 
-					const uint8_t* indices =
-						indexBuffer.data.data()
-						+ indexBufferView.byteOffset
-						+ indexAccessor.byteOffset;
+		
 
 					size_t indexSize = 0;
 					switch (indexAccessor.componentType)
 					{
 					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-						indexSize = 8;
+						indexSize = sizeof(uint8_t);
 						break;
 
 					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-						indexSize = 16;
+						indexSize = sizeof(uint16_t);
 						break;
 
 					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-						indexSize = 32;
+						indexSize = sizeof(uint32_t);
 						break;
 
 					default:
 						throw std::runtime_error("Unsupported index format");
 					}
 
-					size_t indeexBytes =
-						indexAccessor.count * vertexSize;
+					size_t indexBytes =
+						indexAccessor.count * indexSize;
 
-					mesh.ib->create(device, indeexBytes, indexSize);
-					mesh.ib_shared.create(device, indeexBytes);
+					const uint8_t* indices =
+						indexBuffer.data.data()
+						+ indexBufferView.byteOffset
+						+ indexAccessor.byteOffset;
+
+					mesh.ib->create(device, indexBytes, indexSize, gltfFormatToDxgiFormat(
+						indexAccessor.componentType,
+						indexAccessor.type));
+					mesh.ib_shared.create(device, indexBytes);
+
+					assert(indices);
+					assert(indexAccessor.count > 0);
+					assert(indexBuffer.data.size() > 0);
+
+					size_t offset =
+						indexBufferView.byteOffset +
+						indexAccessor.byteOffset;
+					assert(offset + indexBytes <= indexBuffer.data.size());
+
 					// copy indices from cpu visible memory to gpu
-					auto i_map_info = mesh.ib_shared.map(0, indeexBytes);
+					auto i_map_info = mesh.ib_shared.map(0, indexBytes);
 					memcpy(i_map_info.get_data(), indices, i_map_info.get_length());
 					mesh.ib_shared.unmap(i_map_info);
 					mesh.ib->upload(command_buffer, mesh.ib_shared);
@@ -236,11 +264,12 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	std::vector<std::vector<RhiView>> bvh_model_views;
 	RhiRayTraceRenderPass rt_render_pass;
 	RhiShaderBindingTable sbt;
+	std::vector<Model> models;
 
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	CameraCBRT camera_matrices;
 	camera_matrices.camera_pos =
-		Vec3(0.0f, 0.0f, -3.0f);
+		Vec3(0.0f, 0.0f, -30.0f);
 	camera_matrices.camera_forward =
 		Vec3(0.0f, 0.0f, 1.0f);
 	camera_matrices.camera_right =
@@ -266,14 +295,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		unit_test.ray_gen_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
 		unit_test.miss_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
 		unit_test.closest_hit_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
-
-		// save geometry buffers
-		unit_test.vertices.resize(sizeof(vertices));
-		memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
-		unit_test.vertices_stride = sizeof(vertices[0]);
-		unit_test.indices.resize(sizeof(indices));
-		memcpy(unit_test.indices.data(), &indices[0], sizeof(indices));
-		unit_test.indices_stride = sizeof(uint16_t);
 
 		// create render target
 		render_target.create(device, swap_chain.get_format(),
@@ -337,9 +358,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		sbt.create(device, pipeline, ray_trace_shader_programs);
 
 		// create camera transform buffer
-		camera_transforms.create(device, sizeof(CameraCBRT));
-
-		std::vector<Model> models;
+		camera_transforms.create(device, sizeof(CameraCBRT));		
 
 		// upload vertices e indices data to gpu only memory
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
@@ -349,7 +368,8 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 				// load scene
 				load_gltf_models(device,
 					command_buffer,
-					R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
+					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
+					R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\FinalBaseMesh.gltf)",
 					models);
 
 				// create geometry buffer array, one element per model				

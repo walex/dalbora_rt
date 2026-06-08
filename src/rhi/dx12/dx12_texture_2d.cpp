@@ -132,13 +132,10 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
 	ID3D12Resource* i_texture = *static_cast<DX_TEXTURE_2D*>(dest_buffer);
 	ASSERT_PTR(i_texture);
 
-	static constexpr D3D12_RESOURCE_STATES resource_state[] = { D3D12_RESOURCE_STATE_COPY_DEST };
-	static constexpr bool restore[] = { true };
-	DX_RESOURCE* resources[] = { static_cast<DX_TEXTURE_2D*>(dest_buffer) };
-	dx12_command_buffer_resource_transition(i_command_buffer,
-		resources,
-		resource_state,
-		restore, 1, [&]() {
+	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
+		{ static_cast<DX_TEXTURE_2D*>(dest_buffer) },
+		{ D3D12_RESOURCE_STATE_COPY_DEST },
+		[&]() {
 
 			for (UINT i = 0; i < static_cast<UINT>(dest_buffer->mip_maps_count); ++i)
 			{

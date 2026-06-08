@@ -39,8 +39,8 @@ void RhiRayTraceGeometryBuffer::create_direct(const RhiDevice& device, const Rhi
 	RHI_RT_BVH_DESC desc;
 	desc.device = device;
 	desc.command_buffer = command_buffer;
-	desc.vertex_buffer = &vertex_buffers[0];
-	desc.index_buffer = &index_buffers[0];
+	desc.vertex_buffer = vertex_buffers.data();
+	desc.index_buffer = index_buffers.data();
 	desc.count = vertex_buffers.size();
 	this->set_handle(rhi_rt_bvh_create(&desc));
 	for (size_t i = 0; i < vertex_buffers.size(); i++) {
