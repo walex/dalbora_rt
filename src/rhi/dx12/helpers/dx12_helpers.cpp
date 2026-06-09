@@ -12,20 +12,31 @@ resource_format dx12_helpers_resource_format_from_dxgi_format(const DXGI_FORMAT 
     return static_cast<resource_format>(std::distance(s.begin(), it));
 }
 
-void dx12_helpers_copy_4x4Matrix_to_rt_instance(const float*const* transforms, const size_t instance_count, D3D12_GPU_VIRTUAL_ADDRESS gpu_mem, ID3D12Resource* i_buffer) {
+void dx12_helpers_copy_4x4Matrix_to_rt_instance(const float*const* transforms, const size_t instance_count,
+    D3D12_GPU_VIRTUAL_ADDRESS gpu_mem, ID3D12Resource* i_buffer,
+    size_t offset) {
 
     D3D12_RAYTRACING_INSTANCE_DESC* instances = nullptr;
 
+    D3D12_RANGE range {
+        .Begin = offset,
+        .End = (instance_count * sizeof(D3D12_RAYTRACING_INSTANCE_DESC))
+    };
+
     i_buffer->Map(
         0,
-        nullptr,
+        &range,
         reinterpret_cast<void**>(&instances));
+
+    auto* base_ptr =
+        reinterpret_cast<D3D12_RAYTRACING_INSTANCE_DESC*>(
+            reinterpret_cast<uint8_t*>(instances) + offset);
 
     UINT iid = 0;
     for (size_t i = 0; i < instance_count; i++)
     {
         float* transform_values = const_cast<float*>(transforms[i]);
-        D3D12_RAYTRACING_INSTANCE_DESC& instance = instances[i];
+        D3D12_RAYTRACING_INSTANCE_DESC& instance = base_ptr[i];
         instance.InstanceID = iid++;
         instance.InstanceMask = 0xFF;
         instance.AccelerationStructure = gpu_mem;
@@ -45,13 +56,7 @@ void dx12_helpers_copy_4x4Matrix_to_rt_instance(const float*const* transforms, c
         instance.Transform[2][1] = *(transform_values++);
         instance.Transform[2][2] = *(transform_values++);
         instance.Transform[2][3] = *(transform_values++);
-
-        //dx12_helpers_copy_eigen_matrix_to_array(
-        //    transforms[i],
-        //    instance.Transform
-
-        //);
     }
 
-    i_buffer->Unmap(0, nullptr);
+    i_buffer->Unmap(0, &range);
 }

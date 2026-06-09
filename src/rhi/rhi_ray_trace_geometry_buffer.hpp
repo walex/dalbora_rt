@@ -15,16 +15,17 @@ public:
 
 	RhiRayTraceGeometrydBufferInstances(RHI_BUFFER* buffer = nullptr);
 	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
-		RhiRayTraceGeometryBuffer& geometry_buffer, const std::vector<float*>& instance_transforms);
+		const std::vector<RhiRayTraceGeometryBuffer>& geometry_buffer,
+		const std::vector<std::vector<float*>>& instance_transforms);
 	void update(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		RhiRayTraceGeometryBuffer& geometry_buffer, const std::vector<float*>& instance_transforms);
+	RhiView new_view(RhiDevice& device);
 };
 
 class RhiRayTraceGeometryBuffer 
 
 	: public RhiImpl<RHI_RT_BVH>
 	, public ICreateRhiObject<const RhiDevice&, const RhiCommandBuffer&,
-	const std::vector<float*>&,
 	const RhiGPUBuffer&, const RhiGPUBuffer*> {
 
 public:
@@ -32,15 +33,8 @@ public:
 	RhiRayTraceGeometryBuffer(RHI_RT_BVH* handle = nullptr);
 	virtual ~RhiRayTraceGeometryBuffer() = default;
 	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
-		const std::vector<float*>& instance_transforms,
 		const RhiGPUBuffer& vertex_buffer, const RhiGPUBuffer* index_buffer = nullptr);
-	void create_direct(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
-		const std::vector<std::vector<float*>>& transforms,
+	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		const std::vector<RHI_BUFFER*>& vertex_buffers, const std::vector<RHI_BUFFER*>& index_buffers);
-	void update(const RhiDevice& device, const RhiCommandBuffer& command_buffer, 
-		const std::vector<float*>& instance_transforms);
-	std::vector<RhiView> new_view(RhiDevice& device);
-private:
-	std::vector<RhiRayTraceGeometrydBufferInstances> m_geomtric_instances;
 };
 #endif // __rhi_ray_trace_geometry_buffer_hpp__

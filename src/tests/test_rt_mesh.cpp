@@ -40,13 +40,26 @@ static struct Mesh {
 	RhiSharedBuffer ib_shared;
 };
 
-static struct Model {
+static struct Spatial {
 
-	std::vector<Mesh> meshes;
+	Eigen::Matrix4f transform;
+};
+
+static struct ModelNode : public Spatial {
+	std::string name;
+};
+
+static struct Model {
+	std::list<Mesh*> meshes;
 	std::vector<RHI_BUFFER*> vertices_ptr;
 	std::vector<RHI_BUFFER*> indices_ptr;
-	std::unique_ptr<float> transform;
-	std::string name;
+	std::list<ModelNode> nodes;
+};
+
+static struct Scene {
+	std::list<std::shared_ptr<Model>> models;
+	std::list<Mesh> meshes;
+	Eigen::Vector3f bb_min, bb_max;
 };
 
 resource_format gltfFormatToDxgiFormat(
@@ -80,18 +93,205 @@ resource_format gltfFormatToDxgiFormat(
 	return resource_format_none;
 }
 
-void load_gltf_models(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-	const std::string& file_path, std::vector<Model>& models) {
+void compute_scene_bounds(
+	const tinygltf::Model& model,
+	const Eigen::Matrix4f& world_matrix,
+	Eigen::Vector3f& scene_min,
+	Eigen::Vector3f& scene_max)
+{
+	scene_min =
+	{
+		FLT_MAX,
+		FLT_MAX,
+		FLT_MAX
+	};
+
+	scene_max =
+	{
+		-FLT_MAX,
+		-FLT_MAX,
+		-FLT_MAX
+	};
+
+	for (const auto& mesh : model.meshes)
+	{
+		for (const auto& primitive : mesh.primitives)
+		{
+			auto pos_it = primitive.attributes.find("POSITION");
+
+			if (pos_it == primitive.attributes.end())
+				continue;
+
+			const tinygltf::Accessor& accessor =
+				model.accessors[pos_it->second];
+
+			if (accessor.minValues.size() < 3 ||
+				accessor.maxValues.size() < 3)
+			{
+				continue;
+			}
+
+			Eigen::Vector3f local_min(
+				static_cast<float>(accessor.minValues[0]),
+				static_cast<float>(accessor.minValues[1]),
+				static_cast<float>(accessor.minValues[2]));
+
+			Eigen::Vector3f local_max(
+				static_cast<float>(accessor.maxValues[0]),
+				static_cast<float>(accessor.maxValues[1]),
+				static_cast<float>(accessor.maxValues[2]));
+
+			Eigen::Vector3f corners[8] =
+			{
+				{local_min.x(), local_min.y(), local_min.z()},
+				{local_max.x(), local_min.y(), local_min.z()},
+				{local_min.x(), local_max.y(), local_min.z()},
+				{local_max.x(), local_max.y(), local_min.z()},
+				{local_min.x(), local_min.y(), local_max.z()},
+				{local_max.x(), local_min.y(), local_max.z()},
+				{local_min.x(), local_max.y(), local_max.z()},
+				{local_max.x(), local_max.y(), local_max.z()}
+			};
+
+			for (int i = 0; i < 8; ++i)
+			{
+				Eigen::Vector4f p(
+					corners[i].x(),
+					corners[i].y(),
+					corners[i].z(),
+					1.0f);
+
+				p = world_matrix * p;
+
+				scene_min =
+					scene_min.cwiseMin(p.head<3>());
+
+				scene_max =
+					scene_max.cwiseMax(p.head<3>());
+			}
+		}
+	}
+}
+
+void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+	const std::string& file_path, Scene& scene ) {
 
 	tinygltf::Model gltf_model;
-	model_3d_from_file(file_path, gltf_model);
-	models.reserve(gltf_model.nodes.size());
-	int node_count = 0;
+	model_3d_from_file(file_path, gltf_model);	
+	int hh = 0;
+	std::map<size_t, std::shared_ptr<Model>> node_models;
+	for (size_t i = 0; i < gltf_model.meshes.size(); i++)
+	{
+		const auto& gltf_mesh = gltf_model.meshes.at(i);	
+		auto& node_model = node_models[i] = std::make_shared<Model>();
+		for (auto& gltf_primitive : gltf_mesh.primitives) {
+
+			Mesh& mesh = scene.meshes.emplace_back();
+			node_model->meshes.emplace_back(&mesh);
+
+			// POSITION
+			int positionAccessorIndex =
+				gltf_primitive.attributes.at("POSITION");
+
+			const auto& positionAccessor =
+				gltf_model.accessors[positionAccessorIndex];
+
+			const auto& positionBufferView =
+				gltf_model.bufferViews[positionAccessor.bufferView];
+
+			const auto& positionBuffer =
+				gltf_model.buffers[positionBufferView.buffer];
+
+			const uint8_t* positions =
+				positionBuffer.data.data()
+				+ positionBufferView.byteOffset
+				+ positionAccessor.byteOffset;
+
+			size_t vertexSize =
+				positionAccessor.ByteStride(positionBufferView);
+
+			size_t vertexBytes =
+				positionAccessor.count * vertexSize;
+
+			mesh.vb.create(device, vertexBytes, vertexSize, gltfFormatToDxgiFormat(
+				positionAccessor.componentType,
+				positionAccessor.type));
+
+			mesh.vb_shared.create(device, vertexBytes);
+			// copy vertices from cpu visible memory to gpu
+			auto v_map_info = mesh.vb_shared.map(0, vertexBytes);
+			memcpy(v_map_info.get_data(), positions, v_map_info.get_length());
+			mesh.vb_shared.unmap(v_map_info);
+			mesh.vb.upload(command_buffer, mesh.vb_shared);
+			node_model.get()->vertices_ptr.emplace_back(mesh.vb);
+
+			if (gltf_primitive.indices >= 0) {
+				mesh.ib = std::make_unique<RhiGPUBuffer>();
+
+				const auto& indexAccessor =
+					gltf_model.accessors[gltf_primitive.indices];
+
+				const auto& indexBufferView =
+					gltf_model.bufferViews[indexAccessor.bufferView];
+
+				const auto& indexBuffer =
+					gltf_model.buffers[indexBufferView.buffer];
+
+				size_t indexSize = 0;
+				switch (indexAccessor.componentType)
+				{
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+					indexSize = sizeof(uint8_t);
+					break;
+
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+					indexSize = sizeof(uint16_t);
+					break;
+
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+					indexSize = sizeof(uint32_t);
+					break;
+
+				default:
+					throw std::runtime_error("Unsupported index format");
+				}
+
+				size_t indexBytes =
+					indexAccessor.count * indexSize;
+
+				const uint8_t* indices =
+					indexBuffer.data.data()
+					+ indexBufferView.byteOffset
+					+ indexAccessor.byteOffset;
+
+				mesh.ib->create(device, indexBytes, indexSize, gltfFormatToDxgiFormat(
+					indexAccessor.componentType,
+					indexAccessor.type));
+				mesh.ib_shared.create(device, indexBytes);
+
+				size_t offset =
+					indexBufferView.byteOffset +
+					indexAccessor.byteOffset;
+
+				// copy indices from cpu visible memory to gpu
+				auto i_map_info = mesh.ib_shared.map(0, indexBytes);
+				memcpy(i_map_info.get_data(), indices, i_map_info.get_length());
+				mesh.ib_shared.unmap(i_map_info);
+				mesh.ib->upload(command_buffer, mesh.ib_shared);
+				node_model.get()->indices_ptr.push_back(*mesh.ib);
+			}
+			else {
+				node_model.get()->indices_ptr.push_back(nullptr);
+			}
+		}
+	}
+
 	for (auto& gltf_node : gltf_model.nodes) {
 
 		if (gltf_node.mesh >= 0) {
-			Model& model = models.emplace_back();
-			model.name = gltf_node.name;
+			auto& model = node_models[gltf_node.mesh];
+			scene.models.push_back(model);
+			ModelNode& node = model->nodes.emplace_back();
 
 			Eigen::Matrix4f M = Eigen::Matrix4f::Identity();
 			if (!gltf_node.translation.empty())
@@ -132,122 +332,14 @@ void load_gltf_models(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 
 				M *= S;
 			}
-			float* transform_array = new float[16];
-			memcpy(
-				transform_array,
-				M.data(),
-				sizeof(float) * 16);
-			model.transform.reset(transform_array);
-			auto& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
-			model.vertices_ptr.reserve(gltf_mesh.primitives.size());
-			model.indices_ptr.reserve(gltf_mesh.primitives.size());
-			for (const auto& primitive : gltf_mesh.primitives)
-			{
-				Mesh& mesh = model.meshes.emplace_back();
+			node.transform = M;
 
-				// POSITION
-				int positionAccessorIndex =
-					primitive.attributes.at("POSITION");
-
-				const auto& positionAccessor =
-					gltf_model.accessors[positionAccessorIndex];
-
-				const auto& positionBufferView =
-					gltf_model.bufferViews[positionAccessor.bufferView];
-
-				const auto& positionBuffer =
-					gltf_model.buffers[positionBufferView.buffer];
-
-				const uint8_t* positions =
-					positionBuffer.data.data()
-					+ positionBufferView.byteOffset
-					+ positionAccessor.byteOffset;
-
-				size_t vertexSize =
-					positionAccessor.ByteStride(positionBufferView);
-
-				size_t vertexBytes =
-					positionAccessor.count * vertexSize;
-
-				mesh.vb.create(device, vertexBytes, vertexSize, gltfFormatToDxgiFormat(
-					positionAccessor.componentType,
-					positionAccessor.type));
-				mesh.vb_shared.create(device, vertexBytes);
-				// copy vertices from cpu visible memory to gpu
-				auto v_map_info = mesh.vb_shared.map(0, vertexBytes);
-				memcpy(v_map_info.get_data(), positions, v_map_info.get_length());
-				mesh.vb_shared.unmap(v_map_info);
-				mesh.vb.upload(command_buffer, mesh.vb_shared);
-				model.vertices_ptr.emplace_back(mesh.vb);
-				if (primitive.indices >= 0) {
-					mesh.ib = std::make_unique<RhiGPUBuffer>();
-
-					const auto& indexAccessor =
-						gltf_model.accessors[primitive.indices];
-
-					const auto& indexBufferView =
-						gltf_model.bufferViews[indexAccessor.bufferView];
-
-					const auto& indexBuffer =
-						gltf_model.buffers[indexBufferView.buffer];
-
-		
-
-					size_t indexSize = 0;
-					switch (indexAccessor.componentType)
-					{
-					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-						indexSize = sizeof(uint8_t);
-						break;
-
-					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-						indexSize = sizeof(uint16_t);
-						break;
-
-					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-						indexSize = sizeof(uint32_t);
-						break;
-
-					default:
-						throw std::runtime_error("Unsupported index format");
-					}
-
-					size_t indexBytes =
-						indexAccessor.count * indexSize;
-
-					const uint8_t* indices =
-						indexBuffer.data.data()
-						+ indexBufferView.byteOffset
-						+ indexAccessor.byteOffset;
-
-					mesh.ib->create(device, indexBytes, indexSize, gltfFormatToDxgiFormat(
-						indexAccessor.componentType,
-						indexAccessor.type));
-					mesh.ib_shared.create(device, indexBytes);
-
-					assert(indices);
-					assert(indexAccessor.count > 0);
-					assert(indexBuffer.data.size() > 0);
-
-					size_t offset =
-						indexBufferView.byteOffset +
-						indexAccessor.byteOffset;
-					assert(offset + indexBytes <= indexBuffer.data.size());
-
-					// copy indices from cpu visible memory to gpu
-					auto i_map_info = mesh.ib_shared.map(0, indexBytes);
-					memcpy(i_map_info.get_data(), indices, i_map_info.get_length());
-					mesh.ib_shared.unmap(i_map_info);
-					mesh.ib->upload(command_buffer, mesh.ib_shared);
-					model.indices_ptr.push_back(*mesh.ib);
-				}
-				else {
-					model.indices_ptr.push_back(nullptr);
-				}
-			}
 		}
 	}
+
+	compute_scene_bounds(gltf_model, Eigen::Matrix4f::Identity(), scene.bb_min, scene.bb_max);
 }
+
 void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {	
 
 
@@ -258,27 +350,17 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiShaderProgram closest_hit_shader;
 	RhiGPUBuffer vertex_buffer;
 	RhiGPUBuffer index_buffer;
-	std::vector<RhiRayTraceGeometryBuffer> geometry_buffers;
 	RhiSharedBuffer camera_transforms;
 	RhiView camera_transform_view;
-	std::vector<std::vector<RhiView>> bvh_model_views;
+	std::vector<RhiRayTraceGeometryBuffer> geometry_buffers;
+	RhiRayTraceGeometrydBufferInstances geometry_instances;
+	RhiView geometry_instances_views;
 	RhiRayTraceRenderPass rt_render_pass;
 	RhiShaderBindingTable sbt;
-	std::vector<Model> models;
+	Scene scene;
 
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	CameraCBRT camera_matrices;
-	camera_matrices.camera_pos =
-		Vec3(0.0f, 0.0f, -30.0f);
-	camera_matrices.camera_forward =
-		Vec3(0.0f, 0.0f, 1.0f);
-	camera_matrices.camera_right =
-		Vec3(1.0f, 0.0f, 0.0f);
-	camera_matrices.camera_up =
-		Vec3(0.0f, 1.0f, 0.0f);
-	camera_matrices.tanHalfFov =
-		0.7002075f;
-	camera_matrices.aspect = aspect;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
@@ -366,33 +448,53 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 			command_buffer.record([&] {
 
 				// load scene
-				load_gltf_models(device,
+				load_gltf_scene(device,
 					command_buffer,
 					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
-					R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\FinalBaseMesh.gltf)",
-					models);
+					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\FinalBaseMesh.gltf)",
+					R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\SheenChair.gltf)",
+					scene);
 
-				// create geometry buffer array, one element per model				
-				geometry_buffers.reserve(models.size());				
-				// for test we use one instance per model
-				// model transform is copies to all model meshes
-				for (auto& model : models) {
+				Eigen::Vector3f center =
+					(scene.bb_min + scene.bb_max) * 0.5f;
 
-					std::vector<std::vector<float*>> transforms(model.meshes.size());
+				Eigen::Vector3f size =
+					scene.bb_max - scene.bb_min;
 
-					for (size_t i = 0; i < model.meshes.size(); i++) {
+				float max_dimension =
+					std::max({
+						size.x(),
+						size.y(),
+						size.z()
+						});
 
-						// one instance per model for test
-						std::vector<float*>& transform = transforms.at(i);
-						transform.push_back(model.transform.get());
+				camera_matrices.camera_pos =
+					center + Eigen::Vector3f(
+						0.0f,
+						0.0f,
+						max_dimension * 1.0f);
+				camera_matrices.camera_forward = (center - camera_matrices.camera_pos).normalized();
+				camera_matrices.camera_right =
+					Vec3(1.0f, 0.0f, 0.0f);
+				camera_matrices.camera_up =
+					Vec3(0.0f, 1.0f, 0.0f);
+				camera_matrices.tanHalfFov =
+					0.7002075f;
+				camera_matrices.aspect = aspect;
+
+				std::vector<std::vector<float*>> instances_transforms;
+				for (auto& model : scene.models) {
+
+					std::vector<float*>& transforms = instances_transforms.emplace_back();;
+					for (auto& node : model.get()->nodes) {
+
+						transforms.push_back(node.transform.data());
 					}
-
-
 					auto& geometry_buffer = geometry_buffers.emplace_back();
-					geometry_buffer.create_direct(device, command_buffer, transforms, model.vertices_ptr, model.indices_ptr);
-					// view BVH (GPU read only)
-					bvh_model_views.push_back(geometry_buffer.new_view(device));
+					geometry_buffer.create(device, command_buffer, model.get()->vertices_ptr, model.get()->indices_ptr);
 				}
+				geometry_instances.create(device, command_buffer, geometry_buffers, instances_transforms);
+				geometry_instances_views = geometry_instances.new_view(device);
 			});
 
 			list.add_command_buffer(command_buffer);

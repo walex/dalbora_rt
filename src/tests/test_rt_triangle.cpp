@@ -238,13 +238,19 @@ void test_rt_triangle(fptr_test_on_init on_init,
 
 						float* matrices[] = { rotation_matrix.data() };
 
-						RHI_RT_BVH_GEOMETRY_INSTANCES_DESC tlas_desc;
+
+						RHI_RT_BVH_GEOMETRY_INSTANCE_DESC inst_desc;
+
+						RHI_RT_BVH_GEOMETRY_DESC tlas_desc;
 						tlas_desc.device = &dev;
 						tlas_desc.command_buffer = &command_buffer;
-						tlas_desc.parent_bvh = bvh.get();
-						tlas_desc.transforms = &matrices[0];
-						tlas_desc.instance_count = 1;
+						tlas_desc.instance_info = &inst_desc;
+						inst_desc.parent_bvh = bvh.get();
+						inst_desc.transforms = &matrices[0];
+						inst_desc.transforms_count = 1;
 						tlas_desc.read_only = false;
+						tlas_desc.instance_info_count = 1;
+						tlas_desc.total_instances = 1;
 						bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
 
 						
@@ -295,16 +301,19 @@ void test_rt_triangle(fptr_test_on_init on_init,
 
 			float dt = get_delta_time();
 			rotation_matrix = rotate_triangle(dt);
-
-			float* matrices[] = { rotation_matrix.data() };
-
-			RHI_RT_BVH_GEOMETRY_INSTANCES_DESC tlas_desc;
+			float* matrices[] = { rotation_matrix.data() };			
+			RHI_RT_BVH_GEOMETRY_INSTANCE_DESC inst_desc;
+			RHI_RT_BVH_GEOMETRY_DESC tlas_desc;
 			tlas_desc.device = &dev;
 			tlas_desc.command_buffer = &command_buffer;
-			tlas_desc.parent_bvh = bvh.get();
-			tlas_desc.transforms = &matrices[0];
-			tlas_desc.instance_count = 1;
-			
+			tlas_desc.instance_info = &inst_desc;
+			inst_desc.parent_bvh = bvh.get();
+			inst_desc.transforms = &matrices[0];
+			inst_desc.transforms_count = 1;
+			tlas_desc.instance_info_count = 1;
+			tlas_desc.read_only = false;
+			tlas_desc.total_instances = 1;
+
 			rhi_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
 
 			// draw
@@ -345,10 +354,11 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiShaderProgram closest_hit_shader;
 	RhiGPUBuffer vertex_buffer;
 	RhiGPUBuffer index_buffer;
-	RhiRayTraceGeometryBuffer geometry_buffer;
+	std::vector<RhiRayTraceGeometryBuffer> geometry_buffers;
+	RhiRayTraceGeometrydBufferInstances geometry_instances;
+	RhiView geometry_instances_views;
 	RhiSharedBuffer camera_transforms;
 	RhiView camera_transform_view;
-	std::vector<RhiView> bvh_instances_views;
 	RhiRayTraceRenderPass rt_render_pass;
 	RhiShaderBindingTable sbt;
 
@@ -366,9 +376,8 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		0.7002075f;
 	camera_matrices.aspect = aspect;
 
-	std::vector<float*> geometry_instances;
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
-	geometry_instances.push_back(rotation_matrix.data());
+	std::vector<std::vector<float*>> instances_transforms;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
@@ -474,6 +483,8 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
 		shared_index_buffer.unmap(i_map_info);		
 
+
+		
 		// upload vertices e indices data to gpu only memory
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
 
@@ -482,7 +493,12 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 				// create geometry buffer
 				vertex_buffer.upload(command_buffer, shared_vertex_buffer);
 				index_buffer.upload(command_buffer, shared_index_buffer);
-				geometry_buffer.create(device, command_buffer, geometry_instances, vertex_buffer, &index_buffer);
+				auto& geometry_buffer = geometry_buffers.emplace_back();
+				auto& transforms = instances_transforms.emplace_back();
+				transforms.push_back(rotation_matrix.data());
+				geometry_buffer.create(device, command_buffer, vertex_buffer, &index_buffer);
+				geometry_instances.create(device, command_buffer, geometry_buffers, instances_transforms);
+				
 			});
 
 			list.add_command_buffer(command_buffer);
@@ -491,7 +507,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// views	
 		// 
 		// view BVH (GPU read only)
-		bvh_instances_views = geometry_buffer.new_view(device);
+		geometry_instances_views = geometry_instances.new_view(device);
 
 		// view render_target (GPU read write)
 		render_target_view = render_target.new_rw_view(device);
@@ -517,7 +533,11 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		float dt = get_delta_time();
 		rotation_matrix = rotate_triangle(dt);
-		geometry_buffer.update(unit_test.device, unit_test.command_buffer, geometry_instances);
+		std::vector<float*> new_t;
+		new_t.push_back(rotation_matrix.data());
+
+		geometry_instances.update(unit_test.device, unit_test.command_buffer, 
+			geometry_buffers.at(0), new_t);
 
 		// upload shaders constants
 		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));

@@ -94,10 +94,10 @@ inline void (*rhi_render_pass_execute_rt_mode)(const RHI_RENDER_PASS* const rend
 
 // rt
 inline RHI_RT_BVH* (*rhi_rt_bvh_create)(const RHI_RT_BVH_DESC* const desc);
-inline RHI_BUFFER*(*rhi_rt_bvh_build_geometry_instances)(const RHI_RT_BVH_GEOMETRY_INSTANCES_DESC* const desc);
+inline RHI_BUFFER*(*rhi_rt_bvh_build_geometry_instances)(const RHI_RT_BVH_GEOMETRY_DESC* const desc);
 inline void (*rhi_command_buffer_ray_trace)(RHI_COMMAND_BUFFER* const command_buffer,
 	RHI_TEXTURE_2D* const render_target, const RHI_SBT_TABLE* const sbt);
-inline void (*rhi_rt_bvh_update_geometry_instances)(const RHI_RT_BVH_GEOMETRY_INSTANCES_DESC* const desc,
+inline void (*rhi_rt_bvh_update_geometry_instances)(const RHI_RT_BVH_GEOMETRY_DESC* const desc,
 	RHI_BUFFER* const buffer);
 
 #endif // __rhi_c_h__

@@ -156,13 +156,20 @@ struct RHI_RT_BVH_DESC  {
 	size_t count;
 };
 
-struct RHI_RT_BVH_GEOMETRY_INSTANCES_DESC  {
+struct RHI_RT_BVH_GEOMETRY_INSTANCE_DESC {
+	RHI_RT_BVH* parent_bvh = nullptr;;
+	size_t transforms_count = 0;;
+	float*const* transforms = nullptr;
+	size_t update_index = 0;
+};
+
+struct RHI_RT_BVH_GEOMETRY_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_BUFFER* command_buffer = nullptr;
-	RHI_RT_BVH* parent_bvh = nullptr;
-	float*const* transforms;
-	size_t instance_count = 0;
-	bool read_only = true;
+	RHI_RT_BVH_GEOMETRY_INSTANCE_DESC* instance_info;
+	size_t instance_info_count;
+	size_t total_instances;
+	bool read_only;
 };
 
 struct RHI_RENDER_PASS_DESC  {
