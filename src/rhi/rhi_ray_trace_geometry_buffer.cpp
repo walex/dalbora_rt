@@ -85,3 +85,4 @@ void RhiRayTraceGeometryBuffer::create(const RhiDevice& device, const RhiCommand
 	desc.count = 1;
 	this->set_handle(rhi_rt_bvh_create(&desc));
 }
+

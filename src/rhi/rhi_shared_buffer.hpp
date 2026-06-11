@@ -32,6 +32,7 @@ public:
 	void create(const RhiDevice& device, const size_t length, const size_t stride = 0, const resource_format format = resource_format_none);
 	RhiSharedBufferMap map(const size_t offset, const size_t length);
 	void unmap(const RhiSharedBufferMap& map_info);
+	void copy(const uint8_t* data, const size_t length, const size_t offset = 0);
 	RhiView new_depth_buffer_view(RhiDevice& device);
 	RhiView new_constant_buffer_view(RhiDevice& device);
 };

@@ -50,9 +50,6 @@ void dx12_buffers_copy_buffer_region(RHI_COMMAND_BUFFER* const command_buffer, c
 	ASSERT_PTR(src_buffer);
 	ASSERT_PTR(dest_buffer);
 
-	//	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
-	//	ID3D12Resource* src = *static_cast<const DX_BUFFER*>(src_buffer);
-	//	ID3D12Resource* dest = *static_cast<DX_BUFFER*>(dest_buffer);
 	static_cast<ID3D12GraphicsCommandList*>(
 		*static_cast<DX_COMMAND_BUFFER*>(command_buffer))->CopyBufferRegion(
 			*static_cast<DX_BUFFER*>(dest_buffer), offset_dest, 
@@ -69,15 +66,14 @@ void dx12_buffers_gpu_upload_region(RHI_COMMAND_BUFFER* const command_buffer, co
 	ASSERT_PTR(dest_buffer);
 
 	ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
-	const DX_BUFFER* src = static_cast<const DX_BUFFER*>(src_buffer);
 	DX_BUFFER* dest = static_cast<DX_BUFFER*>(dest_buffer);
 	
 	dx12_command_buffer_resource_barrier_transition_and_restore(i_command_buffer,
 		{ dest },
 		{ D3D12_RESOURCE_STATE_COPY_DEST },
 		[&]() {
-			dx12_buffers_copy_buffer_region(command_buffer, *src,
-				offset_src, *dest, offset_dest, length);
+			dx12_buffers_copy_buffer_region(command_buffer, src_buffer,
+				offset_src, dest_buffer, offset_dest, length);
 		});
 }
 
@@ -152,7 +148,7 @@ RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset
 	ID3D12Resource* i_buffer = *static_cast<const DX_BUFFER*>(buffer);
 	D3D12_RANGE range{
 		.Begin = offset,
-		.End = length};
+		.End = offset+length};
 
 	RHI_VOID_PTR mapped = nullptr;	
 	ASSERT_SUCCESS(i_buffer->Map(0, &range, &mapped));

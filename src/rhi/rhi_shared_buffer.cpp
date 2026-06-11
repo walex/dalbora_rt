@@ -31,6 +31,13 @@ void RhiSharedBuffer::unmap(const RhiSharedBufferMap& map_info) {
 	rhi_buffers_map_close(*this, map_info.get_offset(), map_info.get_length());
 }
 
+void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_t offset) {
+
+	auto v_map_info = this->map(offset, length);
+	memcpy(v_map_info.get_data() + offset, data, length);
+	this->unmap(v_map_info);
+}
+
 RhiView RhiSharedBuffer::new_depth_buffer_view(RhiDevice& device) {
 
 	throw std::exception("mappeable depth bufferview is not supported");

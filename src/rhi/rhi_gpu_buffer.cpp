@@ -22,6 +22,13 @@ void RhiGPUBuffer::upload(const RhiCommandBuffer& command_buffer, const RhiShare
 	rhi_buffers_gpu_upload(command_buffer, sb, *this);
 }
 
+void RhiGPUBuffer::upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb,
+	const size_t ofsset_src, const size_t offset_dest, const size_t length) {
+
+	rhi_buffers_gpu_upload_region(command_buffer, sb, *this, ofsset_src, offset_dest, length);
+		
+}
+
 resource_format RhiGPUBuffer::get_format() {
 	return static_cast<RHI_BUFFER*>(*this)->format;
 }

@@ -153,7 +153,8 @@ struct RHI_RT_BVH_DESC  {
 	RHI_COMMAND_BUFFER* command_buffer = nullptr;
 	RHI_BUFFER*const* vertex_buffer = nullptr;
 	RHI_BUFFER*const* index_buffer = nullptr;
-	size_t count;
+	size_t indices_length = 0;
+	size_t count = 0;
 };
 
 struct RHI_RT_BVH_GEOMETRY_INSTANCE_DESC {

@@ -23,9 +23,6 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	ASSERT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);
 
-	//static constexpr bool restore_resources_states[2] = { true,true };
-	//const DX_RESOURCE* resources[2]{ vb_impl, ib_impl };
-
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geoemtries_desc(desc->count);
 	std::vector<DX_RESOURCE*> resources;
 	std::vector<D3D12_RESOURCE_STATES> resources_states;

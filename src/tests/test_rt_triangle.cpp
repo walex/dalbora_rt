@@ -481,9 +481,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		shared_index_buffer.create(device, unit_test.indices.size());
 		auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
 		memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
-		shared_index_buffer.unmap(i_map_info);		
-
-
+		shared_index_buffer.unmap(i_map_info);
 		
 		// upload vertices e indices data to gpu only memory
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
@@ -552,8 +550,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		if (callbacks)
 			callbacks->on_draw(unit_test);
 
-		unit_test.swap_chain.blit(unit_test.command_buffer, render_target);
-
+		unit_test.swap_chain.blit(unit_test.command_buffer, render_target);		
 	});
 
 	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
