@@ -11,13 +11,15 @@ class RhiCommandBuffer;
 class RhiTexture;
 class RhiSwapChain 
 	: public ICreateRhiObject<const RhiWindow&, const RhiDevice&, 
-				const RhiCommandQueue&, const size_t>
+				const RhiCommandQueue&, const size_t, const bool>
 	, public RhiImpl<RHI_SWAP_CHAIN>{
 
 public:
 	RhiSwapChain(RHI_SWAP_CHAIN* hanlde = nullptr);
 	virtual ~RhiSwapChain() = default;
-	void create(const RhiWindow& window, const RhiDevice& device, const RhiCommandQueue& command_queue, const size_t buffers_count = 3) override;
+	void create(const RhiWindow& window, const RhiDevice& device, const RhiCommandQueue& command_queue, 
+		const size_t buffers_count = 3,
+		bool enable_vertical_sync = false) override;
 	RhiView get_next_render_target();
 	resource_format get_format();
 	void blit(RhiCommandBuffer& command_buffer, RhiTexture& image);

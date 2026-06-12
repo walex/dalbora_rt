@@ -1,6 +1,6 @@
 #include "test_api.hpp"
 
-float aspect = 800.0f / 600.0f;
+float image_aspect = 800.0f / 600.0f;
 float x = 0.5f;
 
 static struct Vertex
@@ -66,7 +66,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	camera.tanHalfFov =
 		0.7002075f;
 
-	camera.aspect = aspect;
+	camera.aspect = image_aspect;
 
 	test_swap_chain([&](RHI_DEVICE& dev, RHI_COMMAND_QUEUE& command_queue,
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
@@ -374,7 +374,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		Vec3(0.0f, 1.0f, 0.0f);
 	camera_matrices.tanHalfFov =
 		0.7002075f;
-	camera_matrices.aspect = aspect;
+	camera_matrices.aspect = image_aspect;
 
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
 	std::vector<std::vector<float*>> instances_transforms;

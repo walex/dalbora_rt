@@ -2,7 +2,7 @@
 
 #ifdef TEST_RASTER_TRIANGLE
 
-static constexpr float aspect = 800.0f / 600.0f;
+static constexpr float image_aspect = 800.0f / 600.0f;
 static constexpr float x = 0.5f;
 
 

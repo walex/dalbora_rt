@@ -147,7 +147,8 @@ void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 	ASSERT_PTR(swap_chain);
 	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
 	ASSERT_PTR(i_swap_chain);
-	i_swap_chain->Present(1, 0);
+	//i_swap_chain->Present(1, 0);
+	i_swap_chain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 }
 
 RHI_VIEW* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const swap_chain, 
