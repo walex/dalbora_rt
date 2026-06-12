@@ -15,6 +15,7 @@ enum device_type
 enum resource_format
 {
 	resource_format_none = 0,
+	resource_format_uint8,
 	resource_format_uint16,
 	resource_format_uint32,
 	resource_format_R8G8B8A8_norm,

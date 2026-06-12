@@ -31,38 +31,68 @@ void model_3d_from_file(const std::string& filename, tinygltf::Model& model) {
 
 static constexpr float aspect = 800.0f / 600.0f;
 
-static struct Mesh {
+class Spatial {
 
+public:
+	virtual ~Spatial() = default;
+	Eigen::Matrix4f& get_transform() { return m_transform; }
+private:
+	Eigen::Matrix4f m_transform;
+};
+
+class SceneNode : public Spatial {
+public:
+	virtual ~SceneNode() = default;
+	virtual std::list<std::unique_ptr<SceneNode>>& get_childs() { return m_childs; }
+	virtual bool is_leaf() { return false; }
+private:
+	std::list<std::unique_ptr<SceneNode>> m_childs;
+	SceneNode* parent = nullptr;
+	std::string name;
+};
+
+class LeafNode : public SceneNode {
+public:
+	virtual ~LeafNode() = default;
+	virtual std::list<std::unique_ptr<SceneNode>>& get_childs() override { throw std::exception("leaf node has no childs"); }
+	bool is_leaf() override { return true; }
+};
+
+class Mesh {
+public:
 	RhiGPUBuffer vertex_buffer;
 	std::unique_ptr<RhiGPUBuffer> index_buffer;
 	std::unique_ptr<RhiGPUBuffer> normals_buffer;
 	std::unique_ptr<RhiGPUBuffer> texture_coords_buffer;
 };
 
-static struct Spatial {
-
-	Eigen::Matrix4f transform;
+class MeshNode : public LeafNode {
+public:
+	virtual ~MeshNode() = default;
+	std::shared_ptr<Mesh> mesh;
 };
 
-static struct ModelNode : public Spatial {
-	std::string name;
+class LightNode : public MeshNode {
+public:
+	virtual ~LightNode() = default;
 };
 
-static struct Model {
-	std::list<Mesh*> meshes;
-	std::vector<RHI_BUFFER*> vertices_ptr;
-	std::vector<RHI_BUFFER*> indices_ptr;
-	std::vector<RHI_BUFFER*> normals_ptr;
-	std::vector<RHI_BUFFER*> tex_coords_ptr;
-	std::list<ModelNode> nodes;
+class RT_BufferInstances {
+public:
+
+	std::vector<float*> transforms;
 };
 
-static struct Scene {
-	std::list<std::shared_ptr<Model>> models;
-	std::list<Mesh> meshes;
+class Scene {
+public:
+	virtual ~Scene() = default;
 	Eigen::Vector3f bb_min, bb_max;
-
 	RhiSharedBuffer tmp_buffer;
+	SceneNode root_node;
+	std::vector<RhiRayTraceGeometryBuffer> rt_buffers;
+	std::vector<std::vector<float*>> rt_buffers_transforms;
+	RhiRayTraceGeometrydBufferInstances rt_buffers_instances;
+	RhiView rt_buffer_instances_views;
 };
 
 resource_format gltfFormatToDxgiFormat(
@@ -177,8 +207,8 @@ void compute_scene_bounds(
 }
 
 RhiGPUBuffer gltf_create_buffer(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
-    const size_t length, const size_t stride, 
-	resource_format format, const uint8_t* bytes, 
+	const size_t length, const size_t stride,
+	resource_format format, const uint8_t* bytes,
 	RhiSharedBuffer& shared_buffer, const size_t shared_buffer_offset) {
 
 	RhiGPUBuffer dest_buffer;
@@ -192,18 +222,26 @@ RhiGPUBuffer gltf_create_buffer(const RhiDevice& device, const RhiCommandBuffer&
 	return dest_buffer;
 }
 
-const uint8_t* get_model_buffer(const tinygltf::Model& model, const tinygltf::Primitive& primitive,
-	const std::string& attribute, size_t& length, 
-	size_t& stride, resource_format& format) {
-	
-	auto attr = primitive.attributes.find(attribute.c_str());
-	if (attr == primitive.attributes.end())
-		return nullptr;
 
-	int positionAccessorIndex = attr->second;
+const uint8_t* get_model_buffer(const tinygltf::Model& model, const tinygltf::Primitive& primitive,
+	const std::string& attribute, size_t& length,
+	size_t& stride, resource_format& format) {
+
+	int accessor_index;
+	if (attribute == "__indices__") {
+		if (primitive.indices < 0)
+			return nullptr;
+		accessor_index = primitive.indices;
+	}
+	else {
+		auto attr = primitive.attributes.find(attribute.c_str());
+		if (attr == primitive.attributes.end())
+			return nullptr;
+		accessor_index = attr->second;
+	}
 
 	const auto& accessor =
-		model.accessors[positionAccessorIndex];
+		model.accessors[accessor_index];
 
 	const auto& view =
 		model.bufferViews[accessor.bufferView];
@@ -229,198 +267,162 @@ const uint8_t* get_model_buffer(const tinygltf::Model& model, const tinygltf::Pr
 	return data;
 }
 
-Scene load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-	const std::string& file_path, const size_t scene_length ) {
+Eigen::Matrix4f get_node_transforms(tinygltf::Node node) {
 
-	Scene scene;
-	size_t tmp_buffer_offset = 0;
-	size_t vb_offset = 0;
-	size_t ib_offset = 0;
-	scene.tmp_buffer.create(device, scene_length);
-	
-	tinygltf::Model gltf_model;
-	model_3d_from_file(file_path, gltf_model);	
-	int hh = 0;
-	std::map<size_t, std::shared_ptr<Model>> node_models;
-	for (size_t i = 0; i < gltf_model.meshes.size(); i++)
+	Eigen::Matrix4f M = Eigen::Matrix4f::Identity();
+	if (!node.translation.empty())
 	{
-		const auto& gltf_mesh = gltf_model.meshes.at(i);	
-		auto& node_model = node_models[i] = std::make_shared<Model>();
-		for (auto& gltf_primitive : gltf_mesh.primitives) {
+		Eigen::Matrix4f T = Eigen::Matrix4f::Identity();
 
-			Mesh& mesh = scene.meshes.emplace_back();
-			node_model->meshes.emplace_back(&mesh);
+		T(0, 3) = static_cast<float>(node.translation[0]);
+		T(1, 3) = static_cast<float>(node.translation[1]);
+		T(2, 3) = static_cast<float>(node.translation[2]);
 
-			size_t vertex_stride, vertices_length;
-			resource_format format;
-
-			// POSITION
-			const uint8_t* vertices = get_model_buffer(gltf_model, gltf_primitive,
-				"POSITION", vertices_length,
-				vertex_stride, format);
-
-			if (!vertices)
-				throw std::exception("vertex buffer not found");
-
-			// copy vertices from cpu visible memory to gpu
-			mesh.vertex_buffer = gltf_create_buffer(device, command_buffer,
-				vertices_length, vertex_stride, 
-				format, vertices,
-				scene.tmp_buffer, tmp_buffer_offset);
-
-			tmp_buffer_offset += vertices_length;
-
-			node_model.get()->vertices_ptr.emplace_back(mesh.vertex_buffer);
-
-			// NORMALS
-			size_t normal_stride, normals_length;
-			const uint8_t* normals = get_model_buffer(gltf_model, gltf_primitive,
-				"NORMAL", normals_length,
-				normal_stride, format);
-			if (normals != nullptr) {
-
-				// copy normals from cpu visible memory to gpu
-				mesh.normals_buffer = std::make_unique<RhiGPUBuffer>(gltf_create_buffer(device, command_buffer,
-					normals_length, normal_stride,
-					format, normals,
-					scene.tmp_buffer, tmp_buffer_offset));
-				tmp_buffer_offset += normals_length;
-			}
-			else {
-				node_model.get()->normals_ptr.push_back(nullptr);
-			}
-
-			// TEXTURE COORDS
-			size_t tex_stride, tex_length;
-			const uint8_t* tex_coords = get_model_buffer(gltf_model, gltf_primitive,
-				"TEXCOORD_0", tex_length,
-				tex_stride, format);
-			if (tex_coords != nullptr) {
-				// copy normals from cpu visible memory to gpu
-				mesh.texture_coords_buffer = std::make_unique<RhiGPUBuffer>(gltf_create_buffer(device, command_buffer,
-					tex_length, tex_stride,
-					format, tex_coords,
-					scene.tmp_buffer, tmp_buffer_offset));
-				tmp_buffer_offset += tex_length;
-			}
-			else {
-				node_model.get()->tex_coords_ptr.push_back(nullptr);
-			}
-
-			if (gltf_primitive.indices >= 0) {
-				mesh.index_buffer = std::make_unique<RhiGPUBuffer>();
-
-				const auto& index_accessor =
-					gltf_model.accessors[gltf_primitive.indices];
-
-				const auto& index_buffer_view =
-					gltf_model.bufferViews[index_accessor.bufferView];
-
-				const auto& index_buffer =
-					gltf_model.buffers[index_buffer_view.buffer];
-
-				size_t index_stride = 0;
-				switch (index_accessor.componentType)
-				{
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-					index_stride = sizeof(uint8_t);
-					break;
-
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-					index_stride = sizeof(uint16_t);
-					break;
-
-				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-					index_stride = sizeof(uint32_t);
-					break;
-
-				default:
-					throw std::runtime_error("Unsupported index format");
-				}
-
-				size_t indices_length =
-					index_accessor.count * index_stride;
-
-				const uint8_t* indices =
-					index_buffer.data.data()
-					+ index_buffer_view.byteOffset
-					+ index_accessor.byteOffset;
-				
-				// copy indices from cpu visible memory to gpu
-				mesh.index_buffer = std::make_unique<RhiGPUBuffer>(gltf_create_buffer(device, command_buffer,
-					indices_length, index_stride,
-					gltfFormatToDxgiFormat(
-						index_accessor.componentType,
-						index_accessor.type), indices,
-					scene.tmp_buffer, tmp_buffer_offset));
-
-				tmp_buffer_offset += indices_length;
-				node_model.get()->indices_ptr.push_back(*mesh.index_buffer);
-			}
-			else {
-				node_model.get()->indices_ptr.push_back(nullptr);
-			}
-
-		}
+		M *= T;
 	}
+
+	if (!node.rotation.empty())
+	{
+		Eigen::Quaternionf Q(
+			node.rotation[3], // w
+			node.rotation[0], // x
+			node.rotation[1], // y
+			node.rotation[2]); // z
+
+		Eigen::Matrix4f R = Eigen::Matrix4f::Identity();
+
+		R.block<3, 3>(0, 0) = Q.toRotationMatrix();
+
+
+		M *= R;
+	}
+
+	if (!node.scale.empty())
+	{
+		Eigen::Matrix4f S = Eigen::Matrix4f::Identity();
+		S.block<3, 3>(0, 0) =
+			Eigen::Scaling(
+				(float)node.scale[0],
+				(float)node.scale[1],
+				(float)node.scale[2]);
+
+		M *= S;
+	}
+	return M;
+}
+
+
+void load_gltf_scene_2(RhiDevice& device, RhiCommandBuffer& command_buffer,
+	const std::string& file_path, const size_t max_scene_length,
+	Scene& scene) {
+
+	size_t tmp_buffer_offset = 0;
+	scene.tmp_buffer.create(device, max_scene_length);
+
+	tinygltf::Model gltf_model;
+	model_3d_from_file(file_path, gltf_model);
+	std::vector<std::list<std::shared_ptr<Mesh>>> meshes(gltf_model.meshes.size());
+	scene.rt_buffers.resize(gltf_model.meshes.size());
+	scene.rt_buffers_transforms.resize(gltf_model.meshes.size());
 
 	for (auto& gltf_node : gltf_model.nodes) {
 
 		if (gltf_node.mesh >= 0) {
-			auto& model = node_models[gltf_node.mesh];
-			scene.models.push_back(model);
-			ModelNode& node = model->nodes.emplace_back();
 
-			Eigen::Matrix4f M = Eigen::Matrix4f::Identity();
-			if (!gltf_node.translation.empty())
-			{
-				Eigen::Matrix4f T = Eigen::Matrix4f::Identity();
+			auto& mesh_list = meshes.at(gltf_node.mesh);
+			if (mesh_list.size() == 0) {
 
-				T(0, 3) = static_cast<float>(gltf_node.translation[0]);
-				T(1, 3) = static_cast<float>(gltf_node.translation[1]);
-				T(2, 3) = static_cast<float>(gltf_node.translation[2]);
+				std::vector<RHI_BUFFER*> vertices_ptr;
+				std::vector<RHI_BUFFER*> indices_ptr;
+				//std::vector<RHI_BUFFER*> normals_ptr;
+				//std::vector<RHI_BUFFER*> tex_coords_ptr;
 
-				M *= T;
+				const auto& gltf_mesh = gltf_model.meshes.at(gltf_node.mesh);
+				for (auto& gltf_primitive : gltf_mesh.primitives) {
+
+					std::shared_ptr<Mesh>& mesh = mesh_list.emplace_back();
+					mesh = std::make_shared<Mesh>();
+
+					resource_format format;
+
+					// POSITION
+					size_t vertex_stride, vertices_length;
+					const uint8_t* vertices = get_model_buffer(gltf_model, gltf_primitive,
+						"POSITION", vertices_length,
+						vertex_stride, format);
+
+					if (!vertices)
+						throw std::exception("vertex buffer not found");
+
+					// copy vertices from cpu visible memory to gpu					
+					scene.tmp_buffer.copy(vertices, vertices_length, tmp_buffer_offset);
+					mesh->vertex_buffer.create(device, vertices_length, vertex_stride, format);
+					mesh->vertex_buffer.upload(command_buffer, scene.tmp_buffer, tmp_buffer_offset, 0, vertices_length);
+					tmp_buffer_offset += vertices_length;
+					vertices_ptr.emplace_back(mesh->vertex_buffer);
+
+					// NORMALS
+					size_t normal_stride, normals_length;
+					const uint8_t* normals = get_model_buffer(gltf_model, gltf_primitive,
+						"NORMAL", normals_length,
+						normal_stride, format);
+					if (normals != nullptr) {
+						// copy normals from cpu visible memory to gpu
+
+						tmp_buffer_offset += normals_length;
+					}
+
+					// TEXTURE COORDS
+					size_t tex_stride, tex_length;
+					const uint8_t* tex_coords = get_model_buffer(gltf_model, gltf_primitive,
+						"TEXCOORD_0", tex_length,
+						tex_stride, format);
+					if (tex_coords != nullptr) {
+						// copy normals from cpu visible memory to gpu
+
+						tmp_buffer_offset += tex_length;
+					}
+
+					// INDICES
+					size_t indices_stride, indices_length;
+					const uint8_t* indices = get_model_buffer(gltf_model, gltf_primitive,
+						"__indices__", indices_length,
+						indices_stride, format);
+					if (indices != nullptr) {
+
+						// copy tex coords from cpu visible memory to gpu						
+						scene.tmp_buffer.copy(indices, indices_length, tmp_buffer_offset);
+						mesh->index_buffer = std::make_unique<RhiGPUBuffer>();
+						mesh->index_buffer->create(device, indices_length, indices_stride, format);
+						mesh->index_buffer->upload(command_buffer, scene.tmp_buffer, tmp_buffer_offset, 0, indices_length);
+						tmp_buffer_offset += indices_length;
+						indices_ptr.push_back(*mesh->index_buffer);
+					}
+					else
+						indices_ptr.push_back(nullptr);
+				}
+				auto& rt_buffer = scene.rt_buffers.at(gltf_node.mesh);
+				rt_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
 			}
-
-			if (!gltf_node.rotation.empty())
-			{
-				Eigen::Quaternionf Q(
-					gltf_node.rotation[3], // w
-					gltf_node.rotation[0], // x
-					gltf_node.rotation[1], // y
-					gltf_node.rotation[2]); // z
-
-				Eigen::Matrix4f R = Eigen::Matrix4f::Identity();
-
-				R.block<3, 3>(0, 0) = Q.toRotationMatrix();
-
-
-				M *= R;
+			for (auto& mesh : mesh_list) {
+				std::unique_ptr<MeshNode> mesh_node = std::make_unique<MeshNode>();
+				mesh_node->mesh = mesh;
+				auto& t = mesh_node->get_transform();
+				t = get_node_transforms(gltf_node);
+				scene.root_node.get_childs().push_back(std::move(mesh_node));
+				auto& transforms = scene.rt_buffers_transforms.at(gltf_node.mesh);
+				transforms.push_back(t.data());
 			}
-
-			if (!gltf_node.scale.empty())
-			{
-				Eigen::Matrix4f S = Eigen::Matrix4f::Identity();
-				S.block<3, 3>(0, 0) =
-					Eigen::Scaling(
-						(float)gltf_node.scale[0],
-						(float)gltf_node.scale[1],
-						(float)gltf_node.scale[2]);
-
-				M *= S;
-			}
-			node.transform = M;
-
 		}
 	}
 
-	compute_scene_bounds(gltf_model, Eigen::Matrix4f::Identity(), scene.bb_min, scene.bb_max);
+	scene.rt_buffers_instances.create(device, command_buffer, scene.rt_buffers, scene.rt_buffers_transforms);
+	scene.rt_buffer_instances_views = scene.rt_buffers_instances.new_view(device);
 
-	return scene;
+	compute_scene_bounds(gltf_model, Eigen::Matrix4f::Identity(), scene.bb_min, scene.bb_max);
 }
 
-void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {	
+void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 
 	RhiRenderTarget render_target;
@@ -432,9 +434,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiGPUBuffer index_buffer;
 	RhiSharedBuffer camera_transforms;
 	RhiView camera_transform_view;
-	std::vector<RhiRayTraceGeometryBuffer> geometry_buffers;
-	RhiRayTraceGeometrydBufferInstances geometry_instances;
-	RhiView geometry_instances_views;
 	RhiRayTraceRenderPass rt_render_pass;
 	RhiShaderBindingTable sbt;
 	Scene scene;
@@ -452,7 +451,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
 		RhiRayTracePipeline& pipeline = unit_test.ray_trace_pipeline;
-		
+
 		// setup shaders
 		unit_test.ray_gen_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
 		unit_test.miss_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
@@ -482,7 +481,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		pipeline_layout.add_rw_buffer_descriptors(0, 100);
 
 		// 3 - Constant buffer (Camera)
-		pipeline_layout.add_constants_buffer_descriptors(0, 100);		
+		pipeline_layout.add_constants_buffer_descriptors(0, 100);
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
@@ -498,13 +497,13 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		auto& hg = hit_groups_desc.emplace_back();
 		strcpy_s(hg.name_id, "HG_1");
 		hg.closest_hit.blob = closest_hit_shader;
-		strcpy_s(hg.closest_hit.name_id, closest_hit_entry_point.c_str());		
+		strcpy_s(hg.closest_hit.name_id, closest_hit_entry_point.c_str());
 
 		std::vector<RHI_RT_SHADER_UNIT_DESC>& miss_shader_desc = ray_trace_shader_programs.miss_shaders_desc;
 		auto& miss_1 = miss_shader_desc.emplace_back();
 		miss_1.blob = miss_shader;
 		strcpy_s(miss_1.name_id, miss_entry_point.c_str());
-		
+
 		std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
 		auto& ray_gen = ray_gen_shader_desc.emplace_back();
 		strcpy(ray_gen.name_id, ray_gen_entry_point.c_str());
@@ -519,67 +518,52 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		// shader binding table
 		sbt.create(device, pipeline, ray_trace_shader_programs);
 
-		// create camera transform buffer
-		camera_transforms.create(device, sizeof(CameraCBRT));		
-		Scene scene;
-
 		// upload vertices e indices data to gpu only memory
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
 
 			command_buffer.record([&] {
 
 				// load scene
-				scene = load_gltf_scene(device,
+				load_gltf_scene_2(device,
 					command_buffer,
 					R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
 					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\FinalBaseMesh.gltf)",
 					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\SheenChair.gltf)"
-					6*1024*1024);
-
-				Eigen::Vector3f center =
-					(scene.bb_min + scene.bb_max) * 0.5f;
-
-				Eigen::Vector3f size =
-					scene.bb_max - scene.bb_min;
-
-				float max_dimension =
-					std::max({
-						size.x(),
-						size.y(),
-						size.z()
-						});
-
-				camera_matrices.camera_pos =
-					center + Eigen::Vector3f(
-						0.0f,
-						0.0f,
-						max_dimension * 1.0f);
-				camera_matrices.camera_forward = (center - camera_matrices.camera_pos).normalized();
-				camera_matrices.camera_right =
-					Vec3(1.0f, 0.0f, 0.0f);
-				camera_matrices.camera_up =
-					Vec3(0.0f, 1.0f, 0.0f);
-				camera_matrices.tanHalfFov =
-					0.7002075f;
-				camera_matrices.aspect = aspect;
-
-				std::vector<std::vector<float*>> instances_transforms;
-				for (auto& model : scene.models) {
-
-					std::vector<float*>& transforms = instances_transforms.emplace_back();;
-					for (auto& node : model.get()->nodes) {
-
-						transforms.push_back(node.transform.data());
-					}
-					auto& geometry_buffer = geometry_buffers.emplace_back();
-					geometry_buffer.create(device, command_buffer, model.get()->vertices_ptr, model.get()->indices_ptr);
-				}
-				geometry_instances.create(device, command_buffer, geometry_buffers, instances_transforms);
-				geometry_instances_views = geometry_instances.new_view(device);
-			});
+					6 * 1024 * 1024,
+					scene);
+				});
 
 			list.add_command_buffer(command_buffer);
-		});
+			});
+
+		// create camera and setup transform
+		camera_transforms.create(device, sizeof(CameraCBRT));
+		Eigen::Vector3f center =
+			(scene.bb_min + scene.bb_max) * 0.5f;
+
+		Eigen::Vector3f size =
+			scene.bb_max - scene.bb_min;
+
+		float max_dimension =
+			std::max({
+				size.x(),
+				size.y(),
+				size.z()
+				});
+
+		camera_matrices.camera_pos =
+			center + Eigen::Vector3f(
+				0.0f,
+				0.0f,
+				max_dimension * 1.0f);
+		camera_matrices.camera_forward = (center - camera_matrices.camera_pos).normalized();
+		camera_matrices.camera_right =
+			Vec3(1.0f, 0.0f, 0.0f);
+		camera_matrices.camera_up =
+			Vec3(0.0f, 1.0f, 0.0f);
+		camera_matrices.tanHalfFov =
+			0.7002075f;
+		camera_matrices.aspect = aspect;
 
 		// view render_target (GPU read write)
 		render_target_view = render_target.new_rw_view(device);
@@ -589,15 +573,15 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// create render pass
 		rt_render_pass.create(device);
-		
+
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
 		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
-		
+
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
-		
-	});
+
+		});
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
 
@@ -609,13 +593,13 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// upload shaders constants
 		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));
-		
+
 		rt_render_pass.set_render_target(render_target_view);
 
 		rt_render_pass.render(unit_test.command_buffer, [&](RhiCommandBuffer& command_buffer) {
 
 			command_buffer.ray_trace(render_target, sbt);
-		});
+			});
 
 		if (callbacks)
 			callbacks->on_draw(unit_test);
@@ -623,15 +607,15 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		unit_test.swap_chain.blit(unit_test.command_buffer, render_target);
 
 		print_fps();
-	});
+		});
 
 	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
 
 		if (callbacks)
 			callbacks->on_end(unit_test);
-		
+
 		camera_transforms.unmap(*camera_constant_buffer_map);
-	});
+		});
 
 	test_create_swap_chain_obj(&unit_test_callbacks);
 }

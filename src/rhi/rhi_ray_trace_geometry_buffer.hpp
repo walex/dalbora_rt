@@ -15,6 +15,9 @@ public:
 
 	RhiRayTraceGeometrydBufferInstances(RHI_BUFFER* buffer = nullptr);
 	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
+		const RhiRayTraceGeometryBuffer& geometry_buffer,
+		const std::vector<float*>& instance_transforms);
+	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		const std::vector<RhiRayTraceGeometryBuffer>& geometry_buffer,
 		const std::vector<std::vector<float*>>& instance_transforms);
 	void update(const RhiDevice& device, const RhiCommandBuffer& command_buffer,

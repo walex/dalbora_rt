@@ -65,7 +65,7 @@ void test_rt() {
 	});
 	
 	// scene
-	auto scene = std::make_unique<Scene>();
+	auto scene = std::make_unique<StaticScene>();
 	scene->addLight(light.get());
 	scene->addCamera(camera.get());
 	scene->addGeometry(geometry.get());

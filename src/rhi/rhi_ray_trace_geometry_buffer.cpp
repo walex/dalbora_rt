@@ -3,6 +3,24 @@
 
 
 void RhiRayTraceGeometrydBufferInstances::create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
+	const RhiRayTraceGeometryBuffer& geometry_buffer,
+	const std::vector<float*>& instance_transforms) {
+
+	RHI_RT_BVH_GEOMETRY_DESC desc;
+	desc.device = device;
+	desc.command_buffer = command_buffer;
+	desc.instance_info_count = 1;
+	desc.read_only = false;
+	RHI_RT_BVH_GEOMETRY_INSTANCE_DESC geometry_instances_desc;
+	geometry_instances_desc.parent_bvh = geometry_buffer;
+	geometry_instances_desc.transforms = instance_transforms.data();
+	geometry_instances_desc.transforms_count = instance_transforms.size();
+	desc.instance_info = &geometry_instances_desc;
+	desc.total_instances = geometry_instances_desc.transforms_count;
+	this->set_handle(rhi_rt_bvh_build_geometry_instances(&desc));
+}
+
+void RhiRayTraceGeometrydBufferInstances::create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 	const std::vector<RhiRayTraceGeometryBuffer>& geometry_buffer,
 	const std::vector<std::vector<float*>>& instance_transforms) {
 
@@ -11,16 +29,16 @@ void RhiRayTraceGeometrydBufferInstances::create(const RhiDevice& device, const 
 	desc.command_buffer = command_buffer;
 	desc.instance_info_count = geometry_buffer.size();
 	desc.read_only = false;
-	std::vector<RHI_RT_BVH_GEOMETRY_INSTANCE_DESC> geometry_instances_desce(geometry_buffer.size());
+	std::vector<RHI_RT_BVH_GEOMETRY_INSTANCE_DESC> geometry_instances_desc(geometry_buffer.size());
 	size_t total_instances = 0;
 	for (size_t i = 0; i < geometry_buffer.size(); i++) {
-		auto& idesc = geometry_instances_desce.at(i);
+		auto& idesc = geometry_instances_desc.at(i);
 		idesc.parent_bvh = geometry_buffer[i];
 		idesc.transforms = instance_transforms[i].data();
 		idesc.transforms_count = instance_transforms[i].size();
 		total_instances += idesc.transforms_count;
 	}
-	desc.instance_info = geometry_instances_desce.data();
+	desc.instance_info = geometry_instances_desc.data();
 	desc.total_instances = total_instances;
 	this->set_handle(rhi_rt_bvh_build_geometry_instances(&desc));
 }

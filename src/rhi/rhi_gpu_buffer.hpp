@@ -21,6 +21,8 @@ public:
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb,
 		const size_t ofsset_src, const size_t offset_dest, const size_t length);
 	resource_format get_format();
+	size_t get_length();
+	size_t get_stride();
 	RhiView new_depth_buffer_view(RhiDevice& device);
 	RhiView new_constant_buffer_view(RhiDevice& device);
 };

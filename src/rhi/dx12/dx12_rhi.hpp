@@ -181,6 +181,7 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
 
 constexpr DXGI_FORMAT dx12_resource_format_type[] = {
 	DXGI_FORMAT_UNKNOWN,			  // resource_format_none
+	DXGI_FORMAT_R8_UINT,			  // resource_format_uint18
 	DXGI_FORMAT_R16_UINT,			  // resource_format_uint16
 	DXGI_FORMAT_R32_UINT,			  // resource_format_uint32
 	DXGI_FORMAT_R8G8B8A8_UNORM,		  // resource_format_R8G8B8A8

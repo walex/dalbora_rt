@@ -23,15 +23,15 @@ void RhiGPUBuffer::upload(const RhiCommandBuffer& command_buffer, const RhiShare
 }
 
 void RhiGPUBuffer::upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb,
-	const size_t ofsset_src, const size_t offset_dest, const size_t length) {
+	const size_t offset_src, const size_t offset_dest, const size_t length) {
 
-	rhi_buffers_gpu_upload_region(command_buffer, sb, *this, ofsset_src, offset_dest, length);
+	rhi_buffers_gpu_upload_region(command_buffer, sb, *this, offset_src, offset_dest, length);
 		
 }
 
-resource_format RhiGPUBuffer::get_format() {
-	return static_cast<RHI_BUFFER*>(*this)->format;
-}
+resource_format RhiGPUBuffer::get_format() { return static_cast<RHI_BUFFER*>(*this)->format; }
+size_t RhiGPUBuffer::get_length() { return static_cast<RHI_BUFFER*>(*this)->length; }
+size_t RhiGPUBuffer::get_stride() { return static_cast<RHI_BUFFER*>(*this)->stride; }
 
 RhiView RhiGPUBuffer::new_depth_buffer_view(RhiDevice& device) {
 	RHI_VIEW_DESC desc;

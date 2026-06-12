@@ -6,8 +6,8 @@
 class Mesh;
 class Camera;
 class Light;
-class Scene;
-class Scene
+class StaticScene;
+class StaticScene
 {
 public:
 	void addGeometry(const Mesh* const geometry) { m_geometries.push_back(geometry); }
