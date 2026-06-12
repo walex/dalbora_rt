@@ -58,7 +58,7 @@ void RayGen()
         RAY_FLAG_NONE,
         0xFF,
         0, // ray contribution
-        1, // multiplier
+        0, // multiplier
         0, // miss shader index
         ray,
         payload
