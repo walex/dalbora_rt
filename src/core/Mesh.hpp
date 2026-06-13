@@ -6,8 +6,23 @@
 class Material;
 class Mesh
 {
+
 public:
 	virtual ~Mesh() = default;
+	RhiGPUBuffer vertex_buffer;
+	std::unique_ptr<RhiGPUBuffer> index_buffer;
+	std::unique_ptr<RhiGPUBuffer> normals_buffer;
+	std::unique_ptr<RhiGPUBuffer> texture_coords_buffer;
+
+	void setMaterial(const Material& material) { m_material = &material; }
+	const Material* getMaterial() const { return m_material; }
+private:
+	const Material* m_material = nullptr;
+};
+
+class ReadOnlyMesh : public Mesh {};
+
+/*
 	void setMaterial(const Material& material) { m_material = &material; }
 	const Material* getMaterial() const { return m_material; }
 	virtual const RhiBuffer& get_vertices() const = 0;
@@ -83,5 +98,5 @@ private:
 	RhiGPUBuffer m_indices;
 	std::unique_ptr<SharedMesh> m_shared_mesh;
 };
-
+*/
 #endif

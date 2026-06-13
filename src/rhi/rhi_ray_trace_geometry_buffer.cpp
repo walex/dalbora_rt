@@ -22,7 +22,7 @@ void RhiRayTraceGeometrydBufferInstances::create(const RhiDevice& device, const 
 
 void RhiRayTraceGeometrydBufferInstances::create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 	const std::vector<RhiRayTraceGeometryBuffer>& geometry_buffer,
-	const std::vector<std::vector<float*>>& instance_transforms) {
+	const std::vector<std::vector<const float*>>& instance_transforms) {
 
 	RHI_RT_BVH_GEOMETRY_DESC desc;
 	desc.device = device;

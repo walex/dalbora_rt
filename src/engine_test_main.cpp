@@ -1,4 +1,5 @@
 #include "dalbora_rt_api.hpp"
+#include "tests/gltf_scene.hpp"
 
 constexpr size_t surface_width = 800;
 constexpr size_t surface_height = 600;
@@ -8,7 +9,7 @@ struct GPU_RESOUCES{
 	RhiDevice device;
 	RhiRenderTarget render_target;
 	RhiView render_target_view;
-	RhiGraphicsCommandQueue command_queue;
+	std::vector<RhiGraphicsCommandQueue> command_queues;
 };
 size_t k_gpu_count = 1;
 
@@ -23,13 +24,25 @@ void test_rt() {
 	RhiDevice& device = gpu_resource.device;
 	RhiRenderTarget& render_target = gpu_resource.render_target;
 	RhiView& render_target_view = gpu_resource.render_target_view;
-	RhiGraphicsCommandQueue& command_queue = gpu_resource.command_queue;	
+	RhiGraphicsCommandQueue& command_queue = gpu_resource.command_queues.at(0);
 
+	// init device
 	rhi_init(device_type_dx12);
 	device.create(INT64_MAX, device_features_raytracing);
 	render_target.create(device, surface_format, surface_width, surface_height);
 	render_target_view = render_target.new_rw_view(device);
 	command_queue.create(device);
+
+	// create command buffer
+	RhiCommandBuffer command_buffer;
+	command_buffer.create(device, command_queue);
+
+	// load scene
+	Scene scene;
+	scene.enable_rt_features(true);
+	std::string scene_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)";
+	size_t scene_index = 0;
+	load_gltf_scene(device, command_buffer,	scene_path, scene_index, scene);
 
 	// ---- ray trace engine ----
 	
@@ -50,29 +63,13 @@ void test_rt() {
 	// material
 	auto material = std::make_unique<Material>(device);
 	
-	// geometry
-	size_t vertices_length = 0;
-	size_t indices_length = 0;
-	size_t vertices_stride = 0;
-	size_t indices_stride = 0;
-	auto geometry = std::make_unique<ReadOnlyMesh>(device, vertices_length, indices_length,
-		vertices_stride, indices_stride);
-	geometry->setMaterial(*material);
-	RhiCommandBuffer command_buffer;
-	command_buffer.create(device, command_queue);
-	command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
-		geometry->upload(command_buffer, nullptr);
-	});
-	
 	// scene
-	auto scene = std::make_unique<StaticScene>();
-	scene->addLight(light.get());
-	scene->addCamera(camera.get());
-	scene->addGeometry(geometry.get());
+	//scene.addLight(light.get());
+	//scene.addCamera(camera.get());
 
 	// culler
 	auto scene_culler = std::make_unique<SceneCuller>();
-	scene_culler->setScene(scene.get());
+	scene_culler->setScene(&scene);
 
 	// renderer
 	auto renderer = std::make_unique<RayTracingRenderer>();

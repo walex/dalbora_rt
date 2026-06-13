@@ -6,5 +6,6 @@
 #include "worker.hpp"
 #include "task_pool.hpp"
 #include "rhi.hpp"
-
+// FixMe: REMOVE EIGEN
+#include <Eigen/Dense>
 #endif

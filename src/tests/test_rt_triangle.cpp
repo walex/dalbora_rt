@@ -377,7 +377,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	camera_matrices.aspect = image_aspect;
 
 	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
-	std::vector<std::vector<float*>> instances_transforms;
+	std::vector<std::vector<const float*>> instances_transforms;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {

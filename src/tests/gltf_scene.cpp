@@ -247,7 +247,8 @@ Eigen::Matrix4f get_node_transforms(tinygltf::Node node) {
 void process_node(
 	const tinygltf::Model& model,
 	const int nodeIndex,
-	const Eigen::Matrix4f& parentTransform,
+	SceneNode& parent_node,
+	const Eigen::Matrix4f& parent_transform,
 	Scene& scene)
 {
 	const tinygltf::Node& node = model.nodes[nodeIndex];
@@ -270,7 +271,10 @@ void process_node(
 	// World transform
 	//------------------------------------
 	Eigen::Matrix4f world =
-		parentTransform * local;
+		parent_transform * local;
+
+	std::unique_ptr<SceneNode> scene_node = std::make_unique<SceneNode>(&parent_node);
+	scene_node->get_world_transform() = world;
 
 	//------------------------------------
 	// Mesh
@@ -281,14 +285,12 @@ void process_node(
 			model.meshes[node.mesh];
 
 		// Procesar mesh usando 'world'
-
-		std::unique_ptr<MeshNode> mesh_node = std::make_unique<MeshNode>();
+		std::unique_ptr<MeshNode> mesh_node = std::make_unique<MeshNode>(scene_node.get());
 		mesh_node->mesh = scene.meshes.at(node.mesh);
-		auto& t = mesh_node->get_transform();
+		auto& t = mesh_node->get_world_transform();
 		t = world;
-		scene.root_node.get_childs().push_back(std::move(mesh_node));
-		auto& transforms = scene.rt_buffers_transforms.at(node.mesh);
-		transforms.push_back(t.data());
+		scene.add_rt_instance_trasnform(static_cast<size_t>(node.mesh), t.data());
+		scene_node->add_child(std::move(mesh_node));
 	}
 
 	//------------------------------------
@@ -299,9 +301,12 @@ void process_node(
 		process_node(
 			model,
 			child,
+			*scene_node,
 			world,
 			scene);
 	}
+
+	parent_node.add_child(std::move(scene_node));
 }
 
 void create_geometry_buffers(RhiDevice& device, RhiCommandBuffer& command_buffer,
@@ -380,8 +385,7 @@ void create_geometry_buffers(RhiDevice& device, RhiCommandBuffer& command_buffer
 			else
 				indices_ptr.push_back(nullptr);
 		}
-		auto& rt_buffer = scene.rt_buffers.at(i);
-		rt_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
+		scene.fill_rt_buffer(device, command_buffer, i, vertices_ptr, indices_ptr);
 	}
 }
 
@@ -392,9 +396,7 @@ void load_gltf_scene(RhiDevice& device, RhiCommandBuffer& command_buffer,
 	model_3d_from_file(file_path, gltf_model);
 
 	scene.meshes.resize(gltf_model.meshes.size());
-	scene.rt_buffers.resize(gltf_model.meshes.size());
-	scene.rt_buffers_transforms.resize(gltf_model.meshes.size());	
-
+	scene.init_rt_buffers(gltf_model.meshes.size());
 	create_geometry_buffers(device, command_buffer, gltf_model, scene);	
 
 	size_t local_scene_index =
@@ -413,12 +415,11 @@ void load_gltf_scene(RhiDevice& device, RhiCommandBuffer& command_buffer,
 		process_node(
 			gltf_model,
 			rootNode,
+			scene.root_node,
 			identity,
 			scene);
 	}
 
-	scene.rt_buffers_instances.create(device, command_buffer, scene.rt_buffers, scene.rt_buffers_transforms);
-	scene.rt_buffer_instances_views = scene.rt_buffers_instances.new_view(device);
-
+	scene.create_rt_instances(device, command_buffer);
 	compute_scene_bounds(gltf_model, Eigen::Matrix4f::Identity(), scene.bb_min, scene.bb_max);
 }

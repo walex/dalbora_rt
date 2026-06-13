@@ -160,7 +160,7 @@ struct RHI_RT_BVH_DESC  {
 struct RHI_RT_BVH_GEOMETRY_INSTANCE_DESC {
 	RHI_RT_BVH* parent_bvh = nullptr;;
 	size_t transforms_count = 0;;
-	float*const* transforms = nullptr;
+	const float*const* transforms = nullptr;
 	size_t update_index = 0;
 };
 

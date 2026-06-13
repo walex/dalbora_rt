@@ -105,6 +105,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 			command_buffer.record([&] {
 
 				scene.max_size = 6 * 1024 * 1024;
+				scene.enable_rt_features(true);
 				// load scene
 				load_gltf_scene(device,
 					command_buffer,
@@ -120,11 +121,17 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// create camera and setup transform
 		camera_transforms.create(device, sizeof(CameraCBRT));
-		Eigen::Vector3f center =
-			(scene.bb_min + scene.bb_max) * 0.5f;
+		Eigen::Vector3f min, max;
+		min.x() = scene.bb_min[0];
+		min.y() = scene.bb_min[1];
+		min.z() = scene.bb_min[2];
+		max.x() = scene.bb_max[0];
+		max.y() = scene.bb_max[1];
+		max.z() = scene.bb_max[2];
 
-		Eigen::Vector3f size =
-			scene.bb_max - scene.bb_min;
+		Eigen::Vector3f center = (min + max) * 0.5f;
+
+		Eigen::Vector3f size =	max - min;
 
 		float max_dimension =
 			std::max({
@@ -134,7 +141,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 				});
 
 		camera_matrices.camera_pos =
-			center + Eigen::Vector3f(
+			center  + Eigen::Vector3f(
 				0.0f,
 				0.0f,
 				max_dimension * 1.0f);
