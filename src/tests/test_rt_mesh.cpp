@@ -99,13 +99,67 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		// shader binding table
 		sbt.create(device, pipeline, ray_trace_shader_programs);
 
-		// upload vertices e indices data to gpu only memory
+		// copy vertices e indices from scene
+		scene.max_size = 6 * 1024 * 1024;
+		scene.enable_rt_features(true);
+		size_t tmp_buffer_offset = 0;
+		size_t rt_buffer_index = 0;
+		RhiSharedBuffer tmp_buffer;
+		tmp_buffer.create(device, scene.max_size);
+		
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
 
-			command_buffer.record([&] {
+			command_buffer.record([&] {				
+				
+				// scene load callback
+				scene.on_geometry_loaded = ([&](Mesh& mesh, const std::string& attr,
+					const uint8_t* const data, const size_t length, const size_t stride,
+					const resource_format format) {
 
-				scene.max_size = 6 * 1024 * 1024;
-				scene.enable_rt_features(true);
+					// copy vertices from cpu visible memory to gpu
+					if (data != nullptr) {
+						tmp_buffer.copy(data, length, tmp_buffer_offset);
+						if (attr == "POSITION") {
+							mesh.vertex_buffer.create(device, length, stride, format);
+							mesh.vertex_buffer.upload(command_buffer, tmp_buffer, tmp_buffer_offset, 0, length);
+						}
+						else if (attr == "__indices__") {
+
+							mesh.index_buffer = std::make_unique<RhiGPUBuffer>();
+							mesh.index_buffer->create(device, length, stride, format);
+							mesh.index_buffer->upload(command_buffer, tmp_buffer, tmp_buffer_offset, 0, length);
+						}
+					}
+					tmp_buffer_offset += length;
+				});
+
+				scene.on_model_loaded = ([&](const std::vector<Mesh*>& meshes) {
+					std::vector<RHI_BUFFER*> vertices_ptr;
+					std::vector<RHI_BUFFER*> indices_ptr;
+					vertices_ptr.reserve(meshes.size());
+					indices_ptr.reserve(meshes.size());
+					for (auto& mesh : meshes) {
+						vertices_ptr.push_back(mesh->vertex_buffer);
+						if (mesh->index_buffer != nullptr)
+							indices_ptr.push_back(*mesh->index_buffer);
+						else
+							indices_ptr.push_back(nullptr);
+					}
+					scene.fill_rt_buffer(device, command_buffer, vertices_ptr, indices_ptr);
+				});				
+
+				scene.on_new_scene_node = ([&](SceneNode& node) {
+
+					for (auto& child : node.get_childs()) {
+						if (child->is_leaf() 
+							&& static_cast<LeafNode*>(child.get())->get_type() == LeafNodeType_Mesh) {
+
+							MeshNode* mesh_node = static_cast<MeshNode*>(child.get());
+							scene.add_rt_instance_transform(mesh_node->mesh_index, mesh_node->get_world_transform().data());
+						}
+					}
+				});
+				
 				// load scene
 				load_gltf_scene(device,
 					command_buffer,
@@ -114,10 +168,11 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\SheenChair.gltf)",
 					0,
 					scene);
+				scene.create_rt_instances(device, command_buffer);
 				});
-
+				
 			list.add_command_buffer(command_buffer);
-			});
+		});
 
 		// create camera and setup transform
 		camera_transforms.create(device, sizeof(CameraCBRT));
@@ -151,7 +206,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		camera_matrices.camera_up =
 			Vec3(0.0f, 1.0f, 0.0f);
 		camera_matrices.tanHalfFov =
-			0.7002075f;
+			0.76f;
 		camera_matrices.aspect = image_aspect;
 
 		// view render_target (GPU read write)

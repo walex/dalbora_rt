@@ -60,7 +60,7 @@ void RhiRayTraceGeometrydBufferInstances::update(const RhiDevice& device, const 
 	rhi_rt_bvh_update_geometry_instances(&tlas_desc, *this);
 }
 
-RhiView RhiRayTraceGeometrydBufferInstances::new_view(RhiDevice& device) {
+RhiView RhiRayTraceGeometrydBufferInstances::new_view(const RhiDevice& device) {
 
 	RHI_VIEW_DESC desc;
 	desc.device = device;

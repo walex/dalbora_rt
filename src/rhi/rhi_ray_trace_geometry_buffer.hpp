@@ -22,7 +22,7 @@ public:
 		const std::vector<std::vector<const float*>>& instance_transforms);
 	void update(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		RhiRayTraceGeometryBuffer& geometry_buffer, const std::vector<float*>& instance_transforms);
-	RhiView new_view(RhiDevice& device);
+	RhiView new_view(const RhiDevice& device);
 };
 
 class RhiRayTraceGeometryBuffer 
