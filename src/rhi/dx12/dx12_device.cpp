@@ -128,7 +128,8 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	heaps_desc.dsv_heap_enable = DSV_HEAP_ENABLE;
 	heaps_desc.resources_heap_size.dsv_count = DSV_HEAP_SLOT_COUNT;
 	
-	heaps_desc.sampler_heap_enable = desc->enable_texture_sampling;
+	heaps_desc.sampler_heap_enable = (desc->features & device_features_enable_texture_sampling) 
+		== device_features_enable_texture_sampling;
 	heaps_desc.resources_heap_size.sampler_count = SAMPLER_HEAP_SLOT_COUNT;
 
 	// FixME: get from config

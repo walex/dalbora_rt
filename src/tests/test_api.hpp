@@ -66,6 +66,7 @@ struct RhiUnitTest {
 };
 
 struct RhiUnitTestCallbacks {
+	std::function<void(__int64&)>on_device_config = [](__int64& UNUSED_PARAM(feature_flags)) {};
 	std::function<void(RhiUnitTest&)> on_init = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_draw = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_end = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};

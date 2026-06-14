@@ -10,9 +10,11 @@ class Spatial {
 
 public:
 	virtual ~Spatial() = default;
-	Eigen::Matrix4f& get_world_transform() { return m_world_transform; }
+	float4x4& get_world_transform() { return m_world_transform; }
+protected:
+	Spatial() = default;
 private:
-	Eigen::Matrix4f m_world_transform;
+	float4x4 m_world_transform;
 };
 
 enum LeafNodeType {
@@ -92,10 +94,11 @@ public:
 		}
 	}
 
-	void add_rt_instance_transform(const size_t model_id, const float* data) {
+	void add_rt_instance_transform(const size_t model_id, const float4x4& data) {
 
+		static_assert(sizeof(float4x4) == 16 * sizeof(float));
 		if (this->m_is_rt_scene == true) {
-			this->rt_buffers_transforms.at(model_id).push_back(data);
+			this->rt_buffers_transforms.at(model_id).push_back(reinterpret_cast<const float*>(&data));
 		}
 	}
 
@@ -105,7 +108,7 @@ public:
 	std::function<void(const std::vector<Mesh*>& meshes)> on_model_loaded;
 	std::function<void(SceneNode&)> on_new_scene_node;
 
-	Eigen::Vector3f bb_min, bb_max;	
+	float3 bb_min, bb_max;
 	SceneNode root_node;
 	std::vector<std::shared_ptr<Mesh>> meshes;
 	std::vector<RhiRayTraceGeometryBuffer> rt_buffers;

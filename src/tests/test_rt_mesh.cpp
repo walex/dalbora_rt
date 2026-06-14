@@ -155,7 +155,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 							&& static_cast<LeafNode*>(child.get())->get_type() == LeafNodeType_Mesh) {
 
 							MeshNode* mesh_node = static_cast<MeshNode*>(child.get());
-							scene.add_rt_instance_transform(mesh_node->mesh_index, mesh_node->get_world_transform().data());
+							scene.add_rt_instance_transform(mesh_node->mesh_index, mesh_node->get_world_transform());
 						}
 					}
 				});
@@ -176,35 +176,38 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// create camera and setup transform
 		camera_transforms.create(device, sizeof(CameraCBRT));
-		Eigen::Vector3f min, max;
-		min.x() = scene.bb_min[0];
-		min.y() = scene.bb_min[1];
-		min.z() = scene.bb_min[2];
-		max.x() = scene.bb_max[0];
-		max.y() = scene.bb_max[1];
-		max.z() = scene.bb_max[2];
+		float3 min, max;
+		min.x = scene.bb_min.x;
+		min.y = scene.bb_min.y;
+		min.z = scene.bb_min.z;
+		max.x = scene.bb_max.x;
+		max.y = scene.bb_max.y;
+		max.z = scene.bb_max.z;
 
-		Eigen::Vector3f center = (min + max) * 0.5f;
+		float4 center = float4((min + max) * 0.5f, 1.0f);
 
-		Eigen::Vector3f size =	max - min;
+		float3 size =	max - min;
 
 		float max_dimension =
 			std::max({
-				size.x(),
-				size.y(),
-				size.z()
+				size.x,
+				size.y,
+				size.z
 				});
 
 		camera_matrices.camera_pos =
-			center  + Eigen::Vector3f(
+			center  + float4(
 				0.0f,
 				0.0f,
-				max_dimension * 1.0f);
-		camera_matrices.camera_forward = (center - camera_matrices.camera_pos).normalized();
+				max_dimension * 1.0f,
+				1.0f);
+		
+		camera_matrices.camera_forward = (center - camera_matrices.camera_pos);
+		camera_matrices.camera_forward.xyz = normalize(camera_matrices.camera_forward.xyz);
 		camera_matrices.camera_right =
-			Vec3(1.0f, 0.0f, 0.0f);
+			float4(1.0f, 0.0f, 0.0f, 0.0f);
 		camera_matrices.camera_up =
-			Vec3(0.0f, 1.0f, 0.0f);
+			float4(0.0f, 1.0f, 0.0f, 0.0f);
 		camera_matrices.tanHalfFov =
 			0.76f;
 		camera_matrices.aspect = image_aspect;

@@ -131,7 +131,10 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiRenderPass& render_pass = unit_test.raster_render_pass;
 		
-		device.create(0, device_features_none);
+		__int64 device_features = device_features_none;
+		if (callbacks)
+			callbacks->on_device_config(device_features);
+		device.create(0, device_features);
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
 		swap_chain.create(window, device, command_queue);

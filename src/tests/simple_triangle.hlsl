@@ -2,13 +2,13 @@
 
 cbuffer CameraBuffer : register(b0)
 {
-    row_major float4x4 view;
-    row_major float4x4 projection;
+    float4x4 view;
+    float4x4 projection;
 };
 
 cbuffer ObjectBuffer : register(b1)
 {
-    row_major float4x4 world;
+    float4x4 world;
 };
 
 struct VSInput

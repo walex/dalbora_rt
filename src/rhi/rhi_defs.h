@@ -112,5 +112,6 @@ constexpr __int64 device_features_none = 0x0;
 constexpr __int64 device_features_raytracing = 0x1;
 constexpr __int64 device_features_variable_rate_shading = 0x2;
 constexpr __int64 device_features_mesh_shaders = 0x4;
+constexpr __int64 device_features_enable_texture_sampling = 0x8;
 
 #endif

@@ -52,7 +52,6 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	
 	CameraCB camera;
 	ObjectCB triangle_transforms;
-
 	get_transforms(triangle_transforms.world, camera.view, camera.projection);	
 
 	const std::filesystem::path shaders_folder(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests)");
@@ -313,12 +312,16 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	std::unique_ptr<RhiSharedBufferMap> object_constant_buffer_map;
 	
-	CameraCB camera_matrices;
-	ObjectCB object_matrices;
-
-	get_transforms(object_matrices.world, camera_matrices.view, camera_matrices.projection);
+	CameraCB camera;
+	ObjectCB triangle_transforms;
+	get_transforms(triangle_transforms.world, camera.view, camera.projection);
 
 	RhiUnitTestCallbacks unit_test_callbacks;
+	unit_test_callbacks.on_device_config = ([&](__int64& features_flags) {
+
+		if (callbacks)
+			callbacks->on_device_config(features_flags);
+	});
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
 		RhiWindow& window = unit_test.window;
@@ -333,7 +336,17 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSharedBuffer shared_index_buffer;
 
 		// setup pipeline layout
+		// add layout descriptors ( order mathers )
+
+		// 1 - GPU read only (rd buffers)
+		pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+
+		// 2 - GPU read write (rw buffers)
+		pipeline_layout.add_rw_buffer_descriptors(0, 100);
+
+		// 3 - Constant buffer (constant buffers)
 		pipeline_layout.add_constants_buffer_descriptors(0, 100);
+	
 		
 		// setup pipeline
 		RhiRasterPipelineShaderPrograms shader_programs;
@@ -424,11 +437,11 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
 
 		float dt = get_delta_time();
-		object_matrices.world = rotate_triangle(dt);
+		triangle_transforms.world = rotate_triangle(dt);
 
 		// upload shaders constants
-		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));
-		memcpy(object_constant_buffer_map->get_data(), &object_matrices, sizeof(ObjectCB));
+		memcpy(camera_constant_buffer_map->get_data(), &camera, sizeof(CameraCB));
+		memcpy(object_constant_buffer_map->get_data(), &triangle_transforms, sizeof(ObjectCB));
 		unit_test.command_buffer.draw_triangle_list(vertex_buffer, &index_buffer);
 		
 

@@ -61,9 +61,9 @@ resource_format gltfFormatToDxgiFormat(
 
 void compute_scene_bounds(
 	const tinygltf::Model& model,
-	const Eigen::Matrix4f& world_matrix,
-	Eigen::Vector3f& scene_min,
-	Eigen::Vector3f& scene_max)
+	const float4x4& world_matrix,
+	float3& scene_min,
+	float3& scene_max)
 {
 	scene_min =
 	{
@@ -97,43 +97,38 @@ void compute_scene_bounds(
 				continue;
 			}
 
-			Eigen::Vector3f local_min(
+			float3 local_min(
 				static_cast<float>(accessor.minValues[0]),
 				static_cast<float>(accessor.minValues[1]),
 				static_cast<float>(accessor.minValues[2]));
 
-			Eigen::Vector3f local_max(
+			float3 local_max(
 				static_cast<float>(accessor.maxValues[0]),
 				static_cast<float>(accessor.maxValues[1]),
 				static_cast<float>(accessor.maxValues[2]));
 
-			Eigen::Vector3f corners[8] =
+			float3 corners[8] =
 			{
-				{local_min.x(), local_min.y(), local_min.z()},
-				{local_max.x(), local_min.y(), local_min.z()},
-				{local_min.x(), local_max.y(), local_min.z()},
-				{local_max.x(), local_max.y(), local_min.z()},
-				{local_min.x(), local_min.y(), local_max.z()},
-				{local_max.x(), local_min.y(), local_max.z()},
-				{local_min.x(), local_max.y(), local_max.z()},
-				{local_max.x(), local_max.y(), local_max.z()}
+				{local_min.x, local_min.y, local_min.z},
+				{local_max.x, local_min.y, local_min.z},
+				{local_min.x, local_max.y, local_min.z},
+				{local_max.x, local_max.y, local_min.z},
+				{local_min.x, local_min.y, local_max.z},
+				{local_max.x, local_min.y, local_max.z},
+				{local_min.x, local_max.y, local_max.z},
+				{local_max.x, local_max.y, local_max.z}
 			};
 
 			for (int i = 0; i < 8; ++i)
 			{
-				Eigen::Vector4f p(
-					corners[i].x(),
-					corners[i].y(),
-					corners[i].z(),
+
+				float4 p = world_matrix * float4(corners[i].x,
+					corners[i].y,
+					corners[i].z,
 					1.0f);
 
-				p = world_matrix * p;
-
-				scene_min =
-					scene_min.cwiseMin(p.head<3>());
-
-				scene_max =
-					scene_max.cwiseMax(p.head<3>());
+				scene_min = min(scene_min, p.xyz);
+				scene_max = max(scene_max, p.xyz);
 			}
 		}
 	}
@@ -200,67 +195,66 @@ const uint8_t* get_model_buffer(const tinygltf::Model& model, const tinygltf::Pr
 	return data;
 }
 
-Eigen::Matrix4f get_node_transforms(tinygltf::Node node) {
+float4x4 get_node_transforms(tinygltf::Node node) {
 
-	Eigen::Matrix4f M = Eigen::Matrix4f::Identity();
+	float4x4 M = float4x4::Identity();
 	if (!node.translation.empty())
 	{
-		Eigen::Matrix4f T = Eigen::Matrix4f::Identity();
+		float3 t(static_cast<float>(node.translation[0]),
+			static_cast<float>(node.translation[1]),
+			static_cast<float>(node.translation[2])
+		);
 
-		T(0, 3) = static_cast<float>(node.translation[0]);
-		T(1, 3) = static_cast<float>(node.translation[1]);
-		T(2, 3) = static_cast<float>(node.translation[2]);
-
-		M *= T;
+		float4x4 T;
+		T.SetupByTranslation(t);
+		M = M * T;
 	}
 
 	if (!node.rotation.empty())
 	{
-		Eigen::Quaternionf Q(
-			node.rotation[3], // w
-			node.rotation[0], // x
-			node.rotation[1], // y
-			node.rotation[2]); // z
 
-		Eigen::Matrix4f R = Eigen::Matrix4f::Identity();
+		float4 q(static_cast<float>(node.rotation[0]),
+			static_cast<float>(node.rotation[1]),
+			static_cast<float>(node.rotation[2]),
+			static_cast<float>(node.rotation[3])
+		);
 
-		R.block<3, 3>(0, 0) = Q.toRotationMatrix();
-
-
-		M *= R;
+		float4x4 R;
+		R.SetupByQuaternion(q);
+		M = M * R;
 	}
 
 	if (!node.scale.empty())
 	{
-		Eigen::Matrix4f S = Eigen::Matrix4f::Identity();
-		S.block<3, 3>(0, 0) =
-			Eigen::Scaling(
-				(float)node.scale[0],
-				(float)node.scale[1],
-				(float)node.scale[2]);
+		float3 s(static_cast<float>(node.scale[0]),
+			static_cast<float>(node.scale[1]),
+			static_cast<float>(node.scale[2])
+		);
 
-		M *= S;
+		float4x4 S = float4x4::Identity();
+		S.SetupByScale(s);
+		M = M * S;
 	}
 	return M;
 }
+
 
 void process_node(
 	const tinygltf::Model& model,
 	const int nodeIndex,
 	SceneNode& parent_node,
-	const Eigen::Matrix4f& parent_transform,
+	const float4x4& parent_transform,
 	Scene& scene)
 {
 	const tinygltf::Node& node = model.nodes[nodeIndex];
 
-	Eigen::Matrix4f local = Eigen::Matrix4f::Identity();
+	float4x4 local = float4x4::Identity();
 
 	if (!node.matrix.empty())
 	{
-		local = Eigen::Map<const Eigen::Matrix<double, 4, 4, Eigen::RowMajor>>
-			(
-				node.matrix.data()
-			).cast<float>();
+		for (int i = 0; i < 16; ++i) {
+			((float*)&local)[i] = static_cast<float>(node.matrix[i]);
+		}
 	}
 	else
 	{
@@ -270,8 +264,9 @@ void process_node(
 	//------------------------------------
 	// World transform
 	//------------------------------------
-	Eigen::Matrix4f world =
+	float4x4 world =
 		parent_transform * local;
+
 
 	std::unique_ptr<SceneNode> scene_node = std::make_unique<SceneNode>(&parent_node);
 	scene_node->get_world_transform() = world;
@@ -348,6 +343,7 @@ void create_geometry_buffers(const RhiDevice& device, RhiCommandBuffer& command_
 	}
 }
 
+
 void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const std::string& file_path, const size_t scene_index, Scene& scene) {	
 
@@ -365,8 +361,8 @@ void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const tinygltf::Scene& gltf_scene =
 		gltf_model.scenes[scene_index];
 
-	Eigen::Matrix4f identity =
-		Eigen::Matrix4f::Identity();
+	float4x4 identity =
+		float4x4::Identity();
 
 	for (int rootNode : gltf_scene.nodes)
 	{
@@ -378,5 +374,5 @@ void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 			scene);
 	}
 
-	compute_scene_bounds(gltf_model, Eigen::Matrix4f::Identity(), scene.bb_min, scene.bb_max);
+	compute_scene_bounds(gltf_model, float4x4::Identity(), scene.bb_min, scene.bb_max);
 }

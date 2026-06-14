@@ -15,14 +15,14 @@ RaytracingAccelerationStructure SceneBVH : register(t0);
 
 cbuffer CameraCB : register(b0)
 {
-    float3 camera_pos;
-	float3 camera_forward;
-	float3 camera_right;
-	float3 camera_up;
+    float4 camera_pos;
+    float4 camera_forward;
+    float4 camera_right;
+    float4 camera_up;
 
-	float tanHalfFov;
-	float aspect;
-	float2 padding;
+    float tanHalfFov;
+    float aspect;
+    float2 padding;
 };
 
 [shader("raygeneration")]

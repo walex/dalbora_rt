@@ -6,6 +6,5 @@
 #include "worker.hpp"
 #include "task_pool.hpp"
 #include "rhi.hpp"
-// FixMe: REMOVE EIGEN
-#include <Eigen/Dense>
+#include "C:\Users\wadrw\Documents\develop\projects\personal\rtx\MathLib\ml.h"
 #endif

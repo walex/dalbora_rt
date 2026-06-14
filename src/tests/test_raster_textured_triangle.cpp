@@ -62,6 +62,7 @@ resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
 
     static constexpr tinyddsloader::DDSFile::DXGIFormat dxgi_resource_format_type[] = {
         tinyddsloader::DDSFile::DXGIFormat::Unknown,            // resource_format_none
+        tinyddsloader::DDSFile::DXGIFormat::R8_UInt,           // resource_format_uint8
         tinyddsloader::DDSFile::DXGIFormat::R16_UInt,           // resource_format_uint16
         tinyddsloader::DDSFile::DXGIFormat::R32_UInt,           // resource_format_uint32
         tinyddsloader::DDSFile::DXGIFormat::R8G8B8A8_UNorm,     // resource_format_R8G8B8A8
@@ -228,7 +229,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
         [&](RHI_DEVICE_DESC& desc) {
             if (on_configure_device)
                 on_configure_device(desc);
-            desc.enable_texture_sampling = true;
+            desc.features |= device_features_enable_texture_sampling;
         });
 }
 
@@ -253,6 +254,10 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
     RhiSharedBuffer texture_buffer;
 
     RhiUnitTestCallbacks unit_test_callbacks;
+    unit_test_callbacks.on_device_config = ([&](__int64& features_flags) {
+
+        features_flags |= device_features_enable_texture_sampling;
+    });
     unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
         RhiWindow& window = unit_test.window;
@@ -274,8 +279,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
             static_cast<size_t>(dds.GetMipCount()));
         texture_view = texture.new_read_only_view(device);
 
-        // add layout descriptors
-        pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+        // add layout descriptor for samplers
         pipeline_layout.add_sampler_buffer_descriptors(0, 1);
 
         // add input descriptor

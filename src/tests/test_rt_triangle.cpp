@@ -42,7 +42,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 	std::unique_ptr<RHI_RT_PIPELINE> pipeline;
 	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
 	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
-	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
+	float4x4 rotation_matrix = float4x4::Identity();
 
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 
@@ -52,16 +52,16 @@ void test_rt_triangle(fptr_test_on_init on_init,
 
 	CameraCBRT camera;
 	camera.camera_pos =
-		Vec3(0.0f, 0.0f, -3.0f);
+		float4(0.0f, 0.0f, -3.0f, 1.0f);
 
 	camera.camera_forward =
-		Vec3(0.0f, 0.0f, 1.0f);
+		float4(0.0f, 0.0f, 1.0f, 0.0f);
 
 	camera.camera_right =
-		Vec3(1.0f, 0.0f, 0.0f);
+		float4(1.0f, 0.0f, 0.0f, 0.0f);
 
 	camera.camera_up =
-		Vec3(0.0f, 1.0f, 0.0f);
+		float4(0.0f, 1.0f, 0.0f, 0.0f);
 
 	camera.tanHalfFov =
 		0.7002075f;
@@ -236,7 +236,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 						blas_desc.count = 1;
 						bvh.reset(rhi_rt_bvh_create(&blas_desc));
 
-						float* matrices[] = { rotation_matrix.data() };
+						float* matrices[] = { reinterpret_cast<float*>(&rotation_matrix) };
 
 
 						RHI_RT_BVH_GEOMETRY_INSTANCE_DESC inst_desc;
@@ -301,7 +301,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 
 			float dt = get_delta_time();
 			rotation_matrix = rotate_triangle(dt);
-			float* matrices[] = { rotation_matrix.data() };			
+			float* matrices[] = { reinterpret_cast<float*>(&rotation_matrix) };
 			RHI_RT_BVH_GEOMETRY_INSTANCE_DESC inst_desc;
 			RHI_RT_BVH_GEOMETRY_DESC tlas_desc;
 			tlas_desc.device = &dev;
@@ -365,18 +365,18 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	CameraCBRT camera_matrices;
 	camera_matrices.camera_pos =
-		Vec3(0.0f, 0.0f, -3.0f);
+		float4(0.0f, 0.0f, -3.0f, 1.0f);
 	camera_matrices.camera_forward =
-		Vec3(0.0f, 0.0f, 1.0f);
+		float4(0.0f, 0.0f, 1.0f, 0.0f);
 	camera_matrices.camera_right =
-		Vec3(1.0f, 0.0f, 0.0f);
+		float4(1.0f, 0.0f, 0.0f, 0.0f);
 	camera_matrices.camera_up =
-		Vec3(0.0f, 1.0f, 0.0f);
+		float4(0.0f, 1.0f, 0.0f, 0.0f);
 	camera_matrices.tanHalfFov =
 		0.7002075f;
 	camera_matrices.aspect = image_aspect;
 
-	Eigen::Matrix4f rotation_matrix = Eigen::Matrix4f::Identity();
+	float4x4 rotation_matrix = float4x4::Identity();
 	std::vector<std::vector<const float*>> instances_transforms;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
@@ -493,7 +493,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 				index_buffer.upload(command_buffer, shared_index_buffer);
 				auto& geometry_buffer = geometry_buffers.emplace_back();
 				auto& transforms = instances_transforms.emplace_back();
-				transforms.push_back(rotation_matrix.data());
+				transforms.push_back(reinterpret_cast<float*>(&rotation_matrix));
 				geometry_buffer.create(device, command_buffer, vertex_buffer, &index_buffer);
 				geometry_instances.create(device, command_buffer, geometry_buffers, instances_transforms);
 				
@@ -532,7 +532,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		float dt = get_delta_time();
 		rotation_matrix = rotate_triangle(dt);
 		std::vector<float*> new_t;
-		new_t.push_back(rotation_matrix.data());
+		new_t.push_back(reinterpret_cast<float*>(&rotation_matrix));
 
 		geometry_instances.update(unit_test.device, unit_test.command_buffer, 
 			geometry_buffers.at(0), new_t);
