@@ -17,7 +17,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiView camera_transform_view;
 	RhiRayTraceRenderPass rt_render_pass;
 	RhiShaderBindingTable sbt;
-	Scene scene;
+	RayTraceScene scene;
 
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	CameraCBRT camera_matrices;
@@ -99,94 +99,19 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		// shader binding table
 		sbt.create(device, pipeline, ray_trace_shader_programs);
 
-		// copy vertices e indices from scene
-		scene.max_size = 6 * 1024 * 1024;
-		scene.enable_rt_features(true);
-		size_t tmp_buffer_offset = 0;
-		size_t rt_buffer_index = 0;
-		RhiSharedBuffer tmp_buffer;
-		tmp_buffer.create(device, scene.max_size);
-		
-		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
-
-			command_buffer.record([&] {				
-				
-				// scene load callback
-				scene.on_geometry_loaded = ([&](Mesh& mesh, const std::string& attr,
-					const uint8_t* const data, const size_t length, const size_t stride,
-					const resource_format format) {
-
-					// copy vertices from cpu visible memory to gpu
-					if (data != nullptr) {
-						tmp_buffer.copy(data, length, tmp_buffer_offset);
-						if (attr == "POSITION") {
-							mesh.vertex_buffer.create(device, length, stride, format);
-							mesh.vertex_buffer.upload(command_buffer, tmp_buffer, tmp_buffer_offset, 0, length);
-						}
-						else if (attr == "__indices__") {
-
-							mesh.index_buffer = std::make_unique<RhiGPUBuffer>();
-							mesh.index_buffer->create(device, length, stride, format);
-							mesh.index_buffer->upload(command_buffer, tmp_buffer, tmp_buffer_offset, 0, length);
-						}
-					}
-					tmp_buffer_offset += length;
-				});
-
-				scene.on_model_loaded = ([&](const std::vector<Mesh*>& meshes) {
-					std::vector<RHI_BUFFER*> vertices_ptr;
-					std::vector<RHI_BUFFER*> indices_ptr;
-					vertices_ptr.reserve(meshes.size());
-					indices_ptr.reserve(meshes.size());
-					for (auto& mesh : meshes) {
-						vertices_ptr.push_back(mesh->vertex_buffer);
-						if (mesh->index_buffer != nullptr)
-							indices_ptr.push_back(*mesh->index_buffer);
-						else
-							indices_ptr.push_back(nullptr);
-					}
-					scene.fill_rt_buffer(device, command_buffer, vertices_ptr, indices_ptr);
-				});				
-
-				scene.on_new_scene_node = ([&](SceneNode& node) {
-
-					for (auto& child : node.get_childs()) {
-						if (child->is_leaf() 
-							&& static_cast<LeafNode*>(child.get())->get_type() == LeafNodeType_Mesh) {
-
-							MeshNode* mesh_node = static_cast<MeshNode*>(child.get());
-							scene.add_rt_instance_transform(mesh_node->mesh_index, mesh_node->get_world_transform());
-						}
-					}
-				});
-				
-				// load scene
-				load_gltf_scene(device,
-					command_buffer,
-					R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
-					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\FinalBaseMesh.gltf)",
-					//R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\SheenChair.gltf)",
-					0,
-					scene);
-				scene.create_rt_instances(device, command_buffer);
-				});
-				
-			list.add_command_buffer(command_buffer);
-		});
+		// load scene from file
+		scene.set_max_size(6 * 1024 * 1024);
+		scene.load(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
+			device,	command_queue);
 
 		// create camera and setup transform
 		camera_transforms.create(device, sizeof(CameraCBRT));
-		float3 min, max;
-		min.x = scene.bb_min.x;
-		min.y = scene.bb_min.y;
-		min.z = scene.bb_min.z;
-		max.x = scene.bb_max.x;
-		max.y = scene.bb_max.y;
-		max.z = scene.bb_max.z;
+		float3 bb_min = scene.get_bb_min();
+		float3 bb_max = scene.get_bb_max();
 
-		float4 center = float4((min + max) * 0.5f, 1.0f);
+		float4 center = float4((bb_min + bb_max) * 0.5f, 1.0f);
 
-		float3 size =	max - min;
+		float3 size =	bb_max - bb_min;
 
 		float max_dimension =
 			std::max({

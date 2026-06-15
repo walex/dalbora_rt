@@ -9,16 +9,50 @@ class Mesh
 
 public:
 	virtual ~Mesh() = default;
-	RhiGPUBuffer vertex_buffer;
-	std::unique_ptr<RhiGPUBuffer> index_buffer;
-	std::unique_ptr<RhiGPUBuffer> normals_buffer;
-	std::unique_ptr<RhiGPUBuffer> texture_coords_buffer;
+	void setMaterial(std::shared_ptr<Material> material) { m_material = std::move(material); }
+	const Material& getMaterial() const { return *m_material; }
+	void set_vertices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		const RhiSharedBuffer& data, const size_t data_offset,
+		const size_t length, const size_t stride,
+		const resource_format format);
+	void set_indices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		const RhiSharedBuffer& src_buffer, const size_t data_offset,
+		const size_t length, const size_t stride,
+		const resource_format format);
+	void set_normals(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		const RhiSharedBuffer& src_buffer, const size_t data_offset,
+		const size_t length, const size_t stride,
+		const resource_format format);
+	void set_uvs(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		const RhiSharedBuffer& src_buffer, const size_t data_offset,
+		const size_t length, const size_t stride,
+		const resource_format format);
 
-	void setMaterial(const Material& material) { m_material = &material; }
-	const Material* getMaterial() const { return m_material; }
+	RhiGPUBuffer& get_vertex_buffer() {
+		return *this->vertices_buffer;
+	}
+
+	RhiGPUBuffer* get_index_buffer() {
+		return this->indices_buffer.get();
+	}
+protected:
+	void upload_data(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		std::unique_ptr<RhiGPUBuffer>& src_buffer, const RhiSharedBuffer& src_data,
+		const size_t src_buffer_offset, const size_t length,
+		const size_t stride, const resource_format format);
 private:
-	const Material* m_material = nullptr;
+	std::shared_ptr<Material> m_material;
+	std::unique_ptr<RhiGPUBuffer> vertices_buffer;
+	std::unique_ptr<RhiGPUBuffer> indices_buffer;
+	std::unique_ptr<RhiGPUBuffer> normals_buffer;
+	std::unique_ptr<RhiGPUBuffer> uvs_buffer;
 };
+
+
+
+//void set_indices();
+//void set_normals();
+//void set_uv();
 
 class ReadOnlyMesh : public Mesh {};
 

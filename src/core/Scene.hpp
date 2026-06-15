@@ -6,6 +6,8 @@
 class Mesh;
 class Camera;
 class Light;
+class Material;
+
 class Spatial {
 
 public:
@@ -64,60 +66,85 @@ public:
 	size_t mesh_index;
 };
 
+class MaterialProps {
+	
+public:
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(MaterialProps);
+	MaterialProps() = default;
+};
+
+struct SCENE_CALLBACKS {
+	std::vector<std::shared_ptr<Mesh>> meshes;
+	std::vector<std::shared_ptr<Material>> materials;
+	float3 bb_min, bb_max;
+	SceneNode root_node = nullptr;
+	std::function<void(const RhiDevice&, RhiCommandBuffer&,
+		Mesh&, const std::string&,
+		const uint8_t* const, const size_t,
+		const size_t, const resource_format)> on_geometry_loaded;
+	std::function<void(const RhiDevice&, RhiCommandBuffer&,
+		const std::vector<Mesh*>&)> on_model_loaded;
+	std::function<void(const RhiDevice&, RhiCommandBuffer&,
+		SceneNode&)> on_new_scene_node;
+	std::function<void(const RhiDevice&, RhiCommandBuffer&, MaterialProps&)> on_new_material;
+	std::function<void(const RhiDevice&, RhiCommandBuffer&, SceneNode&)> on_scene_loaded;
+};
+
 class Scene {
 public:
 	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(Scene);
 
-	Scene(): root_node(nullptr) {
+	Scene(): m_root_node(nullptr) {
 	
-		this->rt_buffers.reserve(300);
-		this->rt_buffers_transforms.reserve(300);
+		
 	}
 	virtual ~Scene() = default;
 
-	void fill_rt_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer, 
-		std::vector<RHI_BUFFER*>& vertices_ptr, 
+	void load(const std::string& scene_path, RhiDevice& device,
+		RhiCommandQueue& command_queue);	
+	void set_max_size(const size_t value) { m_max_size = value; }
+	size_t get_max_size() const { return m_max_size; }
+	float3 get_bb_min() const { return m_bb_min; }
+	float3 get_bb_max() const { return m_bb_max; }
+protected:
+	size_t m_max_size = 0;
+	float3 m_bb_min, m_bb_max;
+	SceneNode m_root_node;
+	std::vector<std::shared_ptr<Mesh>> m_meshes;
+	std::vector<std::shared_ptr<Material>> m_materials;
+	SCENE_CALLBACKS m_scene_callbacks;
+};
+
+class RayTraceScene : public Scene {
+public:
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RayTraceScene);
+	RayTraceScene();
+	virtual ~RayTraceScene() = default;
+private:
+	void fill_rt_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		std::vector<RHI_BUFFER*>& vertices_ptr,
 		std::vector<RHI_BUFFER*>& indices_ptr) {
 
-		if (this->m_is_rt_scene == true) {
-			auto& rt_buffer = this->rt_buffers.emplace_back();
-			this->rt_buffers_transforms.emplace_back();
-			rt_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
-		}
+		auto& rt_buffer = this->rt_buffers.emplace_back();
+		this->rt_buffers_transforms.emplace_back();
+		rt_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
 	}
 
 	void create_rt_instances(const RhiDevice& device, RhiCommandBuffer& command_buffer) {
 
-		if (this->m_is_rt_scene == true) {
-			this->rt_buffers_instances.create(device, command_buffer, this->rt_buffers, this->rt_buffers_transforms);
-			this->rt_buffer_instances_views = this->rt_buffers_instances.new_view(device);
-		}
+		this->rt_buffers_instances.create(device, command_buffer, this->rt_buffers, this->rt_buffers_transforms);
+		this->rt_buffer_instances_views = this->rt_buffers_instances.new_view(device);
 	}
 
 	void add_rt_instance_transform(const size_t model_id, const float4x4& data) {
 
-		static_assert(sizeof(float4x4) == 16 * sizeof(float));
-		if (this->m_is_rt_scene == true) {
-			this->rt_buffers_transforms.at(model_id).push_back(reinterpret_cast<const float*>(&data));
-		}
+		this->rt_buffers_transforms.at(model_id).push_back(reinterpret_cast<const float*>(&data));
 	}
-
-	void enable_rt_features(bool value) { m_is_rt_scene = value; }
-
-	std::function<void(Mesh&, const std::string&, const uint8_t* const, const size_t, const size_t, const resource_format)> on_geometry_loaded;
-	std::function<void(const std::vector<Mesh*>& meshes)> on_model_loaded;
-	std::function<void(SceneNode&)> on_new_scene_node;
-
-	float3 bb_min, bb_max;
-	SceneNode root_node;
-	std::vector<std::shared_ptr<Mesh>> meshes;
+private:
 	std::vector<RhiRayTraceGeometryBuffer> rt_buffers;
 	std::vector<std::vector<const float*>> rt_buffers_transforms;
 	RhiRayTraceGeometrydBufferInstances rt_buffers_instances;
 	RhiView rt_buffer_instances_views;
-	size_t max_size = 1024 * 1024 * 6;
-private:
-	bool m_is_rt_scene = false;
 };
 
 class StaticScene
@@ -132,5 +159,6 @@ private:
 	std::vector<const Light*> m_ligths;
 
 };
+
 
 #endif

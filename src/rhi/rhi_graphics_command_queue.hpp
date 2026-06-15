@@ -6,6 +6,7 @@
 class RhiGraphicsCommandQueue : public RhiCommandQueue {
 
 public:
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiGraphicsCommandQueue);
 	RhiGraphicsCommandQueue(RHI_COMMAND_QUEUE* handle = nullptr);
 	virtual ~RhiGraphicsCommandQueue() = default;
 	void create(const RhiDevice& device) override;

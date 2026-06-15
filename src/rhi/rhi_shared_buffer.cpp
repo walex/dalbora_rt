@@ -1,8 +1,15 @@
 #include "rhi_shared_buffer.hpp"
 #include "rhi.hpp"
 
-RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle)
-	: RhiBuffer(handle) {}
+RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle, buffer_memory_type type)
+	: RhiBuffer(handle) {
+
+	// TODO:
+	// review buffer_memory_type enum
+	//  explicit actual state  D3D12_HEAP_TYPE_UPLOAD
+	//  implement buffer_access_flags_read with D3D12_HEAP_TYPE_READBACK
+	// implement buffer_access_flags_rw with D3D12_HEAP_TYPE_CUSTOM
+}
 
 void RhiSharedBuffer::create(const RhiDevice& device, const size_t length, 
 	const size_t stride, const resource_format format) {

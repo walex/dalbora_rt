@@ -4,14 +4,14 @@
 #include "Common.hpp"
 #include "Culler.hpp"
 
-class Scene;
+class RayTraceScene;
 class SceneCuller: public Culler
 {
 public: 
-	void setScene(const Scene* const scene) { m_scene = scene; }
+	void setScene(const RayTraceScene* const scene) { m_scene = scene; }
 
 private: 
-	const Scene* m_scene;
+	const RayTraceScene* m_scene;
 };
 
 #endif

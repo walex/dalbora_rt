@@ -1,15 +1,22 @@
 #include "rhi_gpu_buffer.hpp"
 #include "rhi.hpp"
 
-RhiGPUBuffer::RhiGPUBuffer(RHI_BUFFER* handle)
-	: RhiBuffer(handle) {}
+RhiGPUBuffer::RhiGPUBuffer(RHI_BUFFER* handle, buffer_memory_type type)
+	: RhiBuffer(handle) {
 
-void RhiGPUBuffer::create(const RhiDevice& device, const size_t length, const size_t stride, resource_format format) {
+	// TODO: 
+	// review buffer_memory_type enum
+	// explicit actual state  D3D12_HEAP_TYPE_DEFAULT
+	// Implement buffer_access_flags_rw with D3D12_HEAP_TYPE_DEFAULT + ALLOW_UNORDERED_ACCESS
+}
+
+void RhiGPUBuffer::create(const RhiDevice& device, const size_t length,
+	const size_t stride, resource_format format) {
 
 	RHI_BUFFER_DESC desc;
 	desc.device = device;
 	desc.length = length;
-	desc.memory_type = buffer_memory_type_gpu_only;
+	desc.memory_type = buffer_memory_type_gpu_only; 
 	desc.type = buffer_type_raw;
 	desc.format = format;
 	desc.mips = 1;
