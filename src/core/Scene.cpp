@@ -2,7 +2,7 @@
 #include "Mesh.hpp"
 #include "Camera.hpp"
 #include "Light.hpp"
-#include "tests/gltf_scene.hpp"
+#include "gltf_scene.hpp"
 
 void Scene::load(const std::string& scene_path, RhiDevice& device,
 	RhiCommandQueue& command_queue) {

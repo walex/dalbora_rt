@@ -106,13 +106,13 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		sbt.create(device, pipeline, ray_trace_shader_programs);
 
 		// load scene from file
-		std::filesystem::path model_3d_folder = get_executable_folder();
-		std::filesystem::path model_3d_file = model_3d_folder / ".." / ".." / ".." / ".." / "test_3d_models" / "scene.gltf";
+		std::filesystem::path model_3d_folder = get_executable_folder("test_3d_models");
+		std::string model_3d_file = (model_3d_folder / "scene.gltf").string();
 		if (std::filesystem::exists(model_3d_file) == false) {
 			throw std::exception("3d model file deos not exists");
 		}
 		scene.set_max_size(6 * 1024 * 1024);
-		scene.load(model_3d_file.string(),
+		scene.load(model_3d_file,
 			device,	command_queue);
 
 		// create camera and setup transform

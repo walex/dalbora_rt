@@ -37,7 +37,7 @@ void test_rt() {
 
 	// load scene from file
 	std::filesystem::path model_3d_folder = get_executable_folder("test_3d_models");
-	std::string model_3d_file = model_3d_folder.concat("InteriorTest.obj.gltf").string();
+	std::string model_3d_file = (model_3d_folder / "scene.gltf").string();
 	RayTraceScene scene;
 	scene.set_max_size(6 * 1024 * 1024);
 	scene.load(model_3d_file,

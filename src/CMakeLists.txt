@@ -43,6 +43,7 @@ add_subdirectory(./core)
 add_subdirectory(./os)
 add_subdirectory(./rhi)
 add_subdirectory(./api)
+add_subdirectory(./loaders)
 add_subdirectory(./tests)
 
 set(RT_RENDER_HEADERS ${CORE_HEADERS} ${OS_HEADERS} ${RHI_HEADERS})
@@ -74,8 +75,11 @@ set(LINK_LIBS ${CG_LIBS})
 # Find all HLSL files in tests directory
 file(GLOB HLSL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.hlsl")
 
-add_executable(rtrender engine_test_main.cpp ${API_HEADERS} ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS})
-target_include_directories(rtrender PRIVATE ${RT_RENDER_INCLUDE_DIRS})
+add_executable(rtrender engine_test_main.cpp ${API_HEADERS} 
+${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS}
+${SCENE_LOADERS_SOURCES} ${SCENE_LOADERS_HEADERS})
+
+target_include_directories(rtrender PRIVATE ${RT_RENDER_INCLUDE_DIRS} ${SCENE_LOADERS_INCLUDE_DIRS})
 target_link_libraries(rtrender PRIVATE ${LINK_LIBS})
 
 if (MSVC AND WIN32 AND DXCOMPILER_DLL)
@@ -93,8 +97,12 @@ foreach(HLSL_FILE ${HLSL_FILES})
     )
 endforeach()
 
-add_executable(api_tests api_tests_main.cpp ${API_HEADERS} ${TEST_SOURCES} ${TEST_HEADERS} ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS})
-target_include_directories(api_tests PRIVATE ${TEST_INCLUDE_DIRS} ${RT_RENDER_INCLUDE_DIRS})
+add_executable(api_tests api_tests_main.cpp ${API_HEADERS} 
+${TEST_SOURCES} ${TEST_HEADERS} 
+${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS}
+${SCENE_LOADERS_SOURCES} ${SCENE_LOADERS_HEADERS})
+
+target_include_directories(api_tests PRIVATE ${TEST_INCLUDE_DIRS} ${RT_RENDER_INCLUDE_DIRS} ${SCENE_LOADERS_INCLUDE_DIRS})
 target_link_libraries(api_tests PRIVATE ${LINK_LIBS})
 
 if (MSVC AND WIN32 AND DXCOMPILER_DLL)
@@ -112,5 +120,18 @@ foreach(HLSL_FILE ${HLSL_FILES})
         "${HLSL_FILE}" $<TARGET_FILE_DIR:api_tests>/shaders
     )
 endforeach()
+
+
+# Copy test_3d_models folder to rtrender output directory
+add_custom_command(TARGET rtrender POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/../test_3d_models" $<TARGET_FILE_DIR:rtrender>/test_3d_models
+)
+
+# Copy test_3d_models folder to api_tests output directory
+add_custom_command(TARGET api_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/../test_3d_models" $<TARGET_FILE_DIR:api_tests>/test_3d_models
+)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${TEST_SOURCES} ${API_HEADERS} ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS})
