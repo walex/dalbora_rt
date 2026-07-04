@@ -42,5 +42,7 @@ public:
 	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		const RhiGPUBuffer& vertex_buffer, const size_t vertices_offset, const size_t vertices_length,
 		const RhiGPUBuffer* index_buffer, const size_t indices_offset, const size_t indices_length);
+private:
+	RhiRayTraceGeometrydBufferInstances m_instances;
 };
 #endif // __rhi_ray_trace_geometry_buffer_hpp__

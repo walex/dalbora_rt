@@ -48,7 +48,8 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 			exp.ExportToRename = nullptr;
 			exp.Flags = D3D12_EXPORT_FLAG_NONE;
 			IDxcBlob* i_buffer = static_cast<DX_COMPILED_SHADER_BUFFER&>(*unit_0.blob);
-			lib.DXILLibrary = { i_buffer->GetBufferPointer(), i_buffer->GetBufferSize() };
+			lib.DXILLibrary.pShaderBytecode = i_buffer->GetBufferPointer();
+			lib.DXILLibrary.BytecodeLength = i_buffer->GetBufferSize();
 			lib.NumExports = 1;
 			lib.pExports = &exp;
 			auto& sub_object = sub_objects.emplace_back();

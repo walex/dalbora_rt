@@ -4,7 +4,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
-#include "../../../tinygltf/tiny_gltf.h"
+#include "D:\src\tinygltf\tiny_gltf.h"
 
 void model_3d_from_file(const std::string& filename, tinygltf::Model& model) {
 
@@ -246,17 +246,15 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 {
 	const tinygltf::Node& node = model.nodes[nodeIndex];
 
-	float4x4 local = float4x4::Identity();
+	float4x4 local = get_node_transforms(node);
 
 	if (!node.matrix.empty())
 	{
+		float4x4 mt;
 		for (int i = 0; i < 16; ++i) {
-			((float*)&local)[i] = static_cast<float>(node.matrix[i]);
+			((float*)&mt)[i] = static_cast<float>(node.matrix[i]);
 		}
-	}
-	else
-	{
-		local = get_node_transforms(node);
+		local = local * mt;
 	}
 
 	//------------------------------------
@@ -265,9 +263,8 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	float4x4 world =
 		parent_transform * local;
 
-
 	std::unique_ptr<SceneNode> scene_node = std::make_unique<SceneNode>(&parent_node);
-	scene_node->get_world_transform() = world;
+	scene_node->set_world_transform(world);
 
 	//------------------------------------
 	// Mesh
@@ -278,16 +275,11 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 			model.meshes[node.mesh];
 
 		// Procesar mesh usando 'world'
-		std::unique_ptr<MeshNode> mesh_node = std::make_unique<MeshNode>(scene_node.get());
-		mesh_node->mesh = scene_callbacks.meshes.at(node.mesh);
-		mesh_node->mesh_index = static_cast<size_t>(node.mesh);
-		auto& t = mesh_node->get_world_transform();
-		t = world;
+		std::unique_ptr<MeshGroupNode> mesh_node = std::make_unique<MeshGroupNode>(scene_node.get());
+		mesh_node->mesh_group_index = static_cast<size_t>(node.mesh);
+		mesh_node->set_world_transform(world);
 		scene_node->add_child(std::move(mesh_node));
 	}
-
-	if (scene_callbacks.on_new_scene_node != nullptr)
-		scene_callbacks.on_new_scene_node(device, command_buffer, *scene_node);
 
 	//------------------------------------
 	// Children
@@ -299,6 +291,9 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 			*scene_node, world,
 			scene_callbacks);
 	}
+
+	if (scene_callbacks.on_new_scene_node != nullptr)
+		scene_callbacks.on_new_scene_node(device, command_buffer, *scene_node);
 
 	parent_node.add_child(std::move(scene_node));
 }

@@ -67,7 +67,9 @@ RHI_COMPILED_SHADER_BUFFER* dx12_shaders_compiler_compile(const char* const file
     if (FAILED(i_shader_compiled->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&i_shader), nullptr))) {
         throw std::runtime_error("Failed to get compiled shader blob");
 	}
-    
+    ASSERT_PTR(i_shader->GetBufferPointer());
+    ASSERT_EXPR(i_shader->GetBufferSize() > 0);
+
     DX_COMPILED_SHADER_BUFFER* result = new DX_COMPILED_SHADER_BUFFER();
     ASSERT_PTR(result);
     result->set_handle(i_shader);

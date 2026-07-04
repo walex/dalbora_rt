@@ -83,6 +83,7 @@ struct RHI_SWAP_CHAIN {
 	virtual ~RHI_SWAP_CHAIN() = default;
 	std::unique_ptr<RHI_VIEW> render_targets[MAX_RENDER_TARGETS];
 	resource_format format;
+	bool disable_vsync = false;
 	size_t render_targets_count = 0;
 };
 

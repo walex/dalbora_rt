@@ -2,8 +2,8 @@
 #define __Scene_hpp__
 
 #include "Common.hpp"
+#include "Mesh.hpp"
 
-class Mesh;
 class Camera;
 class Light;
 class Material;
@@ -12,7 +12,8 @@ class Spatial {
 
 public:
 	virtual ~Spatial() = default;
-	float4x4& get_world_transform() { return m_world_transform; }
+	const float4x4& get_world_transform() const { return m_world_transform; }
+	void set_world_transform(const float4x4& transform) { m_world_transform = transform; }
 protected:
 	Spatial() = default;
 private:
@@ -20,7 +21,7 @@ private:
 };
 
 enum LeafNodeType {
-	LeafNodeType_Mesh,
+	LeafNodeType_MeshGroup,
 	LeafNodeType_Light
 };
 
@@ -50,19 +51,17 @@ private:
 	LeafNodeType m_type;
 };
 
-class MeshNode : public LeafNode {
+class MeshGroupNode : public LeafNode {
 public:
-	MeshNode(SceneNode* parent) : LeafNode(parent, LeafNodeType_Mesh) {}
-	virtual ~MeshNode() = default;
-	std::shared_ptr<Mesh> mesh;
-	size_t mesh_index;
+	MeshGroupNode(SceneNode* parent) : LeafNode(parent, LeafNodeType_MeshGroup) {}
+	virtual ~MeshGroupNode() = default;
+	size_t mesh_group_index;
 };
 
 class LightNode : public LeafNode {
 public:
 	LightNode(SceneNode* parent) : LeafNode(parent, LeafNodeType_Light) {}
 	virtual ~LightNode() = default;
-	std::shared_ptr<Mesh> mesh;
 	size_t mesh_index;
 };
 
@@ -121,30 +120,42 @@ public:
 	RayTraceScene();
 	virtual ~RayTraceScene() = default;
 private:
-	void fill_rt_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-		std::vector<RHI_BUFFER*>& vertices_ptr,
-		std::vector<RHI_BUFFER*>& indices_ptr) {
 
-		auto& rt_buffer = this->rt_buffers.emplace_back();
-		this->rt_buffers_transforms.emplace_back();
-		rt_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
+	void new_rt_buffer_for_3d_model(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+		const std::vector<Mesh*>& meshes) {
+
+			std::vector<RHI_BUFFER*> vertices_ptr;
+			std::vector<RHI_BUFFER*> indices_ptr;
+			vertices_ptr.reserve(meshes.size());
+			indices_ptr.reserve(meshes.size());
+			for (auto* mesh : meshes) {
+				vertices_ptr.push_back(mesh->get_vertex_buffer());
+				RhiBuffer* index_buffer = mesh->get_index_buffer();
+				if (index_buffer != nullptr)
+					indices_ptr.push_back(*index_buffer);
+				else
+					indices_ptr.push_back(nullptr);
+			}
+			auto& rt_buffer = this->m_rt_buffers.emplace_back();
+			this->m_rt_buffers_transforms.emplace_back();
+			rt_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
 	}
 
 	void create_rt_instances(const RhiDevice& device, RhiCommandBuffer& command_buffer) {
 
-		this->rt_buffers_instances.create(device, command_buffer, this->rt_buffers, this->rt_buffers_transforms);
-		this->rt_buffer_instances_views = this->rt_buffers_instances.new_view(device);
+		this->m_rt_buffers_instances.create(device, command_buffer, this->m_rt_buffers, this->m_rt_buffers_transforms);
+		this->m_rt_buffer_instances_views = this->m_rt_buffers_instances.new_view(device);
 	}
 
 	void add_rt_instance_transform(const size_t model_id, const float4x4& data) {
 
-		this->rt_buffers_transforms.at(model_id).push_back(reinterpret_cast<const float*>(&data));
+		this->m_rt_buffers_transforms.at(model_id).push_back(reinterpret_cast<const float*>(&data));
 	}
 private:
-	std::vector<RhiRayTraceGeometryBuffer> rt_buffers;
-	std::vector<std::vector<const float*>> rt_buffers_transforms;
-	RhiRayTraceGeometrydBufferInstances rt_buffers_instances;
-	RhiView rt_buffer_instances_views;
+	std::vector<RhiRayTraceGeometryBuffer> m_rt_buffers;
+	std::vector<std::vector<const float*>> m_rt_buffers_transforms;
+	RhiRayTraceGeometrydBufferInstances m_rt_buffers_instances;
+	RhiView m_rt_buffer_instances_views;
 };
 
 class StaticScene

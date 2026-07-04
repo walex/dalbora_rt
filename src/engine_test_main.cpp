@@ -36,9 +36,11 @@ void test_rt() {
 	command_queue.create(device);
 
 	// load scene from file
+	std::filesystem::path model_3d_folder = get_executable_folder("test_3d_models");
+	std::string model_3d_file = model_3d_folder.concat("InteriorTest.obj.gltf").string();
 	RayTraceScene scene;
 	scene.set_max_size(6 * 1024 * 1024);
-	scene.load(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
+	scene.load(model_3d_file,
 		device, command_queue);
 
 	// ---- ray trace engine ----
@@ -72,9 +74,10 @@ void test_rt() {
 	auto renderer = std::make_unique<RayTracingRenderer>();
 
 	// shaders
-	std::string ray_gen_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\ray_trace.hlsl)";
-	std::string miss_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\ray_trace.hlsl)";
-	std::string closest_hit_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\ray_trace.hlsl)";
+	std::filesystem::path shaders_folder = get_executable_folder("shaders");
+	std::string ray_gen_shader_file = shaders_folder.concat("ray_trace.hlsl").string();
+	std::string miss_shader_file = shaders_folder.concat("ray_trace.hlsl").string();
+	std::string closest_hit_shader_file = shaders_folder.concat("ray_trace.hlsl").string();
 
 	// compile shaders
 	RhiShaderProgram ray_gen_shader;

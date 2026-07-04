@@ -4,6 +4,14 @@
 
 #ifdef WINDOWS_PLATFORM
 
+std::string get_executable_folder(const std::string& concat_path) {
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    std::filesystem::path exe_path(buffer);
+	exe_path = exe_path.parent_path() / concat_path;
+    return exe_path.string();
+}
+
 void msg_box(void* parant_window, const char* title, const char* message) {
 
     MessageBoxA((HWND)parant_window, message, title, MB_OK);

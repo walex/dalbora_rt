@@ -30,13 +30,13 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	DXGI_FORMAT format = (desc->color_format != resource_format_none)
 		?  dx12_resource_format_type[desc->color_format]
 		: DXGI_FORMAT_R8G8B8A8_UNORM;
-	BOOL allowTearing = FALSE;
 
+	BOOL allowTearing = FALSE;
 	// If tearing support requested/available, attempt to enable (best-effort)
 	BOOL tearSupported = FALSE;
 	if (SUCCEEDED(i_factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearSupported, sizeof(tearSupported)))
 		&& tearSupported) {
-		allowTearing = desc->allow_tearing ? TRUE : FALSE;
+		allowTearing = TRUE;
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 scDesc = {};
@@ -136,19 +136,20 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		swap_chain_impl->render_targets[swap_chain_impl->render_targets_count++].reset(view);
 	}
 	swap_chain_impl->format = desc->color_format;
+	swap_chain_impl->disable_vsync = desc->disable_vsync && (allowTearing == TRUE);
 	return swap_chain_impl;
 }
 
 
-
+// DXGI_PRESENT_ALLOW_TEARING
 
 void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 
 	ASSERT_PTR(swap_chain);
-	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
-	ASSERT_PTR(i_swap_chain);
-	//i_swap_chain->Present(1, 0);
-	i_swap_chain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	const DX_SWAP_CHAIN* swap_chain_impl = static_cast<const DX_SWAP_CHAIN*>(swap_chain);
+	ASSERT_PTR(swap_chain_impl);
+	IDXGISwapChain3* i_swap_chain = *swap_chain_impl;
+	i_swap_chain->Present(0, !swap_chain_impl->disable_vsync ? 0 : DXGI_PRESENT_ALLOW_TEARING);
 }
 
 RHI_VIEW* const dx12_swap_chain_get_surface(const RHI_SWAP_CHAIN* const swap_chain, 

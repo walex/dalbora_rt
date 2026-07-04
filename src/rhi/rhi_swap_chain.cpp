@@ -12,7 +12,7 @@ void RhiSwapChain::create(const RhiWindow& window, const RhiDevice& device,
 	desc.window = window;
 	desc.width = window.get_width();
 	desc.height = window.get_height();
-	desc.allow_tearing = !enable_vertical_sync;
+	desc.disable_vsync = !enable_vertical_sync;
 	desc.buffer_count = buffers_count;
 	desc.color_format = resource_format_R8G8B8A8_norm;
 	this->set_handle(rhi_swap_chain_create(&desc));

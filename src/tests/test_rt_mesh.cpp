@@ -23,6 +23,10 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	CameraCBRT camera_matrices;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
+	unit_test_callbacks.on_device_config = ([](__int64& feature_flags) {
+		
+		feature_flags |= device_features_raytracing;
+	});
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
 		RhiWindow& window = unit_test.window;
@@ -34,10 +38,12 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiRayTracePipeline& pipeline = unit_test.ray_trace_pipeline;
 
 		// setup shaders
-		unit_test.ray_gen_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
-		unit_test.miss_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
-		unit_test.closest_hit_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
-
+		std::filesystem::path shader_path = get_executable_folder("shaders");
+		shader_path  = shader_path / "simple_rt.hlsl";
+		unit_test.ray_gen_shader_file = shader_path.string();
+		unit_test.miss_shader_file = shader_path.string();
+		unit_test.closest_hit_shader_file = shader_path.string();
+	
 		// create render target
 		render_target.create(device, swap_chain.get_format(),
 			window.get_width(), window.get_height());
@@ -100,8 +106,13 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		sbt.create(device, pipeline, ray_trace_shader_programs);
 
 		// load scene from file
+		std::filesystem::path model_3d_folder = get_executable_folder();
+		std::filesystem::path model_3d_file = model_3d_folder / ".." / ".." / ".." / ".." / "test_3d_models" / "scene.gltf";
+		if (std::filesystem::exists(model_3d_file) == false) {
+			throw std::exception("3d model file deos not exists");
+		}
 		scene.set_max_size(6 * 1024 * 1024);
-		scene.load(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\models_3d\InteriorTest.obj.gltf)",
+		scene.load(model_3d_file.string(),
 			device,	command_queue);
 
 		// create camera and setup transform

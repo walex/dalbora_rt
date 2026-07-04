@@ -223,7 +223,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             *vertices_ptr = &vertices[0];
 
             // shaders paths
-            vertex_shader_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
+            vertex_shader_path = "shaders/textured_triangle.hlsl";
             pixel_shader_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
         },
         [&](RHI_DEVICE_DESC& desc) {

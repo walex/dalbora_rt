@@ -40,7 +40,7 @@ void test_swap_chain(fptr_test_on_init on_init
 		swap_chain_desc.window = window;
 		swap_chain_desc.width = 800;
 		swap_chain_desc.height = 600;
-		swap_chain_desc.allow_tearing = true;
+		swap_chain_desc.disable_vsync = true;
 		swap_chain_desc.buffer_count = 3;
 		swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
 		swap_chain.reset(rhi_swap_chain_create(&swap_chain_desc));
@@ -121,7 +121,9 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 	vp.min_z = 0.0f;
 	vp.max_z = 1.0f;
 
+	__int64 device_features = device_features_none;
 	RhiUnitTestCallbacks unit_test_callbacks;
+
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 		
 		RhiWindow& window = unit_test.window;
@@ -131,10 +133,10 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiRenderPass& render_pass = unit_test.raster_render_pass;
 		
-		__int64 device_features = device_features_none;
-		if (callbacks)
+		if(callbacks)
 			callbacks->on_device_config(device_features);
-		device.create(0, device_features);
+
+		device.create(-1, device_features);
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
 		swap_chain.create(window, device, command_queue);
