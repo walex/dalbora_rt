@@ -37,7 +37,7 @@ RayRadianceIntegratorGPU::RayRadianceIntegratorGPU(
 
 	std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
 	auto& ray_gen = ray_gen_shader_desc.emplace_back();
-	strcpy(ray_gen.name_id, ray_gen_entry_point.c_str());
+	strcpy_s(ray_gen.name_id, ray_gen_entry_point.c_str());
 	ray_gen.blob = ray_gen_shader;
 
 	ray_trace_shader_programs.ray_gen_shader = &ray_gen_shader;

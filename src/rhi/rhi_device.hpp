@@ -4,13 +4,13 @@
 #include "rhi_impl.hpp"
 
 class RhiDevice
-	: public ICreateRhiObject<const uint32_t, const __int64> 
+	: public ICreateRhiObject<const int, const __int64>
 	, public RhiImpl<RHI_DEVICE> {
 
 public:
 	RhiDevice(RHI_DEVICE* handle = nullptr);
 	virtual ~RhiDevice() = default;
-	void create(const uint32_t adapter_id, const __int64 features) override;
+	void create(const int adapter_id, const __int64 features) override;
 	uint64_t next_constant_buffer_slot_id() const  { return constant_buffer_slot_id++; }
 	uint64_t next_rw_buffer_slot_id() const  { return rw_buffer_slot_id++; }
 	uint64_t next_read_only_buffer_slot_id() const { return read_only_buffer_slot_id++; }

@@ -28,7 +28,7 @@ static constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
 
 void test_raster_triangle(fptr_test_on_init on_init,
 						  fptr_test_on_draw on_draw,
-						  fptr_test_on_end on_end,
+						  fptr_test_on_end UNUSED_PARAM(on_end),
 						  fptr_test_on_layout on_layout,
 						  fptr_test_on_configure_device on_configure_device)
 {
@@ -276,7 +276,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 					on_draw(device, render_pass, command_buffer);
 				rhi_command_buffer_draw_triangle_list(&command_buffer, vertex_buffer.get(), index_buffer.get());
 			},
-			[&](RHI_RENDER_PASS &UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& (swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer))
+			[&](RHI_RENDER_PASS &UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer))
 			{
 				// on after draw
 			},

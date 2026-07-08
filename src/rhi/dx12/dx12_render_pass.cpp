@@ -26,8 +26,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
 	ASSERT_PTR(device_impl->resources_heap);
-	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view);
-
+	
 	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;

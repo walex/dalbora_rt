@@ -41,7 +41,7 @@ struct alignas(16) GPUMaterialData {
 class Material
 {
 public:
-	Material(RhiDevice& device);
+	Material();
 	virtual ~Material() = default;
 
     // --- GETTERS & SETTERS ---

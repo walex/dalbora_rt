@@ -67,13 +67,13 @@ void Scene::on_geometry_loaded(std::unique_ptr<Mesh> mesh) {
 }
 
 // callbak when have new scene node
-void Scene::on_new_scene_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void Scene::on_new_scene_node(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 	SceneNode& node) {
 
 	node.update_world_transform();
 }
 
-void Scene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void Scene::on_scene_loaded(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 	const float3 bb_min, const float3 bb_max) {
 
 	m_bb_min = bb_min;

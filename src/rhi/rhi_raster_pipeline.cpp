@@ -27,7 +27,7 @@ void RhiRasterPipeline::create(const RhiDevice& device, const RhiPipelineLayout&
 void RhiRasterPipeline::add_input_descriptor(const std::string& name, size_t offset, resource_format format) {
 
 	auto& id = m_input_descriptors.emplace_back();
-	strcpy(id.name, name.c_str());
+	strcpy_s(id.name, MAX_INPUT_NAME_LENGTH, name.c_str());
 	id.offset = offset;
 	id.format = format;
 }

@@ -3,7 +3,7 @@
 float image_aspect = 800.0f / 600.0f;
 float x = 0.5f;
 
-static struct Vertex
+struct Vertex
 {
 	float x, y, z;
 };
@@ -22,11 +22,11 @@ static uint16_t indices[] =
 };
 static constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
 
-void test_rt_triangle(fptr_test_on_init on_init,
-	fptr_test_on_draw on_draw,
-	fptr_test_on_end on_end,
-	fptr_test_on_layout on_layout,
-	fptr_test_on_configure_device on_configure_device)
+void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
+	fptr_test_on_draw UNUSED_PARAM(on_draw),
+	fptr_test_on_end UNUSED_PARAM(on_end),
+	fptr_test_on_layout UNUSED_PARAM(on_layout),
+	fptr_test_on_configure_device UNUSED_PARAM(on_configure_device))
 {
 
 	std::unique_ptr<RHI_BUFFER> vertex_buffer;
@@ -141,7 +141,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			strcpy_s(miss_1.name_id, miss_id);
 
 			auto& ray_gen = p_desc.ray_gen[p_desc.ray_gen_count++];
-			strcpy(ray_gen.name_id, ray_gen_id);
+			strcpy_s(ray_gen.name_id, ray_gen_id);
 			ray_gen.blob = ray_gen_shader;
 
 			pipeline.reset(rhi_rt_pipeline_create(&p_desc));
@@ -197,7 +197,6 @@ void test_rt_triangle(fptr_test_on_init on_init,
 
 					rhi_command_buffer_record(&command_buffer, [&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
 
-						auto vertex_size = sizeof(Vertex);
 						auto vertices_ptr = &vertices[0];
 									
 						// cpu bridge buffer uploading
@@ -297,7 +296,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			rt_render_pass->pipeline = pipeline.get();
 			
 		}
-		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
+		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_COMMAND_BUFFER& command_buffer) {
 
 			float dt = get_delta_time();
 			rotation_matrix = rotate_triangle(dt);
@@ -330,7 +329,7 @@ void test_rt_triangle(fptr_test_on_init on_init,
 			const RHI_VIEW* back_buffer = rhi_swap_chain_get_surface(swap_chain_ptr, INT64_MAX);
 			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(back_buffer->buffer), render_target.get());
 		}
-		, [&](RHI_RENDER_PASS& render_pass, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_BUFFER& command_buffer) {
+		, [&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer)) {
 
 			// on_before_present
 			
@@ -452,7 +451,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		
 		std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
 		auto& ray_gen = ray_gen_shader_desc.emplace_back();
-		strcpy(ray_gen.name_id, ray_gen_entry_point.c_str());
+		strcpy_s(ray_gen.name_id, ray_gen_entry_point.c_str());
 		ray_gen.blob = ray_gen_shader;
 
 		ray_trace_shader_programs.ray_gen_shader = &ray_gen_shader;

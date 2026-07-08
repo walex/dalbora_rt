@@ -33,7 +33,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiWindow& window = unit_test.window;
 		RhiDevice& device = unit_test.device;
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
-		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
 		RhiRayTracePipeline& pipeline = unit_test.ray_trace_pipeline;
@@ -94,7 +93,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
 		auto& ray_gen = ray_gen_shader_desc.emplace_back();
-		strcpy(ray_gen.name_id, ray_gen_entry_point.c_str());
+		strcpy_s(ray_gen.name_id, ray_gen_entry_point.c_str());
 		ray_gen.blob = ray_gen_shader;
 
 		ray_trace_shader_programs.ray_gen_shader = &ray_gen_shader;
@@ -171,7 +170,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		rt_render_pass.set_pipeline(unit_test.ray_trace_pipeline);
 
-		float dt = get_delta_time();
+		// float dt = get_delta_time();
 
 		// upload shaders constants
 		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));

@@ -147,8 +147,6 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
 
-		RhiWindow& window = unit_test.window;
-		RhiDevice& device = unit_test.device;
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
@@ -159,7 +157,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 			RhiView render_target_view = swap_chain.get_next_render_target();
 			render_pass.set_view_port(vp);
 			render_pass.set_render_target(render_target_view);
-			render_pass.render(command_buffer, [&](RhiCommandBuffer& command_buffer) {
+			render_pass.render(command_buffer, [&](RhiCommandBuffer& UNUSED_PARAM(command_buffer)) {
 				
 				if (callbacks)
 					callbacks->on_draw(unit_test);
@@ -173,7 +171,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		swap_chain.present();
 	});
 
-	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
+	unit_test_callbacks.on_end = ([&](RhiUnitTest& UNUSED_PARAM(unit_test)) {
 
 	});
 

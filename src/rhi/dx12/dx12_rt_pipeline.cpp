@@ -232,8 +232,6 @@ RHI_SBT_TABLE* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const
 	size_t ray_gen_max_elements = desc->ray_gen_count;
 	size_t miss_max_elements = desc->miss_shader_count;
 
-	const RHI_SHADER_TABLE_ENTRY* ste = pipeline->shader_table;
-
 	// ============================================================
 	// CONSTANTES DXR
 	// ============================================================

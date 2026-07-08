@@ -64,12 +64,12 @@ void test_create_window_obj(RhiUnitTestCallbacks* callbacks) {
 		if (callbacks)
 			callbacks->on_init(unit_test);
 	};
-	window_callbacks.main_loop = [&](RHI_WINDOW* hwindow) {
+	window_callbacks.main_loop = [&](RHI_WINDOW* UNUSED_PARAM(hwindow)) {
 		
 		if (callbacks)
 			callbacks->on_draw(unit_test);
 	};
-	window_callbacks.on_end = [&](RHI_WINDOW* hwindow) {
+	window_callbacks.on_end = [&](RHI_WINDOW* UNUSED_PARAM(hwindow)) {
 		
 		if (callbacks)
 			callbacks->on_end(unit_test);

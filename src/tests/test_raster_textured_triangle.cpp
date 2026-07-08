@@ -12,7 +12,7 @@ void copy_bc1_image_data_with_mips(tinyddsloader::DDSFile & dds, const RHI_TEXTU
         ++mipIndex)
     {
         const tinyddsloader::DDSFile::ImageData* image =
-            dds.GetImageData(mipIndex, 0);
+            dds.GetImageData(static_cast<uint32_t>(mipIndex), 0);
 
         const uint8_t* src =
             reinterpret_cast<const uint8_t*>(
@@ -86,7 +86,7 @@ resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
     return static_cast<resource_format>(std::distance(s.begin(), it));
 }
 
-static struct Vertex
+struct Vertex
 {
     float x, y, z;
     float u, v;
@@ -188,10 +188,10 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                     command_buffer_list->push_back(&command_buffer);
                 });
         },
-        [&](RHI_DEVICE& device, RHI_RENDER_PASS &render_pass, RHI_COMMAND_BUFFER &command_buffer) {
+        [&](RHI_DEVICE& UNUSED_PARAM(device), RHI_RENDER_PASS &UNUSED_PARAM(render_pass), RHI_COMMAND_BUFFER &UNUSED_PARAM(command_buffer)) {
            // rhi_command_buffer_reset_resource_state(command_buffer, *texture);
         },
-        [&](RHI_DEVICE &device) {},
+        [&](RHI_DEVICE & UNUSED_PARAM(device)) {},
         [&](RHI_PIPELINE_LAYOUT_DESC& layout, std::vector<RHI_INPUT_LAYOUT_DESC> &input_layouts, std::string &vertex_shader_path,
             std::string &pixel_shader_path, size_t &vertex_size, void **vertices_ptr)
         {
@@ -233,7 +233,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
         });
 }
 
-void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
+void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callbacks)) {
     
     std::string texture_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\test_texture.dds)";
     tinyddsloader::DDSFile dds;
@@ -260,11 +260,9 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
     });
     unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
-        RhiWindow& window = unit_test.window;
         RhiDevice& device = unit_test.device;
         RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
         RhiCommandBuffer& command_buffer = unit_test.command_buffer;
-        RhiSwapChain& swap_chain = unit_test.swap_chain;
         RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
         RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
@@ -315,12 +313,12 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks) {
         unit_test.vertices_stride = sizeof(vertices[0]);
     });
 
-    unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
+    unit_test_callbacks.on_draw = ([&](RhiUnitTest& UNUSED_PARAM(unit_test)) {
 
     
     });
 
-    unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
+    unit_test_callbacks.on_end = ([&](RhiUnitTest& UNUSED_PARAM(unit_test)) {
 
 
     });

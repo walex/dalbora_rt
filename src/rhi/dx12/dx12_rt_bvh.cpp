@@ -177,7 +177,7 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC*
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS tlas_inputs = {};
 	tlas_inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	tlas_inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	tlas_inputs.NumDescs = desc->total_instances;
+	tlas_inputs.NumDescs = static_cast<UINT>(desc->total_instances);
 	tlas_inputs.InstanceDescs = i_tlas_inputs_buffer->GetGPUVirtualAddress();
 	tlas_inputs.Flags =
 		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -275,7 +275,7 @@ void dx12_rt_bvh_update_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC* const
 	tlas_inputs.InstanceDescs =
 		i_tlas_input_buffer->GetGPUVirtualAddress();
 
-	tlas_inputs.NumDescs = desc->instance_info_count;
+	tlas_inputs.NumDescs = static_cast<UINT>(desc->instance_info_count);
 
 	tlas_inputs.Flags =
 		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |

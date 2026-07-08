@@ -296,7 +296,6 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const tinygltf::Model& gltf_model, SCENE_LOAD_CALLBACKS& scene_callbacks) {
 
-	size_t tmp_buffer_offset = 0;
 	for (size_t i = 0; i < gltf_model.meshes.size(); i++) {
 
 		const auto& gltf_mesh = gltf_model.meshes.at(i);	
@@ -353,11 +352,6 @@ void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	
 	// load materials
 	load_materials(device, command_buffer, gltf_model, scene_callbacks);
-
-	size_t local_scene_index =
-		gltf_model.scenes.size() > scene_index
-		? scene_index
-		: 0;
 
 	const tinygltf::Scene& gltf_scene =
 		gltf_model.scenes[scene_index];
