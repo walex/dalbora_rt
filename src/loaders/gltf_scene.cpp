@@ -1,4 +1,6 @@
 #include "gltf_scene.hpp"
+#include "Scene.hpp"
+#include "Mesh.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -151,7 +153,7 @@ RhiGPUBuffer gltf_create_buffer(const RhiDevice& device, const RhiCommandBuffer&
 }
 
 
-const uint8_t* get_model_buffer(const tinygltf::Model& model, const tinygltf::Primitive& primitive,
+const uint8_t* get_mesh_buffer(const tinygltf::Model& model, const tinygltf::Primitive& primitive,
 	const std::string& attribute, size_t& length,
 	size_t& stride, resource_format& format) {
 
@@ -241,8 +243,8 @@ float4x4 get_node_transforms(tinygltf::Node node) {
 
 void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const tinygltf::Model& model, const int nodeIndex,
-	SceneNode& parent_node,	const float4x4& parent_transform,
-	SCENE_CALLBACKS& scene_callbacks)
+	SceneNode& parent_node,
+	SCENE_LOAD_CALLBACKS& scene_callbacks)
 {
 	const tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -257,29 +259,25 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		local = local * mt;
 	}
 
-	//------------------------------------
-	// World transform
-	//------------------------------------
-	float4x4 world =
-		parent_transform * local;
-
 	std::unique_ptr<SceneNode> scene_node = std::make_unique<SceneNode>(&parent_node);
-	scene_node->set_world_transform(world);
+	scene_node->set_local_transform(local);
+
+	scene_callbacks.on_new_scene_node(device, command_buffer, *scene_node);
 
 	//------------------------------------
 	// Mesh
 	//------------------------------------
-	if (node.mesh >= 0)
-	{
-		const tinygltf::Mesh& mesh =
-			model.meshes[node.mesh];
+	if (node.mesh >= 0) {
 
-		// Procesar mesh usando 'world'
-		std::unique_ptr<MeshGroupNode> mesh_node = std::make_unique<MeshGroupNode>(scene_node.get());
-		mesh_node->mesh_group_index = static_cast<size_t>(node.mesh);
-		mesh_node->set_world_transform(world);
-		scene_node->add_child(std::move(mesh_node));
+		// Fix: node.mesh is a group of scene meshes, create as many nodes as meshes in the group
+		std::vector<std::shared_ptr<Mesh>> meshes = scene_callbacks.get_meshes(node.mesh);
+		for (auto& mesh : meshes) {
+			auto geo_node = std::make_unique<GeometryNode>(scene_node.get(), mesh);
+			scene_callbacks.on_new_scene_node(device, command_buffer, *geo_node);
+			scene_node->add_child(std::move(geo_node));
+		}
 	}
+	
 
 	//------------------------------------
 	// Children
@@ -288,81 +286,64 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	{
 		process_node(device, command_buffer,
 			model, child,
-			*scene_node, world,
+			*scene_node,
 			scene_callbacks);
 	}
-
-	if (scene_callbacks.on_new_scene_node != nullptr)
-		scene_callbacks.on_new_scene_node(device, command_buffer, *scene_node);
 
 	parent_node.add_child(std::move(scene_node));
 }
 
 void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-	const tinygltf::Model& gltf_model, SCENE_CALLBACKS& scene_callbacks) {
+	const tinygltf::Model& gltf_model, SCENE_LOAD_CALLBACKS& scene_callbacks) {
 
-	scene_callbacks.meshes.reserve(gltf_model.meshes.size());
 	size_t tmp_buffer_offset = 0;
 	for (size_t i = 0; i < gltf_model.meshes.size(); i++) {
 
-		const auto& gltf_mesh = gltf_model.meshes.at(i);		
-		std::vector<Mesh*> model_meshes;
-		model_meshes.reserve(gltf_mesh.primitives.size());
+		const auto& gltf_mesh = gltf_model.meshes.at(i);	
 		for (auto& gltf_primitive : gltf_mesh.primitives) {
 
-			auto& mesh = scene_callbacks.meshes.emplace_back();
-			mesh = std::make_shared<Mesh>();
+			std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(i);
 
 			resource_format format;
 
-			if (scene_callbacks.on_geometry_loaded != nullptr) {
-				size_t stride, length;
-				for (auto& attr : gltf_primitive.attributes) {
-					
-					const uint8_t* data = get_model_buffer(gltf_model, gltf_primitive,
-						attr.first, length, stride, format);
-					scene_callbacks.on_geometry_loaded(device, command_buffer,
-						*mesh, attr.first, 
-						data, length, 
-						stride, format);
-				}
-				// INDICES
-				const uint8_t* data = get_model_buffer(gltf_model, gltf_primitive,
-					"__indices__", length, stride, format);
-				scene_callbacks.on_geometry_loaded(device, command_buffer,
-					*mesh, "__indices__",
+			size_t stride, length;
+			for (auto& attr : gltf_primitive.attributes) {
+
+				const uint8_t* data = get_mesh_buffer(gltf_model, gltf_primitive,
+					attr.first, length, stride, format);
+				scene_callbacks.on_geometry_attrib_loaded(device, command_buffer,
+					*mesh, attr.first,
 					data, length,
 					stride, format);
-				model_meshes.push_back(mesh.get());
 			}
-		}	
-		if (scene_callbacks.on_model_loaded)
-			scene_callbacks.on_model_loaded(device, command_buffer,
-				model_meshes);
-	}
-}
+			// INDICES
+			const uint8_t* data = get_mesh_buffer(gltf_model, gltf_primitive,
+				"__indices__", length, stride, format);
+			scene_callbacks.on_geometry_attrib_loaded(device, command_buffer,
+				*mesh, "__indices__",
+				data, length,
+				stride, format);
 
-MaterialProps material_from_gltf(const tinygltf::Material& material) {
-	
-	MaterialProps props;
-	return props;
+			scene_callbacks.on_geometry_loaded(std::move(mesh));
+		}
+		scene_callbacks.on_geometry_group_loaded(device, command_buffer, i);
+	}
 }
 
 void load_materials(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-	const tinygltf::Model& gltf_model, SCENE_CALLBACKS& scene_callbacks) {
+	const tinygltf::Model& gltf_model, SCENE_LOAD_CALLBACKS& scene_callbacks) {
 	
-	if (scene_callbacks.on_new_material) {
-		scene_callbacks.materials.reserve(gltf_model.materials.size());
-		for (size_t i = 0; i < gltf_model.materials.size(); i++) {
+	//scene_callbacks.materials.reserve(gltf_model.materials.size());
+	//for (size_t i = 0; i < gltf_model.materials.size(); i++) {
 
-			MaterialProps material_props = material_from_gltf(gltf_model.materials.at(i));
-			scene_callbacks.on_new_material(device, command_buffer, material_props);
-		}
-	}
+	//	MaterialProps material_props = material_from_gltf(gltf_model.materials.at(i));
+	//	scene_callbacks.on_new_material(device, command_buffer, material_props);
+	//}
 }
 
 void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-	const std::string& file_path, const size_t scene_index, SCENE_CALLBACKS& scene_callbacks) {
+	const std::string& file_path, const size_t scene_index, 
+	SceneNode& root_node,SCENE_LOAD_CALLBACKS& scene_callbacks) {
 
 	tinygltf::Model gltf_model;
 	model_3d_from_file(file_path, gltf_model);
@@ -388,12 +369,11 @@ void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	{
 		process_node(device, command_buffer,
 			gltf_model, rootNode,
-			scene_callbacks.root_node, identity,
-			scene_callbacks);
+			root_node, scene_callbacks);
 	}
 
-	compute_scene_bounds(gltf_model, float4x4::Identity(), scene_callbacks.bb_min, scene_callbacks.bb_max);
+	float3 bb_min, bb_max;
+	compute_scene_bounds(gltf_model, float4x4::Identity(), bb_min, bb_max);
 
-	if (scene_callbacks.on_scene_loaded)
-		scene_callbacks.on_scene_loaded(device, command_buffer, scene_callbacks.root_node);
+	scene_callbacks.on_scene_loaded(device, command_buffer, bb_min, bb_max);
 }

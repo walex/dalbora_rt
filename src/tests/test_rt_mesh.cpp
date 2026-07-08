@@ -1,5 +1,6 @@
 #include "test_api.hpp"
 #include "gltf_scene.hpp"
+#include "RayTraceScene.hpp"
 
 static constexpr float image_aspect = 800.0f / 600.0f;
 
@@ -135,7 +136,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 			center  + float4(
 				0.0f,
 				0.0f,
-				max_dimension * 1.0f,
+				max_dimension * 0.3f,
 				1.0f);
 		
 		camera_matrices.camera_forward = (center - camera_matrices.camera_pos);
@@ -171,8 +172,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		rt_render_pass.set_pipeline(unit_test.ray_trace_pipeline);
 
 		float dt = get_delta_time();
-		//rotation_matrix = rotate_triangle(dt);
-	//	geometry_buffer.update(unit_test.device, unit_test.command_buffer, geometry_instances);
 
 		// upload shaders constants
 		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));

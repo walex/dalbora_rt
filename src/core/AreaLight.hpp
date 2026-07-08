@@ -8,7 +8,7 @@
 class AreaLight : public Light
 {
 public:
-	AreaLight(RhiDevice& device) : Light(device) {}
+	AreaLight() = default;
 	virtual ~AreaLight() = default;
 };
 

@@ -3,6 +3,13 @@
 
 #include "Common.hpp"
 
+class MaterialProps {
+
+public:
+    IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(MaterialProps);
+    MaterialProps() = default;
+};
+
 struct alignas(16) GPUMaterialData {
     // Block 1 (16 bytes)
     float    albedo_r, albedo_g, albedo_b;

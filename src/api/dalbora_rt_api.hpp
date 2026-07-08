@@ -1,5 +1,5 @@
 #include "Common.hpp"
-#include "Scene.hpp"
+#include "RayTraceScene.hpp"
 #include "Mesh.hpp"
 #include "Camera.hpp"
 #include "Light.hpp"

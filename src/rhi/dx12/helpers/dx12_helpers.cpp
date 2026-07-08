@@ -35,27 +35,29 @@ void dx12_helpers_copy_4x4Matrix_to_rt_instance(const float*const* transforms, c
     UINT iid = 0;
     for (size_t i = 0; i < instance_count; i++)
     {
-        float* transform_values = const_cast<float*>(transforms[i]);
+        const float* transform_values = transforms[i];
         D3D12_RAYTRACING_INSTANCE_DESC& instance = base_ptr[i];
         instance.InstanceID = iid++;
         instance.InstanceMask = 0xFF;
         instance.AccelerationStructure = gpu_mem;
-        instance.Transform[0][0] = *(transform_values++);
-        instance.Transform[0][1] = *(transform_values++);
-        instance.Transform[0][2] = *(transform_values++);
-        instance.Transform[0][3] = *(transform_values++);
 
-        // fila 1
-        instance.Transform[1][0] = *(transform_values++);
-        instance.Transform[1][1] = *(transform_values++);
-        instance.Transform[1][2] = *(transform_values++);
-        instance.Transform[1][3] = *(transform_values++);
+        // DX12 expects row-major 3x4 transform (transpose of 4x4)
+        // If float4x4 is row-major, we need first 3 rows
+        // If float4x4 is column-major, we need transpose
+        instance.Transform[0][0] = transform_values[0];
+        instance.Transform[0][1] = transform_values[4];
+        instance.Transform[0][2] = transform_values[8];
+        instance.Transform[0][3] = transform_values[12];
 
-        // fila 2
-        instance.Transform[2][0] = *(transform_values++);
-        instance.Transform[2][1] = *(transform_values++);
-        instance.Transform[2][2] = *(transform_values++);
-        instance.Transform[2][3] = *(transform_values++);
+        instance.Transform[1][0] = transform_values[1];
+        instance.Transform[1][1] = transform_values[5];
+        instance.Transform[1][2] = transform_values[9];
+        instance.Transform[1][3] = transform_values[13];
+
+        instance.Transform[2][0] = transform_values[2];
+        instance.Transform[2][1] = transform_values[6];
+        instance.Transform[2][2] = transform_values[10];
+        instance.Transform[2][3] = transform_values[14];
     }
 
     i_buffer->Unmap(0, &range);

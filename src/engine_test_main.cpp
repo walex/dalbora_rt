@@ -1,6 +1,5 @@
 #include "dalbora_rt_api.hpp"
 
-
 constexpr size_t surface_width = 800;
 constexpr size_t surface_height = 600;
 

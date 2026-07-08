@@ -9,7 +9,7 @@ public:
 	RhiDepthBuffer(RHI_BUFFER* handle = nullptr);
 	virtual ~RhiDepthBuffer() = default;
 	void create(const RhiDevice& device, const size_t width, 
-		const size_t height, resource_format format);
+		const size_t height, resource_format format) override;
 	void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb) override;
 };
 

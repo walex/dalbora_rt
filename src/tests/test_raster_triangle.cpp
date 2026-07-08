@@ -6,7 +6,7 @@ static constexpr float image_aspect = 800.0f / 600.0f;
 static constexpr float x = 0.5f;
 
 
-static struct Vertex
+struct Vertex
 {
 	float x, y, z;
 	float u, v;

@@ -18,7 +18,7 @@ public:
 
 	void create(const std::string& title, const size_t width,
 		const size_t height, const bool full_screen,
-		const RHI_WINDOW_CALLBACKS& callbacks);
+		const RHI_WINDOW_CALLBACKS& callbacks) override;
 
 	void mainLoop();
 	size_t get_width() const;

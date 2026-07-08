@@ -8,6 +8,7 @@ class Mesh
 {
 
 public:
+	Mesh(size_t group_id) : m_group_id(group_id) {}
 	virtual ~Mesh() = default;
 	void setMaterial(std::shared_ptr<Material> material) { m_material = std::move(material); }
 	const Material& getMaterial() const { return *m_material; }
@@ -35,6 +36,7 @@ public:
 	RhiGPUBuffer* get_index_buffer() {
 		return this->indices_buffer.get();
 	}
+	size_t get_group_id() const { return m_group_id; }
 protected:
 	void upload_data(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		std::unique_ptr<RhiGPUBuffer>& src_buffer, const RhiSharedBuffer& src_data,
@@ -46,6 +48,7 @@ private:
 	std::unique_ptr<RhiGPUBuffer> indices_buffer;
 	std::unique_ptr<RhiGPUBuffer> normals_buffer;
 	std::unique_ptr<RhiGPUBuffer> uvs_buffer;
+	size_t m_group_id = 0;
 };
 
 
