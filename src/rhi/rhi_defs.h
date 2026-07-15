@@ -108,6 +108,19 @@ enum raster_pipeline_shader_type
 	shader_type_mesh = 7
 };
 
+enum hlsl_shader_model
+{
+	hlsl_shader_model_6_0 = 0x60,
+	hlsl_shader_model_6_1 = 0x61,
+	hlsl_shader_model_6_2 = 0x62,
+	hlsl_shader_model_6_4 = 0x64,
+	hlsl_shader_model_6_5 = 0x65,
+	hlsl_shader_model_6_6 = 0x66,
+	hlsl_shader_model_6_7 = 0x67,
+	hlsl_shader_model_6_8 = 0x68,
+	hlsl_shader_model_6_9 = 0x69
+};
+
 constexpr __int64 device_features_none = 0x0;
 constexpr __int64 device_features_raytracing = 0x1;
 constexpr __int64 device_features_variable_rate_shading = 0x2;

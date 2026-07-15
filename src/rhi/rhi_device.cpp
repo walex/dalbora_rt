@@ -4,11 +4,8 @@
 RhiDevice::RhiDevice(RHI_DEVICE* handle)
 	: RhiImpl<RHI_DEVICE>(handle) {}
 
-void RhiDevice::create(const int adapter_id, const __int64 features) {
+void RhiDevice::create(const RHI_DEVICE_DESC& desc) {
 
-	RHI_DEVICE_DESC desc;
-	desc.adapter_id = adapter_id;
-	desc.features = features;
 	this->set_handle(rhi_create_device(&desc));
 
 	constant_buffer_slot_id = static_cast<RHI_DEVICE*>(*this)->constant_buffer_slot_start;

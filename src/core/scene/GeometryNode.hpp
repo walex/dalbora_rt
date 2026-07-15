@@ -7,10 +7,10 @@ class Mesh;
 
 class GeometryNode : public SceneNode {
 public:
-	GeometryNode(SceneNode* parent, std::shared_ptr<Mesh> mesh) : SceneNode(parent), m_mesh(mesh) {}
-	const std::shared_ptr<Mesh>& get_mesh() const { return m_mesh; }
+	GeometryNode(SceneNode* parent, const Mesh& mesh) : SceneNode(parent), m_mesh(mesh) {}
+	const Mesh& get_mesh() const { return m_mesh; }
 private:
-	std::shared_ptr<Mesh> m_mesh;
+	const Mesh& m_mesh;
 };
 
 #endif

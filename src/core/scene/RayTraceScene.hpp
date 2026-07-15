@@ -22,12 +22,15 @@ public:
 	void on_new_scene_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		SceneNode& node) override;
 
+	void on_new_pbr_material(const std::string& name, const PBRMaterialProperties& material_properties) override;
+
 	void on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const float3 bb_min, const float3 bb_max) override;
 
+
 private:
 	void create_blas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-		const std::vector<std::shared_ptr<Mesh>>& meshes);
+		const std::vector<std::unique_ptr<Mesh>>& meshes);
 	void create_tlas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer);
 	void add_tlas_transform(const size_t model_id, const float4x4& data);
 private:

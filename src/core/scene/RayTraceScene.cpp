@@ -1,6 +1,7 @@
 #include "RayTraceScene.hpp"
 #include "GeometryNode.hpp"
 #include "Mesh.hpp"
+#include "PBRMaterial.hpp"
 
 RayTraceScene::RayTraceScene() {
 
@@ -9,7 +10,7 @@ RayTraceScene::RayTraceScene() {
 }
 
 void RayTraceScene::create_blas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer,
-	const std::vector<std::shared_ptr<Mesh>>& meshes) {
+	const std::vector<std::unique_ptr<Mesh>>& meshes) {
 
 	std::vector<RHI_BUFFER*> vertices_ptr;
 	std::vector<RHI_BUFFER*> indices_ptr;
@@ -53,8 +54,15 @@ void RayTraceScene::on_new_scene_node(const RhiDevice& device, RhiCommandBuffer&
 	Scene::on_new_scene_node(device, command_buffer, node);
 	GeometryNode* geometry_node = dynamic_cast<GeometryNode*>(&node);
 	if (geometry_node != nullptr) {
-		this->add_tlas_transform(geometry_node->get_mesh()->get_group_id(), geometry_node->get_world_transform());
+		this->add_tlas_transform(geometry_node->get_mesh().get_group_id(), geometry_node->get_world_transform());
 	}
+}
+
+void RayTraceScene::on_new_pbr_material(const std::string& name, const PBRMaterialProperties& material_properties) {
+
+	std::unique_ptr<PBRMaterial> material = std::make_unique<PBRMaterial>(name);
+	material->set_properties(material_properties);
+	m_materials.push_back(std::move(material));
 }
 
 void RayTraceScene::on_geometry_loaded(std::unique_ptr<Mesh> mesh) {

@@ -32,21 +32,35 @@ RHI_COMPILED_SHADER_BUFFER* dx12_shaders_compiler_compile(const char* const file
     std::wstring file_name = to_wstring_ascii(file);
     std::wstring entry_point = to_wstring_ascii(entry);
     std::wstring target_lib = to_wstring_ascii(target);
+    std::wstring include_folder = to_wstring_ascii(g_shaders_folder);
     std::vector<LPCWSTR> args = {
         file_name.c_str(),
         L"-E", entry_point.c_str(),
         L"-T", target_lib.c_str(),
+        L"-I", include_folder.c_str()
+#if defined(DEBUG)
+        ,  
         L"-Zi",
         L"-Qembed_debug",
         L"-Od"
+#endif
     };
 
+    Microsoft::WRL::ComPtr<IDxcUtils> dxcUtils;
+    HRESULT hr = DxcCreateInstance(
+        CLSID_DxcUtils,
+        IID_PPV_ARGS(&dxcUtils));
+
+    Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler;
+    dxcUtils->CreateDefaultIncludeHandler(
+        &includeHandler);
+    
     Microsoft::WRL::ComPtr<IDxcResult> i_shader_compiled;
-    HRESULT hr = compiler->Compile(
+    hr = compiler->Compile(
         &buffer,
         args.data(),
         (uint32_t)args.size(),
-        nullptr,
+        includeHandler.Get(),
         IID_PPV_ARGS(&i_shader_compiled)
     );
 
@@ -62,13 +76,23 @@ RHI_COMPILED_SHADER_BUFFER* dx12_shaders_compiler_compile(const char* const file
     }
 
     i_shader_compiled->GetStatus(&hr);
+    if (FAILED(hr)) {
+
+        Microsoft::WRL::ComPtr<IDxcBlobUtf8> i_errors;
+        i_shader_compiled->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&i_errors), nullptr);
+        if (i_errors && i_errors->GetStringLength() > 0)
+        {
+            OutputDebugStringA(i_errors->GetStringPointer());
+        }
+        throw std::exception("Shader compile failed");
+    }
 
     IDxcBlob* i_shader;
     if (FAILED(i_shader_compiled->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&i_shader), nullptr))) {
         throw std::runtime_error("Failed to get compiled shader blob");
 	}
-    ASSERT_PTR(i_shader->GetBufferPointer());
     ASSERT_EXPR(i_shader->GetBufferSize() > 0);
+    ASSERT_PTR(i_shader->GetBufferPointer());
 
     DX_COMPILED_SHADER_BUFFER* result = new DX_COMPILED_SHADER_BUFFER();
     ASSERT_PTR(result);

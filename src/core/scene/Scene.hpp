@@ -4,8 +4,9 @@
 #include "LightNode.hpp"
 #include "GeometryNode.hpp"
 #include "Mesh.hpp"
+#include "Material.hpp"
 
-class Material;
+struct PBRMaterialProperties;
 
 struct SCENE_LOAD_CALLBACKS {
 	
@@ -22,11 +23,11 @@ struct SCENE_LOAD_CALLBACKS {
 	virtual void on_new_scene_node(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 		SceneNode& UNUSED_PARAM(node)) {}
 
-//	virtual void on_new_material(const RhiDevice&, RhiCommandBuffer&, MaterialProps&) {}
+	virtual void on_new_pbr_material(const std::string& UNUSED_PARAM(name), const PBRMaterialProperties& UNUSED_PARAM(material_properties)) {}
 
 	virtual void on_scene_loaded(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer), const float3 UNUSED_PARAM(bb_min), const float3 UNUSED_PARAM(bb_max)) {}
 
-	virtual std::vector<std::shared_ptr<Mesh>>& get_meshes(const size_t UNUSED_PARAM(group_id)) = 0;
+	virtual const std::vector<std::unique_ptr<Mesh>>& get_meshes(const size_t UNUSED_PARAM(group_id)) const = 0;
 };
 
 class Scene: public SCENE_LOAD_CALLBACKS {
@@ -59,15 +60,15 @@ public:
 	virtual void on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const float3 bb_min, const float3 bb_max) override;
 
-	std::vector<std::shared_ptr<Mesh>>& get_meshes(const size_t group_id) override { return m_meshes[group_id]; }
+	const std::vector<std::unique_ptr<Mesh>>& get_meshes(const size_t group_id) const override { return m_meshes.at(group_id); }
 protected:
 	size_t m_max_size = 0;
 	float3 m_bb_min, m_bb_max;
 	SceneNode m_root_node;
 	RhiSharedBuffer m_tmp_buffer;
 	size_t tmp_buffer_offset = 0;
-	std::map<size_t, std::vector<std::shared_ptr<Mesh>>> m_meshes;
-	//std::vector<std::shared_ptr<Material>> m_materials;
+	std::map<size_t, std::vector<std::unique_ptr<Mesh>>> m_meshes;
+	std::vector<std::unique_ptr<Material>> m_materials;
 };
 
 

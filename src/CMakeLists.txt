@@ -107,7 +107,7 @@ target_link_libraries(api_tests PRIVATE ${LINK_LIBS})
 
 if (MSVC AND WIN32 AND DXCOMPILER_DLL)
     add_custom_command(TARGET api_tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        COMMAND ${CMAKE_COMMAND} -E copy
         "${DXCOMPILER_DLL}" $<TARGET_FILE_DIR:api_tests>
     )
 endif()

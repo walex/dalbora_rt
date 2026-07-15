@@ -7,6 +7,7 @@
 struct RHI_DEVICE_DESC  {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
+	hlsl_shader_model shader_model = hlsl_shader_model_6_8;
 };
 
 struct RHI_BUFFER_DESC  {

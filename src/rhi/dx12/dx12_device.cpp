@@ -11,7 +11,7 @@ bool dx12_device_check_rt_support(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
-void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 features) {
+void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
 
 	bool result = true;
 
@@ -27,12 +27,12 @@ void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 fea
 	D3D12_FEATURE_DATA_SHADER_MODEL SM = {};
 	SM.HighestShaderModel = D3D_HIGHEST_SHADER_MODEL;
 	i_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM));
-	if (SM.HighestShaderModel < D3D_SHADER_MODEL_6_0) {
-		throw std::exception("Device doesn't support Shader Model 6.9 or higher\n\n");
+	if (SM.HighestShaderModel < static_cast<D3D_SHADER_MODEL>(shader_model)) {
+		throw std::exception("Device doesn't support requested Shader Model\n\n");
 	}
 }
 
-IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
+IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features, hlsl_shader_model shader_model) {
 
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	for (UINT adapterIndex = 0;; ++adapterIndex) {
@@ -58,7 +58,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features) {
 		if (SUCCEEDED(hr)) {
 			bool use_it = true;
 			try {
-				dx12_device_check_device_features(testDevice, features);
+				dx12_device_check_device_features(testDevice, features, shader_model);
 			}
 			catch (std::exception&) {
 				
@@ -89,7 +89,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 		ASSERT_PTR(chosenAdapter);
 	}
 	else {
-		chosenAdapter = dx12_device_pick_best_adapter(desc->features);
+		chosenAdapter = dx12_device_pick_best_adapter(desc->features, desc->shader_model);
 		check_features = false;
 	}
 
@@ -100,7 +100,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (check_features == true) {
 
 		try {
-			dx12_device_check_device_features(i_device, desc->features);
+			dx12_device_check_device_features(i_device, desc->features, desc->shader_model);
 		}
 		catch (std::exception& ex) {
 			throw ex;
@@ -172,6 +172,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 			throw std::exception("Failed to create sampler heap");
 	}
 	memcpy(&dx_device->heap_desc, &heaps_desc, sizeof(DX_DEVICE_HEAP_DESC));
+
 	return dx_device;
 }
 

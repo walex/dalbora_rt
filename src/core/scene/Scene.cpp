@@ -1,5 +1,6 @@
 #include "Scene.hpp"
 #include "Mesh.hpp"
+#include "PBRMaterial.hpp"
 #include "gltf_scene.hpp"
 
 void Scene::load(const std::string& scene_path, RhiDevice& device,

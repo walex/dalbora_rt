@@ -39,7 +39,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// setup shaders
 		std::filesystem::path shader_path = get_executable_folder("shaders");
-		shader_path  = shader_path / "simple_rt.hlsl";
+		shader_path  = shader_path / "rt_main.hlsl";
 		unit_test.ray_gen_shader_file = shader_path.string();
 		unit_test.miss_shader_file = shader_path.string();
 		unit_test.closest_hit_shader_file = shader_path.string();
@@ -51,13 +51,17 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		if (callbacks)
 			callbacks->on_init(unit_test);
 
+		std::string ray_gen_entry_point = "RT_RayGen";
+		std::string miss_entry_point = "RT_Miss";
+		std::string closest_hit_entry_point = "RT_ClosestHit";
+
 		// compile shaders
 		ray_gen_shader.create(unit_test.ray_gen_shader_file,
-			"RayGen", "lib_6_6");
+			ray_gen_entry_point, "lib_6_8");
 		miss_shader.create(unit_test.miss_shader_file,
-			"Miss", "lib_6_6");
+			miss_entry_point, "lib_6_8");
 		closest_hit_shader.create(unit_test.closest_hit_shader_file,
-			"ClosestHit", "lib_6_6");
+			closest_hit_entry_point, "lib_6_8");
 
 		// add layout descriptors ( order mathers )
 
@@ -74,9 +78,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
 
 		// rt pipeline config
-		std::string ray_gen_entry_point = "RayGen";
-		std::string miss_entry_point = "Miss";
-		std::string closest_hit_entry_point = "ClosestHit";
 
 		// config ray trace shader
 		RhiRayTracePipelineShaderPrograms ray_trace_shader_programs;

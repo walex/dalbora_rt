@@ -1,3 +1,4 @@
 #include "Material.hpp"
 
-Material::Material() {}
+Material::Material(const std::string& name) : m_name(name) {
+}

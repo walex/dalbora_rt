@@ -59,7 +59,7 @@ void test_rt() {
 	camera->setLookAt(0, 1, 2);	
 
 	// material
-	auto material = std::make_unique<Material>(device);
+	auto material = std::make_unique<Material>("mt0");
 	
 	// scene
 	//scene.addLight(light.get());

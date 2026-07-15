@@ -136,7 +136,11 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		if(callbacks)
 			callbacks->on_device_config(device_features);
 
-		device.create(-1, device_features);
+		RHI_DEVICE_DESC device_desc;
+		device_desc.adapter_id = -1;
+		device_desc.features = device_features;
+		device_desc.shader_model = hlsl_shader_model_6_8;
+		device.create(device_desc);
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
 		swap_chain.create(window, device, command_queue);

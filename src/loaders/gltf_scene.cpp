@@ -1,6 +1,7 @@
 #include "gltf_scene.hpp"
 #include "Scene.hpp"
 #include "Mesh.hpp"
+#include "PBRMaterial.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -270,9 +271,9 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	if (node.mesh >= 0) {
 
 		// Fix: node.mesh is a group of scene meshes, create as many nodes as meshes in the group
-		std::vector<std::shared_ptr<Mesh>> meshes = scene_callbacks.get_meshes(node.mesh);
+		const std::vector<std::unique_ptr<Mesh>>& meshes = scene_callbacks.get_meshes(node.mesh);
 		for (auto& mesh : meshes) {
-			auto geo_node = std::make_unique<GeometryNode>(scene_node.get(), mesh);
+			auto geo_node = std::make_unique<GeometryNode>(scene_node.get(), *mesh);
 			scene_callbacks.on_new_scene_node(device, command_buffer, *geo_node);
 			scene_node->add_child(std::move(geo_node));
 		}
@@ -332,6 +333,32 @@ void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 void load_materials(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const tinygltf::Model& gltf_model, SCENE_LOAD_CALLBACKS& scene_callbacks) {
 	
+	for (size_t i = 0; i < gltf_model.materials.size(); i++) {
+		PBRMaterialProperties material_properties = {};
+		const tinygltf::Material& gltf_material = gltf_model.materials.at(i);
+
+		material_properties.albedo_b = static_cast<float>(gltf_material.pbrMetallicRoughness.baseColorFactor[2]);
+		material_properties.albedo_g = static_cast<float>(gltf_material.pbrMetallicRoughness.baseColorFactor[1]);
+		material_properties.albedo_r = static_cast<float>(gltf_material.pbrMetallicRoughness.baseColorFactor[0]);
+		material_properties.emissive_b = static_cast<float>(gltf_material.emissiveFactor[2]);
+		material_properties.emissive_g = static_cast<float>(gltf_material.emissiveFactor[1]);
+		material_properties.emissive_r = static_cast<float>(gltf_material.emissiveFactor[0]);
+		material_properties.metallic = static_cast<float>(gltf_material.pbrMetallicRoughness.metallicFactor);
+		material_properties.roughness = static_cast<float>(gltf_material.pbrMetallicRoughness.roughnessFactor);
+		material_properties.ior = 1.5f; // Default IOR for most materials
+		material_properties.has_emissive = (material_properties.emissive_r > 0.0f || material_properties.emissive_g > 0.0f || material_properties.emissive_b > 0.0f) ? 1 : 0;
+		material_properties.is_transparent = (gltf_material.alphaMode == "BLEND") ? 1 : 0;
+		material_properties.albedo_map_id = (gltf_material.pbrMetallicRoughness.baseColorTexture.index >= 0) ? static_cast<uint32_t>(gltf_material.pbrMetallicRoughness.baseColorTexture.index) : 0;
+		material_properties.metallic_map_id = (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0) ? static_cast<uint32_t>(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index) : 0;
+		material_properties.roughness_map_id = (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0) ? static_cast<uint32_t>(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index) : 0;
+		material_properties.normal_map_id = (gltf_material.normalTexture.index >= 0) ? static_cast<uint32_t>(gltf_material.normalTexture.index) : 0;
+		material_properties.ao_map_id = (gltf_material.occlusionTexture.index >= 0) ? static_cast<uint32_t>(gltf_material.occlusionTexture.index) : 0;
+		material_properties.emissive_map_id = (gltf_material.emissiveTexture.index >= 0) ? static_cast<uint32_t>(gltf_material.emissiveTexture.index) : 0;
+		material_properties.emissive_intensity = 1.0f; // Default emissive intensity, can be adjusted based on your needs
+		material_properties.transmission = (gltf_material.alphaMode == "BLEND") ? 1.0f : 0.0f; // Default transmission for transparent materials
+		scene_callbacks.on_new_pbr_material(gltf_material.name, material_properties);
+	}
+
 	//scene_callbacks.materials.reserve(gltf_model.materials.size());
 	//for (size_t i = 0; i < gltf_model.materials.size(); i++) {
 
