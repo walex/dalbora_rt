@@ -73,7 +73,7 @@ endif()
 set(LINK_LIBS ${CG_LIBS})
 
 # Find all HLSL files in tests directory
-file(GLOB HLSL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.hlsl")
+file(GLOB HLSL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.hlsl")
 
 add_executable(rtrender engine_test_main.cpp ${API_HEADERS} 
 ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS}
@@ -112,7 +112,7 @@ if (MSVC AND WIN32 AND DXCOMPILER_DLL)
     )
 endif()
 
-# Copy HLSL files to api_tests output directory/shaders
+# Copy HLSL files to output directory/shaders
 foreach(HLSL_FILE ${HLSL_FILES})
     add_custom_command(TARGET api_tests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:api_tests>/shaders
@@ -123,12 +123,6 @@ endforeach()
 
 
 # Copy test_3d_models folder to rtrender output directory
-add_custom_command(TARGET rtrender POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/../test_3d_models" $<TARGET_FILE_DIR:rtrender>/test_3d_models
-)
-
-# Copy test_3d_models folder to api_tests output directory
 add_custom_command(TARGET api_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/../test_3d_models" $<TARGET_FILE_DIR:api_tests>/test_3d_models

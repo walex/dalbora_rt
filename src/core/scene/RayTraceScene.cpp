@@ -32,7 +32,7 @@ void RayTraceScene::create_blas_buffer(const RhiDevice& device, RhiCommandBuffer
 void RayTraceScene::create_tlas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer) {
 
 	this->m_tlas_buffers.create(device, command_buffer, this->m_blas_buffers, this->m_tlas_transforms);
-	this->m_tlas_view = this->m_tlas_buffers.new_view(device);
+	this->m_tlas_view = this->m_tlas_buffers.new_view(device); // t0
 }
 
 void RayTraceScene::add_tlas_transform(const size_t blas_id, const float4x4& data) {
@@ -65,8 +65,10 @@ void RayTraceScene::on_new_pbr_material(const std::string& name, const PBRMateri
 	m_materials.push_back(std::move(material));
 }
 
-void RayTraceScene::on_geometry_loaded(std::unique_ptr<Mesh> mesh) {
-	Scene::on_geometry_loaded(std::move(mesh));
+void RayTraceScene::on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) {
+
+	// call parent callback to store the mesh in the scene
+	Scene::on_geometry_loaded(device, std::move(mesh));
 }
 
 void RayTraceScene::on_geometry_group_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer, 
@@ -80,4 +82,11 @@ void RayTraceScene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& c
 
 	Scene::on_scene_loaded(device, command_buffer, bb_min, bb_max);
 	this->create_tlas_buffer(device, command_buffer);
+}
+
+void RayTraceScene::load(const std::string& scene_path, RhiDevice& device,
+	RhiCommandQueue& command_queue) {
+
+	Scene::load(scene_path, device, command_queue);
+
 }

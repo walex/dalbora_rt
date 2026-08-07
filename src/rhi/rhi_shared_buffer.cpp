@@ -57,5 +57,5 @@ RhiView RhiSharedBuffer::new_constant_buffer_view(RhiDevice& device) {
 	object_cb_view_desc.buffer = *this;
 	object_cb_view_desc.type = resource_type_constant_buffer;
 	object_cb_view_desc.slot_id = device.next_constant_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&object_cb_view_desc));
+	return RhiView(rhi_buffers_create_view(&object_cb_view_desc), object_cb_view_desc.slot_id);
 }

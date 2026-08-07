@@ -15,7 +15,7 @@ struct SCENE_LOAD_CALLBACKS {
 		const uint8_t* const UNUSED_PARAM(data), const size_t UNUSED_PARAM(length),
 		const size_t UNUSED_PARAM(stride), const resource_format UNUSED_PARAM(format)) {}
 
-	virtual void on_geometry_loaded(std::unique_ptr<Mesh> UNUSED_PARAM(mesh)) {}
+	virtual void on_geometry_loaded(const RhiDevice& UNUSED_PARAM(device), std::unique_ptr<Mesh> UNUSED_PARAM(mesh)) {}
 
 	virtual void on_geometry_group_loaded(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer), 
 		size_t UNUSED_PARAM(group_id)) {}
@@ -40,7 +40,7 @@ public:
 	}
 	virtual ~Scene() = default;
 
-	void load(const std::string& scene_path, RhiDevice& device,
+	virtual void load(const std::string& scene_path, RhiDevice& device,
 		RhiCommandQueue& command_queue);	
 	void set_max_size(const size_t value) { m_max_size = value; }
 	size_t get_max_size() const { return m_max_size; }
@@ -52,7 +52,7 @@ public:
 		const uint8_t* const data, const size_t length,
 		const size_t stride, const resource_format format) override;
 
-	virtual void on_geometry_loaded(std::unique_ptr<Mesh> mesh) override;
+	virtual void on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) override;
 
 	virtual void on_new_scene_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		SceneNode& node) override;
@@ -61,6 +61,8 @@ public:
 		const float3 bb_min, const float3 bb_max) override;
 
 	const std::vector<std::unique_ptr<Mesh>>& get_meshes(const size_t group_id) const override { return m_meshes.at(group_id); }
+	
+	SceneNode& get_root_node() { return m_root_node; }
 protected:
 	size_t m_max_size = 0;
 	float3 m_bb_min, m_bb_max;

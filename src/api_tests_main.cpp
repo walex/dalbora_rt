@@ -35,13 +35,13 @@ void test_objects() {
 
 	// test_create_swap_chain_obj();
 
-	//test_raster_triangle_obj();
+	// test_raster_triangle_obj();
 
-	//test_raster_textured_triangle_obj();
+	// test_raster_textured_triangle_obj();
 
 	// test_rt_triangle_obj();
 	
-	 test_rt_mesh_obj();
+	test_rt_mesh_obj();
 
 	// end rhi
 	rhi_end();

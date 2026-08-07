@@ -55,11 +55,15 @@ struct [raypayload] Payload
         : read(caller)
         : write(caller, closesthit, miss);
 
-    uint instanceIndex
+    bool is_edge
+        : read(caller)
+        : write(caller, closesthit);
+
+    uint instance_index
             : read(caller)
             : write(caller, closesthit);
 
-    uint primitiveIndex
+    uint primitive_index
             : read(caller)
             : write(caller, closesthit);
 
@@ -70,6 +74,12 @@ struct [raypayload] Payload
     float distance
             : read(caller)
             : write(caller, closesthit);
+
+    bool front_face 
+            : read(caller)
+            : write(caller, closesthit);
+
+    
 };
 
 //=============================================================================

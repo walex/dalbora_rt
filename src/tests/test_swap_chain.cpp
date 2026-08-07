@@ -18,7 +18,7 @@ void test_swap_chain(fptr_test_on_init on_init
 	callbacks.get()->on_init = ([&](RHI_WINDOW* const window) {
 
 		RHI_DEVICE_DESC device_desc;
-		device_desc.adapter_id = 0;
+		device_desc.adapter_id = -1;
 		device_desc.features = device_features_none;
 		if (on_configure_device)
 			on_configure_device(device_desc);

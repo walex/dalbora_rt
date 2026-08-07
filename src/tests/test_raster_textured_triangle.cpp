@@ -107,8 +107,9 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                                    fptr_test_on_configure_device on_configure_device)
 {
     
-
-    std::string texture_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\test_texture.dds)";
+    const std::filesystem::path shaders_path = get_executable_folder("test_3d_models");
+    const std::filesystem::path shader_file = shaders_path / "test_texture.dds";
+    std::string texture_path = shader_file.string();
     tinyddsloader::DDSFile dds;
     auto ret = dds.Load(texture_path.c_str());
     if (tinyddsloader::Result::Success != ret)
@@ -222,9 +223,12 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             vertex_size = sizeof(Vertex);
             *vertices_ptr = &vertices[0];
 
-            // shaders paths
-            vertex_shader_path = "shaders/textured_triangle.hlsl";
-            pixel_shader_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
+            //   paths
+            const std::filesystem::path shaders_path = get_executable_folder("shaders");
+            const std::filesystem::path vertex_shader_file = shaders_path / "textured_triangle.hlsl";
+            const std::filesystem::path pixel_shader_file = shaders_path / "textured_triangle.hlsl";
+            vertex_shader_path = vertex_shader_file.string();
+            pixel_shader_path = pixel_shader_file.string();
         },
         [&](RHI_DEVICE_DESC& desc) {
             if (on_configure_device)
@@ -235,7 +239,9 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 
 void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callbacks)) {
     
-    std::string texture_path = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\test_texture.dds)";
+    const std::filesystem::path res_path = get_executable_folder("test_3d_models");
+    const std::filesystem::path texture_file = res_path / "test_texture.dds";
+    std::string texture_path = texture_file.string();
     tinyddsloader::DDSFile dds;
     auto ret = dds.Load(texture_path.c_str());
     if (tinyddsloader::Result::Success != ret)
@@ -304,8 +310,9 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         });
 
         // set shader file
-        unit_test.vertex_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
-        unit_test.pixel_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\textured_triangle.hlsl)";
+		std::filesystem::path shaders_path = get_executable_folder("shaders");
+        unit_test.vertex_shader_file = (shaders_path / "textured_triangle.hlsl").string();
+        unit_test.pixel_shader_file = (shaders_path / "textured_triangle.hlsl").string();
 
         // updata vertex and index buffer
         unit_test.vertices.resize(sizeof(vertices));

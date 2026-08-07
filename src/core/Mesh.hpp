@@ -10,8 +10,8 @@ class Mesh
 public:
 	Mesh(size_t group_id) : m_group_id(group_id) {}
 	virtual ~Mesh() = default;
-	void setMaterial(std::shared_ptr<Material> material) { m_material = std::move(material); }
-	const Material& getMaterial() const { return *m_material; }
+	void set_material_id(size_t id) { m_material_id = id; }
+	const size_t get_material_id() const { return m_material_id; }
 	void set_vertices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const RhiSharedBuffer& data, const size_t data_offset,
 		const size_t length, const size_t stride,
@@ -30,11 +30,11 @@ public:
 		const resource_format format);
 
 	RhiGPUBuffer& get_vertex_buffer() {
-		return *this->vertices_buffer;
+		return *this->vertex_buffer;
 	}
 
 	RhiGPUBuffer* get_index_buffer() {
-		return this->indices_buffer.get();
+		return this->index_buffere.get();
 	}
 	size_t get_group_id() const { return m_group_id; }
 protected:
@@ -43,9 +43,9 @@ protected:
 		const size_t src_buffer_offset, const size_t length,
 		const size_t stride, const resource_format format);
 private:
-	std::shared_ptr<Material> m_material;
-	std::unique_ptr<RhiGPUBuffer> vertices_buffer;
-	std::unique_ptr<RhiGPUBuffer> indices_buffer;
+	size_t m_material_id;
+	std::unique_ptr<RhiGPUBuffer> vertex_buffer;
+	std::unique_ptr<RhiGPUBuffer> index_buffere;
 	std::unique_ptr<RhiGPUBuffer> normals_buffer;
 	std::unique_ptr<RhiGPUBuffer> uvs_buffer;
 	size_t m_group_id = 0;

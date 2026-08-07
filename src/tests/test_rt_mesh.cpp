@@ -12,8 +12,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiShaderProgram ray_gen_shader;
 	RhiShaderProgram miss_shader;
 	RhiShaderProgram closest_hit_shader;
-	RhiGPUBuffer vertex_buffer;
-	RhiGPUBuffer index_buffer;
 	RhiSharedBuffer camera_transforms;
 	RhiView camera_transform_view;
 	RhiRayTraceRenderPass rt_render_pass;
@@ -132,11 +130,17 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 				size.z
 				});
 
-		camera_matrices.camera_pos =
-			center  + float4(
+		//camera_matrices.camera_pos =
+		//	center  + float4(
+		//		0.0f,
+		//		0.0f,
+		//		max_dimension * 0.3f,
+		//		1.0f);
+		
+		camera_matrices.camera_pos = float4(
 				0.0f,
-				0.0f,
-				max_dimension * 0.3f,
+				1.50f,
+				-3.71f,
 				1.0f);
 		
 		camera_matrices.camera_forward = (center - camera_matrices.camera_pos);

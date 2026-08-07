@@ -62,7 +62,7 @@ void Scene::on_geometry_attrib_loaded(const RhiDevice& device, RhiCommandBuffer&
 	tmp_buffer_offset += length;
 }
 
-void Scene::on_geometry_loaded(std::unique_ptr<Mesh> mesh) {
+void Scene::on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) {
 
 	this->m_meshes[mesh->get_group_id()].push_back(std::move(mesh));
 }

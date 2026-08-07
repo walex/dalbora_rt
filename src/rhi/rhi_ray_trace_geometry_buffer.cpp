@@ -67,7 +67,7 @@ RhiView RhiRayTraceGeometrydBufferInstances::new_view(const RhiDevice& device) {
 	desc.buffer = *this;
 	desc.type = resource_type_rt_bvh_buffer;
 	desc.slot_id = device.next_read_only_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc));
+	return RhiView(rhi_buffers_create_view(&desc), desc.slot_id);
 }
 
 RhiRayTraceGeometrydBufferInstances::RhiRayTraceGeometrydBufferInstances(RHI_BUFFER* handle)

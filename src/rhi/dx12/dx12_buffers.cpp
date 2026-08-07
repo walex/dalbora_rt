@@ -279,6 +279,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 	ID3D12Resource* const i_resource,
 	resource_type type,
 	size_t buffer_length,
+	size_t buffer_stride,
 	resource_format format,
 	size_t mip_maps_count,
 	D3D12_CPU_DESCRIPTOR_HANDLE handle) {
@@ -294,7 +295,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		uav_desc.Format = dx12_resource_format_type[format];
 		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 		uav_desc.Buffer.FirstElement = 0;
-		uav_desc.Buffer.NumElements = static_cast<UINT>(buffer_length);
+		uav_desc.Buffer.NumElements = static_cast<UINT>(buffer_length / buffer_stride);
 		uav_desc.Buffer.StructureByteStride = 0;
 		uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
@@ -303,8 +304,10 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = dx12_resource_format_type[format];
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srv_desc.Shader4ComponentMapping =
+			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srv_desc.Buffer.FirstElement = 0;
-		srv_desc.Buffer.NumElements = static_cast<UINT>(buffer_length);
+		srv_desc.Buffer.NumElements = static_cast<UINT>(buffer_length/ buffer_stride);
 		srv_desc.Buffer.StructureByteStride = 0;
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 		i_device->CreateShaderResourceView(i_resource, &srv_desc, handle);
@@ -374,6 +377,7 @@ RHI_VIEW* dx12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 		i_resource,
 		desc->type,
 		desc->buffer->length,
+		desc->buffer->stride,
 		desc->format,
 		desc->mip_maps_count,
 		cpu_handle);
@@ -437,6 +441,7 @@ void dx12_buffers_update_view(const RHI_DEVICE* const device,
 			i_resource,
 			view_impl->type,
 			view_impl->buffer->length,
+			view_impl->buffer->stride,
 			view_impl->format,
 			view_impl->mip_map_count,
 			view_impl->cpu_descriptor_handle);

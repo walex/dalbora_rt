@@ -1,6 +1,8 @@
 #ifndef RT_MAIN_HLSL
 #define RT_MAIN_HLSL
 
+#define DRAW_EDGES
+
 //#include "config.hlsl"
 #include "common.hlsl"
 //#include "geometry.hlsl"
@@ -24,7 +26,17 @@ struct CameraCB
     float2 padding;
 };
 
+struct GeomrtryInstance
+{
+    uint vertex_resource_id;
+    uint index_resource_id;
+    uint material_id;
+    float4x4 world;
+};
+
 RaytracingAccelerationStructure SceneBVH : register(t0);
+StructuredBuffer<GeomrtryInstance> gInstances : register(t1);
+
 RWTexture2D<float4> Output : register(u0);
 ConstantBuffer<CameraCB> Camera : register(b0);
 
@@ -76,7 +88,6 @@ RayDesc GeneratePrimaryRay(
 void RT_RayGen()
 {
     uint2 pixel = DispatchRaysIndex().xy;
-    uint width = DispatchRaysDimensions().x;
 	
 	RayDesc ray =
     GeneratePrimaryRay(
@@ -87,8 +98,8 @@ void RT_RayGen()
 
 	payload.hit = false;
 	payload.distance = 0;
-	payload.instanceIndex = 0;
-	payload.primitiveIndex = 0;
+	payload.instance_index = 0;
+	payload.primitive_index = 0;
 	payload.barycentrics = 0;
 
 	TraceRay(
@@ -103,7 +114,14 @@ void RT_RayGen()
 		
 	float4 finalColor;	
 	if(payload.hit) {
-		finalColor = float4(0.0, 1.0, 0.0, 1.0);
+        if (payload.is_edge)
+        {
+            finalColor = float4(1.0, 0.0, 0.0, 1.0);
+        }
+        else
+        {
+            finalColor = float4(0.0, 1.0, 0.0, 1.0);
+        }
 	} else {
 		finalColor = float4(0.1, 0.3, 0.8, 1.0);
 	}
@@ -118,9 +136,37 @@ void RT_RayGen()
 [shader("closesthit")]
 void RT_ClosestHit(
     inout Payload payload,
-    in Attributes attr)
+    in Attributes attribs)
 {
     payload.hit = true;
+    
+  #ifdef DRAW_EDGES
+     // 1. Obtener las tres coordenadas baricéntricas del triángulo
+    float u = attribs.barycentrics.x;
+    float v = attribs.barycentrics.y;
+    float w = 1.0f - u - v;
+
+    // 2. Definir el grosor de la línea del wireframe (ajustable)
+    float edgeThickness = 0.02f;
+
+    // 3. Determinar si el rayo impactó cerca de un borde
+    if (u < edgeThickness || v < edgeThickness || w < edgeThickness)
+    {
+        payload.is_edge = true;
+    }
+    else
+    {
+        payload.is_edge = false;
+    }
+#else
+    payload.is_edge = false;
+#endif
+    
+    payload.instance_index = InstanceIndex();
+    payload.primitive_index = PrimitiveIndex();
+    payload.barycentrics = attribs.barycentrics;
+    payload.distance = RayTCurrent();
+    payload.front_face = HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -132,6 +178,7 @@ void RT_Miss(
     inout Payload payload)
 {
     payload.hit = false;
+    payload.is_edge = false;
 }
 
 #endif

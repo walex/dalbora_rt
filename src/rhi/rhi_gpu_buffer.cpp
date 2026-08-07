@@ -40,22 +40,32 @@ resource_format RhiGPUBuffer::get_format() { return static_cast<RHI_BUFFER*>(*th
 size_t RhiGPUBuffer::get_length() { return static_cast<RHI_BUFFER*>(*this)->length; }
 size_t RhiGPUBuffer::get_stride() { return static_cast<RHI_BUFFER*>(*this)->stride; }
 
-RhiView RhiGPUBuffer::new_depth_buffer_view(RhiDevice& device) {
+RhiView RhiGPUBuffer::new_depth_buffer_view(const RhiDevice& device) {
 	RHI_VIEW_DESC desc;
 	desc.device = device;
 	desc.buffer = *this;
 	desc.type = resource_type_depth_stencil_target;
 	desc.format = this->get_format();
 	desc.slot_id = device.next_depth_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc));
+	return RhiView(rhi_buffers_create_view(&desc), desc.slot_id);
 }
 
-RhiView RhiGPUBuffer::new_constant_buffer_view(RhiDevice& device) {
+RhiView RhiGPUBuffer::new_constant_buffer_view(const RhiDevice& device) {
 
 	RHI_VIEW_DESC object_cb_view_desc;
 	object_cb_view_desc.device = device;
 	object_cb_view_desc.buffer = *this;
 	object_cb_view_desc.type = resource_type_constant_buffer;
 	object_cb_view_desc.slot_id = device.next_constant_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&object_cb_view_desc));
+	return RhiView(rhi_buffers_create_view(&object_cb_view_desc), object_cb_view_desc.slot_id);
+}
+
+RhiView RhiGPUBuffer::new_shader_view(const RhiDevice& device) {
+	RHI_VIEW_DESC desc;
+	desc.device = device;
+	desc.buffer = *this;
+	desc.type = resource_type_shader;
+	desc.format = this->get_format();
+	desc.slot_id = device.next_rw_buffer_slot_id();
+	return RhiView(rhi_buffers_create_view(&desc), desc.slot_id);
 }

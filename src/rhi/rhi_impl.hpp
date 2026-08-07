@@ -21,6 +21,7 @@ public:
 		m_handle.reset(handle);
 		m_owner = true;
 	}
+	bool empty() const { return m_handle == nullptr; }
 protected:
 	RhiImpl(T* no_owned_handle) {
 		if (no_owned_handle) {

@@ -46,7 +46,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 
-	const std::filesystem::path shaders_folder(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests)");
+	const std::filesystem::path shaders_folder = get_executable_folder("shaders");
 
 	RHI_SWAP_CHAIN* swap_chain_ptr;
 
@@ -390,9 +390,12 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiRayTracePipeline& pipeline = unit_test.ray_trace_pipeline;
 		
 		// setup shaders
-		unit_test.ray_gen_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
-		unit_test.miss_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
-		unit_test.closest_hit_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_rt.hlsl)";
+		// setup shaders
+		std::filesystem::path shader_path = get_executable_folder("shaders");
+		shader_path = shader_path / "simple_rt.hlsl";
+		unit_test.ray_gen_shader_file = shader_path.string();
+		unit_test.miss_shader_file = shader_path.string();
+		unit_test.closest_hit_shader_file = shader_path.string();
 
 		// save geometry buffers
 		unit_test.vertices.resize(sizeof(vertices));

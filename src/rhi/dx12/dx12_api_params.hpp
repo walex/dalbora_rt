@@ -2,7 +2,7 @@
 #define __dx12_api_params_hpp__
 
 #define RESOURCES_HEAP_ENABLE true
-#define RESOURCES_HEAP_SLOT_COUNT 300
+#define RESOURCES_HEAP_SLOT_COUNT 1000
 
 #define RTV_HEAP_ENABLE true
 #define RTV_HEAP_SLOT_COUNT 8

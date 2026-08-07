@@ -303,6 +303,7 @@ void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		for (auto& gltf_primitive : gltf_mesh.primitives) {
 
 			std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(i);
+			mesh->set_material_id(static_cast<size_t>(gltf_primitive.material));
 
 			resource_format format;
 
@@ -324,7 +325,7 @@ void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 				data, length,
 				stride, format);
 
-			scene_callbacks.on_geometry_loaded(std::move(mesh));
+			scene_callbacks.on_geometry_loaded(device, std::move(mesh));
 		}
 		scene_callbacks.on_geometry_group_loaded(device, command_buffer, i);
 	}

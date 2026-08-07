@@ -54,7 +54,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	ObjectCB triangle_transforms;
 	get_transforms(triangle_transforms.world, camera.view, camera.projection);	
 
-	const std::filesystem::path shaders_folder(R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests)");
+	const std::filesystem::path shaders_folder = get_executable_folder("shaders");
 
 	test_swap_chain([&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
 						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)
@@ -105,6 +105,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 			
 			// compile shaders
+
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
 			vertex_shader.reset(rhi_shaders_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0"));
 			pixel_shader.reset(rhi_shaders_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0"));
@@ -355,8 +356,10 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);		
 
 		// setup shaders
-		unit_test.vertex_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)";
-		unit_test.pixel_shader_file = R"(C:\Users\wadrw\Documents\develop\projects\personal\rtx\dalbora_rt\src\tests\simple_triangle.hlsl)";
+		const std::filesystem::path shaders_path = get_executable_folder("shaders");
+		const std::filesystem::path shader_file = shaders_path / "simple_triangle.hlsl";
+		unit_test.vertex_shader_file = shader_file.string();
+		unit_test.pixel_shader_file = shader_file.string();
 		
 		// save geometry buffers
 		unit_test.vertices.resize(sizeof(vertices));

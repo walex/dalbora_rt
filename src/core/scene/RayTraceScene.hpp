@@ -14,7 +14,7 @@ public:
 		const uint8_t* const data, const size_t length,
 		const size_t stride, const resource_format format) override;
 
-	void on_geometry_loaded(std::unique_ptr<Mesh> mesh) override;
+	void on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) override;
 
 	void on_geometry_group_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer, 
 		size_t group_id) override;
@@ -27,7 +27,8 @@ public:
 	void on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const float3 bb_min, const float3 bb_max) override;
 
-
+	void load(const std::string& scene_path, RhiDevice& device,
+		RhiCommandQueue& command_queue) override;
 private:
 	void create_blas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const std::vector<std::unique_ptr<Mesh>>& meshes);

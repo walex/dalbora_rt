@@ -17,7 +17,7 @@ void Mesh::set_vertices(const RhiDevice& device, RhiCommandBuffer& command_buffe
 	const resource_format format) {
 
 	this->upload_data(device, command_buffer,
-		this->vertices_buffer, src_buffer,
+		this->vertex_buffer, src_buffer,
 		data_offset, length,
 		stride, format);
 }
@@ -28,7 +28,7 @@ void Mesh::set_indices(const RhiDevice& device, RhiCommandBuffer& command_buffer
 	const resource_format format) {
 
 	this->upload_data(device, command_buffer,
-		this->indices_buffer, src_buffer,
+		this->index_buffere, src_buffer,
 		data_offset, length,
 		stride, format);
 }
