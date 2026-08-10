@@ -28,7 +28,7 @@ struct DX_HANDLE : public RHI_HANDLE
 {
 	virtual ~DX_HANDLE() {
 #if DEBUG
-		printf("Releasing handle of type %s\n", typeid(T).name());
+		//printf("Releasing handle of type %s\n", typeid(T).name());
 #endif
 	};
 	void set_handle(RHI_VOID_PTR handle) override {

@@ -4,8 +4,35 @@
 
 static constexpr float image_aspect = 800.0f / 600.0f;
 
-void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
+struct alignas(256) GeomrtryInstance {
 
+	uint vertex_resource_id;
+	uint index_resource_id;
+	uint material_id;
+	float4x4 world;
+};
+
+void cull_geometries(SceneNode& node, std::vector<GeomrtryInstance>& visible_geometries) {
+	GeometryNode* geometry_node = dynamic_cast<GeometryNode*>(&node);
+	if (geometry_node != nullptr) {
+		GeomrtryInstance& instance = visible_geometries.emplace_back();
+		auto& vertex_view = geometry_node->get_mesh().get_vertex_view();
+		instance.vertex_resource_id = vertex_view.get_view_id();
+		const RhiView* index_view = geometry_node->get_mesh().get_index_view();
+		if (index_view == nullptr) {
+			throw "Error: GeometryNode has no index buffer";
+		}
+		instance.index_resource_id = index_view->get_view_id();
+		instance.material_id = geometry_node->get_mesh().get_material_id();
+		instance.world = geometry_node->get_world_transform();
+	}
+	else {
+		for (auto& child : node.get_childs()) {
+			cull_geometries(*child, visible_geometries);
+		}
+	}
+}
+void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 	RhiRenderTarget render_target;
 	RhiView render_target_view;
@@ -61,49 +88,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		closest_hit_shader.create(unit_test.closest_hit_shader_file,
 			closest_hit_entry_point, "lib_6_8");
 
-		// add layout descriptors ( order mathers )
-
-		// 1 - GPU read only (Scene BVH)
-		pipeline_layout.add_read_only_buffer_descriptors(0, 100);
-
-		// 2 - GPU read write (Render Target)
-		pipeline_layout.add_rw_buffer_descriptors(0, 100);
-
-		// 3 - Constant buffer (Camera)
-		pipeline_layout.add_constants_buffer_descriptors(0, 100);
-
-		// create pipeline layout
-		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
-
-		// rt pipeline config
-
-		// config ray trace shader
-		RhiRayTracePipelineShaderPrograms ray_trace_shader_programs;
-		std::vector<RHI_RT_HIT_GROUP_DESC>& hit_groups_desc = ray_trace_shader_programs.hit_groups_desc;
-		auto& hg = hit_groups_desc.emplace_back();
-		strcpy_s(hg.name_id, "HG_1");
-		hg.closest_hit.blob = closest_hit_shader;
-		strcpy_s(hg.closest_hit.name_id, closest_hit_entry_point.c_str());
-
-		std::vector<RHI_RT_SHADER_UNIT_DESC>& miss_shader_desc = ray_trace_shader_programs.miss_shaders_desc;
-		auto& miss_1 = miss_shader_desc.emplace_back();
-		miss_1.blob = miss_shader;
-		strcpy_s(miss_1.name_id, miss_entry_point.c_str());
-
-		std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
-		auto& ray_gen = ray_gen_shader_desc.emplace_back();
-		strcpy_s(ray_gen.name_id, ray_gen_entry_point.c_str());
-		ray_gen.blob = ray_gen_shader;
-
-		ray_trace_shader_programs.ray_gen_shader = &ray_gen_shader;
-		ray_trace_shader_programs.miss_shader = &miss_shader;
-		ray_trace_shader_programs.closest_hit_shader = &closest_hit_shader;
-
-		pipeline.create(device, pipeline_layout, ray_trace_shader_programs);
-
-		// shader binding table
-		sbt.create(device, pipeline, ray_trace_shader_programs);
-
+		
 		// load scene from file
 		std::filesystem::path model_3d_folder = get_executable_folder("test_3d_models");
 		std::string model_3d_file = (model_3d_folder / "scene.gltf").string();
@@ -156,15 +141,55 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		// view render_target (GPU read write)
 		render_target_view = render_target.new_rw_view(device);
 
-		// view camera (constant buffer)
-		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
+		// add views for transform buffers for shader visibility
+		// creation order is related with shader constant buffer registers ids
+		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		//  b0
+
+		// add layout descriptors ( order mathers )
+
+		// 1 - GPU read only (Scene BVH)
+		pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+
+		// 2 - GPU read write (Render Target)
+		pipeline_layout.add_rw_buffer_descriptors(0, 100);
+
+		// 3 - Constant buffer (Camera)
+		pipeline_layout.add_constants_buffer_descriptors(0, 4);
+
+		// create pipeline layout
+		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
+
+		// rt pipeline config
+
+		// config ray trace shader
+		RhiRayTracePipelineShaderPrograms ray_trace_shader_programs;
+		std::vector<RHI_RT_HIT_GROUP_DESC>& hit_groups_desc = ray_trace_shader_programs.hit_groups_desc;
+		auto& hg = hit_groups_desc.emplace_back();
+		strcpy_s(hg.name_id, "HG_1");
+		hg.closest_hit.blob = closest_hit_shader;
+		strcpy_s(hg.closest_hit.name_id, closest_hit_entry_point.c_str());
+
+		std::vector<RHI_RT_SHADER_UNIT_DESC>& miss_shader_desc = ray_trace_shader_programs.miss_shaders_desc;
+		auto& miss_1 = miss_shader_desc.emplace_back();
+		miss_1.blob = miss_shader;
+		strcpy_s(miss_1.name_id, miss_entry_point.c_str());
+
+		std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
+		auto& ray_gen = ray_gen_shader_desc.emplace_back();
+		strcpy_s(ray_gen.name_id, ray_gen_entry_point.c_str());
+		ray_gen.blob = ray_gen_shader;
+
+		ray_trace_shader_programs.ray_gen_shader = &ray_gen_shader;
+		ray_trace_shader_programs.miss_shader = &miss_shader;
+		ray_trace_shader_programs.closest_hit_shader = &closest_hit_shader;
+
+		pipeline.create(device, pipeline_layout, ray_trace_shader_programs);
+
+		// shader binding table
+		sbt.create(device, pipeline, ray_trace_shader_programs);
 
 		// create render pass
 		rt_render_pass.create(device);
-
-		// add views for transform buffers for shader visibility
-		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
 
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
@@ -172,6 +197,13 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		});
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
+
+		// cull geometries
+		//std::vector<GeomrtryInstance> visible_geometries;
+		//cull_geometries(scene.get_root_node(), visible_geometries);
+		//RhiGPUBuffer visible_geometries_buffer;
+		//visible_geometries_buffer.create(unit_test.device, visible_geometries.size(), sizeof(GeomrtryInstance), resource_format_none);
+		//RhiView visible_geometries_view = visible_geometries_buffer.new_shader_view(unit_test.device);
 
 		rt_render_pass.set_pipeline(unit_test.ray_trace_pipeline);
 

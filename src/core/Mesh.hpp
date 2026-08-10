@@ -29,6 +29,11 @@ public:
 		const size_t length, const size_t stride,
 		const resource_format format);
 
+	void set_vertex_view(std::unique_ptr<RhiView> view) { this->vertex_view = std::move(view); }
+	void set_index_view(std::unique_ptr<RhiView> view) { this->indiex_view = std::move(view); }
+	const RhiView& get_vertex_view() const { return *this->vertex_view; }
+	const RhiView* get_index_view() const { return this->indiex_view.get(); }
+
 	RhiGPUBuffer& get_vertex_buffer() {
 		return *this->vertex_buffer;
 	}
@@ -48,6 +53,8 @@ private:
 	std::unique_ptr<RhiGPUBuffer> index_buffere;
 	std::unique_ptr<RhiGPUBuffer> normals_buffer;
 	std::unique_ptr<RhiGPUBuffer> uvs_buffer;
+	std::unique_ptr<RhiView> vertex_view;
+	std::unique_ptr<RhiView> indiex_view;
 	size_t m_group_id = 0;
 };
 

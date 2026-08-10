@@ -16,35 +16,19 @@ void RhiPipelineLayout::create(const RhiDevice& device, const primitive_topology
 }
 
 void RhiPipelineLayout::add_constants_buffer_descriptors(const size_t offset, const size_t count) {
-
-	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
-	cbd.resource_type = resource_type_constant_buffer;
-	cbd.shader_register_start = offset;
-	cbd.shader_register_max = count;
+	this->add_descriptors(resource_type_constant_buffer, offset, count);
 }
 
 void RhiPipelineLayout::add_read_only_buffer_descriptors(const size_t offset, const size_t count) {
-
-	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
-	cbd.resource_type = resource_type_shader;
-	cbd.shader_register_start = offset;
-	cbd.shader_register_max = count;
+	this->add_descriptors(resource_type_shader, offset, count);
 }
 
 void RhiPipelineLayout::add_rw_buffer_descriptors(const size_t offset, const size_t count) {
-
-	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
-	cbd.resource_type = resource_type_generic_rw_buffer;
-	cbd.shader_register_start = offset;
-	cbd.shader_register_max = count;
+	this->add_descriptors(resource_type_generic_rw_buffer, offset, count);
 }
 
 void RhiPipelineLayout::add_sampler_buffer_descriptors(const size_t offset, const size_t count) {
-	
-	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
-	cbd.resource_type = resource_type_sampler;
-	cbd.shader_register_start = offset;
-	cbd.shader_register_max = count;
+	this->add_descriptors(resource_type_sampler, offset, count);
 }
 
 primitive_topology RhiPipelineLayout::get_topology() const {
@@ -57,4 +41,12 @@ resource_format RhiPipelineLayout::get_format() const {
 
 resource_format RhiPipelineLayout::get_depth_buffer_format() const {
 	return static_cast<RHI_PIPELINE_LAYOUT*>(*this)->depth_buffer_format;
+}
+
+void RhiPipelineLayout::add_descriptors(const resource_type rt, const size_t offset, const size_t count) {
+
+	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
+	cbd.resource_type = rt;
+	cbd.shader_register_start = offset;
+	cbd.shader_register_max = count;
 }
