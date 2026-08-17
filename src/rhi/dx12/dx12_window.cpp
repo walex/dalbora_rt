@@ -145,7 +145,7 @@ void dx12_window_main_loop(RHI_WINDOW* const window) {
         if (!window_running)
             break;
 
-        window->callbacks->main_loop(window);
+        window->callbacks->on_idle(window);
     }
     window->callbacks->on_end(window);
 }

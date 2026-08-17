@@ -41,7 +41,7 @@ public:
 	virtual ~Scene() = default;
 
 	virtual void load(const std::string& scene_path, RhiDevice& device,
-		RhiCommandQueue& command_queue);	
+		RhiCommandQueue& command_queue);
 	void set_max_size(const size_t value) { m_max_size = value; }
 	size_t get_max_size() const { return m_max_size; }
 	float3 get_bb_min() const { return m_bb_min; }

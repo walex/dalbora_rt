@@ -13,41 +13,41 @@ public:
 	void create(const RHI_DEVICE_DESC& desc) override;
 
 	uint64_t next_constant_buffer_slot_id() const  {
-		printf("next_constant_buffer_slot_id: %llu\n", constant_buffer_slot_id); 
-		return constant_buffer_slot_id++;
+		printf("next_constant_buffer_slot_id: %llu\n", m_constant_buffer_slot.current);
+		return m_constant_buffer_slot.current++;
 	}
 
 	uint64_t next_rw_buffer_slot_id() const  {
-		printf("next_rw_buffer_slot_id: %llu\n", rw_buffer_slot_id);
-		return rw_buffer_slot_id++; 
+		printf("next_rw_buffer_slot_id: %llu\n", m_rw_buffer_slot.current);
+		return m_rw_buffer_slot.current++; 
 	}
 	
 	uint64_t next_read_only_buffer_slot_id() const { 
-		printf("next_read_only_buffer_slot_id: %llu\n", read_only_buffer_slot_id);
-		return read_only_buffer_slot_id++; 
+		printf("next_read_only_buffer_slot_id: %llu\n", m_read_only_buffer_slot.current);
+		return m_read_only_buffer_slot.current++; 
 	}
 
 	uint64_t next_render_target_slot_id() const  {
-		printf("next_render_target_slot_id: %llu\n", render_target_slot_id);
-		return render_target_slot_id++; 
+		printf("next_render_target_slot_id: %llu\n", m_render_target_slot.current);
+		return m_render_target_slot.current++; 
 	}
 
 	uint64_t next_depth_buffer_slot_id() const  { 
-		printf("next_depth_buffer_slot_id: %llu\n", depth_buffer_slot_id);
-		return depth_buffer_slot_id++; 
+		printf("next_depth_buffer_slot_id: %llu\n", m_depth_buffer_slot.current);
+		return m_depth_buffer_slot.current++; 
 	}
 
 	uint64_t next_sampler_slot_id() const  { 
-		printf("next_sampler_slot_id: %llu\n", sampler_slot_id);
-		return sampler_slot_id++; 
+		printf("next_sampler_slot_id: %llu\n", m_sampler_slot.current);
+		return m_sampler_slot.current++; 
 	}
 private:
-	mutable uint64_t constant_buffer_slot_id = 0;
-	mutable uint64_t rw_buffer_slot_id = 0;
-	mutable uint64_t read_only_buffer_slot_id = 0;
-	mutable uint64_t render_target_slot_id = 0;
-	mutable uint64_t depth_buffer_slot_id = 0;
-	mutable uint64_t sampler_slot_id = 0;
+	mutable RhiShaderRegisterSlots m_constant_buffer_slot = {};
+	mutable RhiShaderRegisterSlots m_rw_buffer_slot = {};
+	mutable RhiShaderRegisterSlots m_read_only_buffer_slot = {};
+	mutable RhiShaderRegisterSlots m_render_target_slot = {};
+	mutable RhiShaderRegisterSlots m_depth_buffer_slot = {};
+	mutable RhiShaderRegisterSlots m_sampler_slot = {};
 };
 
 #endif // __rhi_device_hpp__

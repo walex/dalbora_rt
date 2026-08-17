@@ -9,7 +9,7 @@ class SceneCuller: public Culler
 {
 public: 
 	void setScene(const RayTraceScene* const scene) { m_scene = scene; }
-
+	void cull();
 private: 
 	const RayTraceScene* m_scene;
 };

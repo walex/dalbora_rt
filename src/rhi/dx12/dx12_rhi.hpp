@@ -6,21 +6,25 @@
 #include "dx12_helpers.hpp"
 
 struct DX_DEVICE_HEAP_SIZES_DESC {
-	size_t resources_count =  0;
-	size_t sampler_count = 0;
-	size_t rtv_count = 0;
-	size_t dsv_count = 0;
+	size_t resources_max_elements =  0;
+	size_t sampler_max_elements = 0;
+	size_t rtv_max_elements = 0;
+	size_t dsv_max_elements = 0;
+};
+
+struct DX_DEVICE_HEAP_ELEMENT_DESC {
+	bool enable = false;
+	size_t max_elements = 0;
 };
 
 struct DX_DEVICE_HEAP_DESC
 {
 	RHI_DEVICE* device;
 	
-	bool resources_heap_enable = false;
-	bool rtv_heap_enable = false;
-	bool dsv_heap_enable = false;
-	bool sampler_heap_enable = false;
-	DX_DEVICE_HEAP_SIZES_DESC resources_heap_size;
+	DX_DEVICE_HEAP_ELEMENT_DESC resources_heap_desc;
+	DX_DEVICE_HEAP_ELEMENT_DESC rtv_heap_desc;
+	DX_DEVICE_HEAP_ELEMENT_DESC dsv_heap_desc;
+	DX_DEVICE_HEAP_ELEMENT_DESC sampler_heap_desc;
 };
 
 template <typename T>

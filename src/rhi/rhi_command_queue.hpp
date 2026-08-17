@@ -13,7 +13,7 @@ public:
 };
 using RhiCommandQueueExecuteCallback = std::function<void(RhiCommandQueueBufferList&)>;
 
-class RhiCommandQueue 
+class RhiCommandQueue
 	: public ICreateRhiObject<const RhiDevice&>
 	, public RhiImpl<RHI_COMMAND_QUEUE> {
 
@@ -27,4 +27,4 @@ protected:
 	RhiCommandQueue(RHI_COMMAND_QUEUE* handle);
 };
 
-#endif __rhi_command_queue_hpp__
+#endif // __rhi_command_queue_hpp__

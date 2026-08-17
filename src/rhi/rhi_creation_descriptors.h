@@ -4,10 +4,17 @@
 #include "rhi_types.h"
 
 // Creation params
+struct RHI_DEVICE_SHADER_RESOURCES_DESC {
+	size_t read_only_buffer_shader_registers_count = 0;
+	size_t rw_buffer_shader_registers_count = 0;
+	size_t constant_buffer_shader_registers_count = 0;
+};
+
 struct RHI_DEVICE_DESC  {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
 	hlsl_shader_model shader_model = hlsl_shader_model_6_8;
+	RHI_DEVICE_SHADER_RESOURCES_DESC shader_resources_desc;
 };
 
 struct RHI_BUFFER_DESC  {
@@ -122,7 +129,7 @@ struct RHI_RT_PIPELINE_DESC  {
 };
 
 struct RHI_SHADER_DESCRIPTOR_DESC  {
-	resource_type resource_type = resource_type_generic_rw_buffer;
+	resource_type resource_type = resource_type_rw_shader_buffer;
 	size_t shader_register_start = 0;
 	size_t shader_register_max = 0;
 };
@@ -135,6 +142,7 @@ struct RHI_PIPELINE_LAYOUT_DESC  {
 	resource_format depth_buffer_format = resource_format_none;
 	RHI_SHADER_DESCRIPTOR_DESC descriptors[MAX_PIPELINE_DESCRIPTORS];
 	size_t descriptor_count = 0;
+	bool allow_heap_indexing = false;
 };
 
 struct RHI_TEXTURE_2D_DESC : public RHI_BUFFER_2D_DESC {
@@ -194,7 +202,7 @@ struct RHI_RT_SBT_DESC {
 };
 
 struct RHI_VIEW_DESC  {
-	resource_type type = resource_type_generic_rw_buffer;
+	resource_type type = resource_type_rw_shader_buffer;
 	resource_format format = resource_format_none;
 	size_t mip_maps_count  = 0;
 	RHI_DEVICE* device = nullptr;

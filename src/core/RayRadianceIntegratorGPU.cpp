@@ -82,7 +82,7 @@ Rays RayRadianceIntegratorGPU::generateRays(const Camera& UNUSED_PARAM(camera), 
 void RayRadianceIntegratorGPU::LI(const Rays& UNUSED_PARAM(rays), const std::vector<Mesh*>& UNUSED_PARAM(geometries),
 	const std::vector<Mesh*>& UNUSED_PARAM(lights), const size_t tile[4], SurfaceRadiance& out_radiance) {
 	
-	m_command_buffer.record([&] {
-		m_command_buffer.ray_trace(static_cast<SurfaceRadianceGPU&>(out_radiance), m_sbt);
-	});
+	//m_command_buffer.record([&] {
+	//	m_command_buffer.ray_trace(static_cast<SurfaceRadianceGPU&>(out_radiance), m_sbt);
+	//});
 }

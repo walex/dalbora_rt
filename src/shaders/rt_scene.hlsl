@@ -5,7 +5,7 @@
 
 //#include "config.hlsl"
 #include "common.hlsl"
-//#include "geometry.hlsl"
+#include "geometry.hlsl"
 //#include "bsdf.hlsl"
 //#include "environment.hlsl"
 //#include "material.hlsl"
@@ -26,17 +26,9 @@ struct CameraCB
     float2 padding;
 };
 
-struct GeomrtryInstance
-{
-    uint vertex_resource_id;
-    uint index_resource_id;
-    uint material_id;
-    float4x4 world;
-};
+
 
 RaytracingAccelerationStructure SceneBVH : register(t0);
-StructuredBuffer<GeomrtryInstance> gInstances : register(t1);
-
 RWTexture2D<float4> Output : register(u0);
 ConstantBuffer<CameraCB> Camera : register(b0);
 
@@ -88,32 +80,43 @@ RayDesc GeneratePrimaryRay(
 void RT_RayGen()
 {
     uint2 pixel = DispatchRaysIndex().xy;
-	
-	RayDesc ray =
-    GeneratePrimaryRay(
-        pixel,
-        float2(0.5, 0.5));
-		
-	Payload payload;
 
-	payload.hit = false;
-	payload.distance = 0;
-	payload.instance_index = 0;
-	payload.primitive_index = 0;
-	payload.barycentrics = 0;
+    RayDesc ray =
+        GeneratePrimaryRay(
+            pixel,
+            float2(0.5, 0.5));
 
-	TraceRay(
-		SceneBVH,
-		RAY_FLAG_NONE,
-		0xFF,
-		0,
-		1,
-		0,
-		ray,
-		payload);
-		
-	float4 finalColor;	
-	if(payload.hit) {
+    Payload payload;
+
+    payload.hit = false;
+    payload.distance = 0;
+    payload.instance_index = 0;
+    payload.primitive_index = 0;
+    payload.barycentrics = 0;
+
+    TraceRay(
+        SceneBVH,
+        RAY_FLAG_NONE,
+        0xFF,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    float4 finalColor;
+
+    if (payload.hit)
+    {
+        // Build geometry information from the hit.
+        SurfaceData surface;
+
+        build_surface_data(
+            payload.instance_index,
+            payload.primitive_index,
+            surface);
+
+        // Temporary test color.
         if (payload.is_edge)
         {
             finalColor = float4(1.0, 0.0, 0.0, 1.0);
@@ -122,10 +125,13 @@ void RT_RayGen()
         {
             finalColor = float4(0.0, 1.0, 0.0, 1.0);
         }
-	} else {
-		finalColor = float4(0.1, 0.3, 0.8, 1.0);
-	}
-	Output[pixel] = finalColor;
+    }
+    else
+    {
+        finalColor = float4(0.1, 0.3, 0.8, 1.0);
+    }
+
+    Output[pixel] = finalColor;
 }
 
 

@@ -22,10 +22,8 @@ dx12_heap_create_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESC
 
 DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, 
 	resource_type resource_type, 
-	const DX_DEVICE_HEAP_SIZES_DESC* const slots_sizes,
+	const size_t slots_size,
 	bool shader_visible) {
-
-	ASSERT_PTR(slots_sizes);
 
 	ASSERT_PTR(device_impl);
 	ID3D12Device* i_device = *device_impl;
@@ -38,31 +36,27 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl,
 	heap_id_type heap_id;
 	switch (resource_type) {
 		case resource_type_constant_buffer:
-		case resource_type_generic_rw_buffer:
-		case resource_type_shader:
+		case resource_type_rw_shader_buffer:
+		case resource_type_read_only_shader_buffer:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			heap_id = heap_id_type_resources;
-			result->max_count[heap_id] = slots_sizes->resources_count;
 			break;
 		case resource_type_sampler:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 			heap_id = heap_id_type_sampler;
-			result->max_count[heap_id] = slots_sizes->sampler_count;
 			break;
 		case resource_type_render_target:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			heap_id = heap_id_type_rtv;
-			result->max_count[heap_id] = slots_sizes->rtv_count;
 			break;
 		case resource_type_depth_stencil_target:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 			heap_id = heap_id_type_dsv;
-			result->max_count[heap_id] = slots_sizes->dsv_count;
 			break;
 		default:
 			throw std::exception("resource type not supported");
 	}	
-
+	result->max_count[heap_id] = slots_size;
 	ID3D12DescriptorHeap* dh = dx12_heap_create_descriptor(device_impl, type,
 		result->max_count[heap_id],
 		(shader_visible == true)
@@ -91,9 +85,6 @@ size_t dx12_heap_next_handle(const DX_DEVICE* const device_impl,
 	ASSERT_PTR(device_impl);
 	ASSERT_EXPR(heap_id < heap_id_type_count);
 	ASSERT_PTR(cpu_descriptor_handle);
-
-	ID3D12Device* i_device = *device_impl;
-	ASSERT_PTR(i_device);
 
 	DX_HEAP* heap_impl = nullptr;
 	switch (heap_id) {

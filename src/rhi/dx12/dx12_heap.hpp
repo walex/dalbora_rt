@@ -5,7 +5,7 @@
 
 DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, 
 	resource_type resource_type, 
-	const DX_DEVICE_HEAP_SIZES_DESC* const slots_sizes,
+	const size_t slots_size,
 	bool shader_visible);
 size_t dx12_heap_next_handle(const DX_DEVICE* const device_impl,
 	const heap_id_type heap_id,

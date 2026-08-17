@@ -3,6 +3,7 @@
 
 #include "Common.hpp"
 
+
 class Camera;
 class Mesh;
 class Culler
@@ -10,7 +11,7 @@ class Culler
 public:
 	const std::vector<Mesh*>& getGeometries() { return m_geemetries; }
 	const std::vector<Mesh*>& getLights() { return m_geemetries; } // FixME: should be a separate list
-	virtual void cull() {}
+	virtual void cull() = 0;
 private: 
 	std::vector<Mesh*> m_geemetries;
 };

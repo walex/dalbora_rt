@@ -21,10 +21,10 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		const RHI_SHADER_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
 		switch (descriptor.resource_type) {
-		case resource_type_shader:
+		case resource_type_read_only_shader_buffer:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			break;
-		case resource_type_generic_rw_buffer:
+		case resource_type_rw_shader_buffer:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			break;
 		case resource_type_constant_buffer:

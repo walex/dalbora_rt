@@ -49,9 +49,18 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	CameraCBRT camera_matrices;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
-	unit_test_callbacks.on_device_config = ([](__int64& feature_flags) {
+
+	size_t read_only_shader_registers_count = 800;
+	size_t rw_shader_registers_count = 100;
+	size_t constant_shader_registers_count = 1;
+
+	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
 		
-		feature_flags |= device_features_raytracing;
+		device_desc.features |= device_features_raytracing;
+		device_desc.shader_model = hlsl_shader_model_6_8;
+		device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
+		device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
+		device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 	});
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
@@ -64,7 +73,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// setup shaders
 		std::filesystem::path shader_path = get_executable_folder("shaders");
-		shader_path  = shader_path / "rt_main.hlsl";
+		shader_path  = shader_path / "rt_scene.hlsl";
 		unit_test.ray_gen_shader_file = shader_path.string();
 		unit_test.miss_shader_file = shader_path.string();
 		unit_test.closest_hit_shader_file = shader_path.string();
@@ -147,14 +156,14 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// add layout descriptors ( order mathers )
 
-		// 1 - GPU read only (Scene BVH)
-		pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+		// 1 - GPU read only shader registers range to be used (Scene BVH)
+		pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
 
-		// 2 - GPU read write (Render Target)
-		pipeline_layout.add_rw_buffer_descriptors(0, 100);
+		// 2 - GPU read write shader registers range to be used (Render buffer)
+		pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
 
-		// 3 - Constant buffer (Camera)
-		pipeline_layout.add_constants_buffer_descriptors(0, 4);
+		// 3 - Constant buffer shader registers range to be used (Camera matrix)
+		pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);

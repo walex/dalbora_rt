@@ -80,8 +80,8 @@ void RayTraceScene::on_geometry_group_loaded(const RhiDevice& device, RhiCommand
 void RayTraceScene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const float3 bb_min, const float3 bb_max) {
 
-	Scene::on_scene_loaded(device, command_buffer, bb_min, bb_max);
 	this->create_tlas_buffer(device, command_buffer);
+	Scene::on_scene_loaded(device, command_buffer, bb_min, bb_max);
 }
 
 void RayTraceScene::load(const std::string& scene_path, RhiDevice& device,

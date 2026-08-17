@@ -3,6 +3,7 @@
 
 RhiCommandBuffer::RhiCommandBuffer(RHI_COMMAND_BUFFER* handle) : RhiImpl<RHI_COMMAND_BUFFER>(handle) {
 }
+
 void RhiCommandBuffer::create(const RhiDevice& device, const RhiCommandQueue& command_queue) {
 	RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 	command_buffer_desc.device = device;

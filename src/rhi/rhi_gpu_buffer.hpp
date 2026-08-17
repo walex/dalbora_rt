@@ -24,8 +24,9 @@ public:
 	size_t get_length();
 	size_t get_stride();
 	RhiView new_depth_buffer_view(const RhiDevice& device);
-	RhiView new_constant_buffer_view(const RhiDevice& device);
-	RhiView new_shader_view(const RhiDevice& device);
+	RhiView new_shader_constant_view(const RhiDevice& device);
+	RhiView new_shader_read_only_view(const RhiDevice& device);
+	RhiView new_shader_rw_view(const RhiDevice& device);
 };
 
 #endif // __rhi_gpu_buffer_hpp__

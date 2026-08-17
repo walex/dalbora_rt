@@ -318,10 +318,10 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	get_transforms(triangle_transforms.world, camera.view, camera.projection);
 
 	RhiUnitTestCallbacks unit_test_callbacks;
-	unit_test_callbacks.on_device_config = ([&](__int64& features_flags) {
+	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
 
 		if (callbacks)
-			callbacks->on_device_config(features_flags);
+			callbacks->on_device_config(device_desc);
 	});
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 

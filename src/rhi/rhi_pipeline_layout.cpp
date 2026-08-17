@@ -20,11 +20,11 @@ void RhiPipelineLayout::add_constants_buffer_descriptors(const size_t offset, co
 }
 
 void RhiPipelineLayout::add_read_only_buffer_descriptors(const size_t offset, const size_t count) {
-	this->add_descriptors(resource_type_shader, offset, count);
+	this->add_descriptors(resource_type_read_only_shader_buffer, offset, count);
 }
 
 void RhiPipelineLayout::add_rw_buffer_descriptors(const size_t offset, const size_t count) {
-	this->add_descriptors(resource_type_generic_rw_buffer, offset, count);
+	this->add_descriptors(resource_type_rw_shader_buffer, offset, count);
 }
 
 void RhiPipelineLayout::add_sampler_buffer_descriptors(const size_t offset, const size_t count) {

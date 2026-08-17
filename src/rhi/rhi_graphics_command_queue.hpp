@@ -3,7 +3,7 @@
 
 #include "rhi_command_queue.hpp"
 
-class RhiGraphicsCommandQueue : public RhiCommandQueue {
+class RhiGraphicsCommandQueue: public RhiCommandQueue {
 
 public:
 	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiGraphicsCommandQueue);

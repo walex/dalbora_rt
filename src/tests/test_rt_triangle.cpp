@@ -100,14 +100,14 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 
 			// 1 - GPU read only (Scene BVH)
 			RHI_SHADER_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
-			s_desc.resource_type = resource_type_shader;
+			s_desc.resource_type = resource_type_read_only_shader_buffer;
 			s_desc.shader_register_start = 0;
 			s_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 2 - GPU read write (Render Target)
 			RHI_SHADER_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
-			o_desc.resource_type = resource_type_generic_rw_buffer;
+			o_desc.resource_type = resource_type_rw_shader_buffer;
 			o_desc.shader_register_start = 0;
 			o_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
@@ -271,7 +271,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			rt_instances_view_desc.format = tx_desc.format;
 			rt_instances_view_desc.device = &dev;
 			rt_instances_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(render_target.get());
-			rt_instances_view_desc.type = resource_type_texture_2d_rw;
+			rt_instances_view_desc.type = resource_type_rw_texture_shader_buffer;
 			rt_instances_view_desc.slot_id = 100;
 			render_target_view.reset(rhi_buffers_create_view(&rt_instances_view_desc));
 

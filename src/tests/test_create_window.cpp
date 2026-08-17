@@ -25,9 +25,9 @@ void test_create_window(std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks) {
 			});
 	}
 
-	if (window_desc.callbacks->main_loop == nullptr) {
+	if (window_desc.callbacks->on_idle == nullptr) {
 	
-		window_desc.callbacks->main_loop = ([&](const RHI_WINDOW* const UNUSED_PARAM(window)) {
+		window_desc.callbacks->on_idle = ([&](const RHI_WINDOW* const UNUSED_PARAM(window)) {
 			static auto last_print = std::chrono::steady_clock::now();
 			auto diff = std::chrono::steady_clock::now() - last_print;
 			if (std::chrono::duration_cast<std::chrono::seconds>(diff).count() >= 1) {
@@ -64,7 +64,7 @@ void test_create_window_obj(RhiUnitTestCallbacks* callbacks) {
 		if (callbacks)
 			callbacks->on_init(unit_test);
 	};
-	window_callbacks.main_loop = [&](RHI_WINDOW* UNUSED_PARAM(hwindow)) {
+	window_callbacks.on_idle = [&](RHI_WINDOW* UNUSED_PARAM(hwindow)) {
 		
 		if (callbacks)
 			callbacks->on_draw(unit_test);

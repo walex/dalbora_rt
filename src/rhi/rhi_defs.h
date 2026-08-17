@@ -33,15 +33,15 @@ enum resource_format
 enum resource_type
 {
 	resource_type_none,
-	resource_type_generic_rw_buffer,
 	resource_type_rt_bvh_buffer,
 	resource_type_sampler,
 	resource_type_render_target,
 	resource_type_depth_stencil_target,
 	resource_type_constant_buffer,
-	resource_type_shader,
-	resource_type_texture_2d_rw,
-	resource_type_texture_2d_read_only,
+	resource_type_rw_shader_buffer,
+	resource_type_read_only_shader_buffer,
+	resource_type_rw_texture_shader_buffer,
+	resource_type_read_only_texture_shader_buffer,
 	resource_type_count
 };
 

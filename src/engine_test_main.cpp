@@ -8,7 +8,7 @@ struct GPU_RESOUCES{
 	RhiDevice device;
 	RhiRenderTarget render_target;
 	RhiView render_target_view;
-	std::vector<RhiGraphicsCommandQueue> command_queues;
+	std::vector<RhiGraphicsCommandBuffer> command_queues;
 };
 size_t k_gpu_count = 1;
 
@@ -25,11 +25,23 @@ void test_rt() {
 	RhiDevice& device = gpu_resource.device;
 	RhiRenderTarget& render_target = gpu_resource.render_target;
 	RhiView& render_target_view = gpu_resource.render_target_view;
-	RhiGraphicsCommandQueue& command_queue = gpu_resource.command_queues.emplace_back();
+	RhiGraphicsCommandBuffer& command_queue = gpu_resource.command_queues.emplace_back();
+
+	size_t read_only_shader_registers_count = 800;
+	size_t rw_shader_registers_count = 100;
+	size_t constant_shader_registers_count = 1;
+
+	RHI_DEVICE_DESC device_desc = {};
+	device_desc.adapter_id = -1;
+	device_desc.features = device_features_raytracing;
+	device_desc.shader_model = hlsl_shader_model_6_8;
+	device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
+	device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
+	device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
 
 	// init device
 	rhi_init(device_type_dx12);
-	device.create(INT64_MAX, device_features_raytracing);
+	device.create(device_desc);
 	render_target.create(device, surface_format, surface_width, surface_height);
 	render_target_view = render_target.new_rw_view(device);
 	command_queue.create(device);
@@ -104,7 +116,7 @@ void test_rt() {
 		closest_hit_shader,
 		surface_format);
 	
-	SurfaceRadianceGPU surface_radiance;
+	SurfaceRadiance surface_radiance;
 	std::vector<SurfaceRadiance*> out_radiances = { &surface_radiance };
 	ray_integrator->run(*camera, geometries, lights, out_radiances);
 

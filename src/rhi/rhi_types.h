@@ -18,7 +18,7 @@ using fptr_render_pass_on_execute = std::function<void()>;
 struct RHI_WINDOW_CALLBACKS
 {
 	fptr_window_on_init on_init = [](RHI_WINDOW* const) {};
-	fptr_window_main_loop_callback main_loop = [](RHI_WINDOW* const) {};
+	fptr_window_main_loop_callback on_idle = [](RHI_WINDOW* const) {};
 	fptr_window_on_end on_end = [](RHI_WINDOW* const) {};
 };
 
@@ -47,14 +47,19 @@ struct RHI_VIEW {
 	size_t mip_map_count = 0;
 };
 
+struct RhiShaderRegisterSlots {
+	size_t current = 0;
+	size_t max = 0;
+};
+
 struct RHI_DEVICE {
 	virtual ~RHI_DEVICE() = default;
-	size_t constant_buffer_slot_start;
-	size_t rw_buffer_slot_start;
-	size_t read_only_buffer_slot_start;
-	size_t render_target_slot_start;
-	size_t depth_buffer_slot_start;
-	size_t sampler_slot_start;
+	RhiShaderRegisterSlots constant_buffer_slot;
+	RhiShaderRegisterSlots rw_buffer_slot;
+	RhiShaderRegisterSlots read_only_buffer_slot;
+	RhiShaderRegisterSlots render_target_slot;
+	RhiShaderRegisterSlots depth_buffer_slot;
+	RhiShaderRegisterSlots sampler_slot;
 };
 
 struct RHI_TEXTURE_MIPS {

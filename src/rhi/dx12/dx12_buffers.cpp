@@ -290,7 +290,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		cbv_desc.SizeInBytes = static_cast<UINT>(buffer_length); // MUST BE ALIGNED
 		i_device->CreateConstantBufferView(&cbv_desc, handle);
 	}
-	else if (type == resource_type_generic_rw_buffer) {
+	else if (type == resource_type_rw_shader_buffer) {
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
 		uav_desc.Format = dx12_resource_format_type[format];
 		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -300,7 +300,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
 	}
-	else if (type == resource_type_shader) {
+	else if (type == resource_type_read_only_shader_buffer) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = dx12_resource_format_type[format];
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -312,7 +312,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 		i_device->CreateShaderResourceView(i_resource, &srv_desc, handle);
 	}
-	else if (type == resource_type_texture_2d_rw) {
+	else if (type == resource_type_rw_texture_shader_buffer) {
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
 		uav_desc.Format = dx12_resource_format_type[format];
 		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
@@ -322,7 +322,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 	//	uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
 	}
-	else if (type == resource_type_texture_2d_read_only) {
+	else if (type == resource_type_read_only_texture_shader_buffer) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = dx12_resource_format_type[format];
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;

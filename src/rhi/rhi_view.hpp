@@ -7,15 +7,15 @@ class RhiView
 	: public RhiImpl<RHI_VIEW> {
 
 public:	
-	RhiView(RHI_VIEW* handle = nullptr, size_t resource_id = 0);
+	RhiView(RHI_VIEW* handle = nullptr, int resource_id = 0);
 	RhiView(RhiView&&) noexcept = default;
 	RhiView& operator=(RhiView&&) noexcept = default;
 	RhiView(const RhiView&) = delete;
 	RhiView& operator=(const RhiView&) = delete;
 	virtual ~RhiView() = default;	
-	size_t get_view_id() const { return m_view_id; }
+	int get_view_id() const { return m_view_id; }
 private:
-	size_t m_view_id = -1;
+	int m_view_id = -1;
 };
 
 #endif // __rhi_view_hpp__

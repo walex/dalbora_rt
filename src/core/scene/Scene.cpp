@@ -63,18 +63,18 @@ void Scene::on_geometry_attrib_loaded(const RhiDevice& device, RhiCommandBuffer&
 }
 
 void Scene::on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) {
-
 	/*
 	static std::vector<std::unique_ptr<RhiView>> g_views;
 	RhiGPUBuffer& vertex_buffer = mesh->get_vertex_buffer();
-	RhiView vb_view = vertex_buffer.new_shader_view(device);
-	g_views.push_back(std::make_unique<RhiView>(std::move(vb_view)));
+	//RhiView vb_view = vertex_buffer.new_shader_read_only_view(device);
+	//g_views.push_back(std::make_unique<RhiView>(std::move(vb_view)));
 	RhiGPUBuffer* index_buffer = mesh->get_index_buffer();
 	if (index_buffer != nullptr) {
-		RhiView ib_view = index_buffer->new_shader_view(device);
-		g_views.push_back(std::make_unique<RhiView>(std::move(ib_view)));
-	*/
+		//RhiView ib_view = index_buffer->new_shader_read_only_view(device);
+		//g_views.push_back(std::make_unique<RhiView>(std::move(ib_view)));
 
+	}
+	*/
 /*
 	// create a shader view for vertex and index buffer
 	RhiGPUBuffer& vertex_buffer = mesh->get_vertex_buffer();
@@ -99,9 +99,27 @@ void Scene::on_new_scene_node(const RhiDevice& UNUSED_PARAM(device), RhiCommandB
 	node.update_world_transform();
 }
 
-void Scene::on_scene_loaded(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer),
+void Scene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 	const float3 bb_min, const float3 bb_max) {
 
 	m_bb_min = bb_min;
 	m_bb_max = bb_max;
+
+	// create a shader view for vertex and index buffers
+	for (auto& [id, meshes] : this->m_meshes) {
+		for (auto& mesh : meshes) {
+			RhiGPUBuffer& vertex_buffer = mesh->get_vertex_buffer();
+			RhiView vb_view = vertex_buffer.new_shader_read_only_view(device);
+			std::unique_ptr<RhiView> vertex_view = std::make_unique<RhiView>(std::move(vb_view));
+			mesh->set_vertex_view(std::move(vertex_view));
+			std::unique_ptr<RhiView> index_view;
+			RhiGPUBuffer* index_buffer = mesh->get_index_buffer();
+			if (index_buffer != nullptr) {
+				RhiView ib_view = index_buffer->new_shader_read_only_view(device);
+				index_view = std::make_unique<RhiView>(std::move(ib_view));
+				mesh->set_index_view(std::move(index_view));
+			}
+		}
+	}
+
 }

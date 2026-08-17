@@ -5,6 +5,14 @@
 
 class Mesh;
 
+struct _GeometryInstance
+{
+	uint vertex_resource_id;
+	uint index_resource_id;
+	uint material_id;
+	float4x4 world;
+};
+
 class GeometryNode : public SceneNode {
 public:
 	GeometryNode(SceneNode* parent, const Mesh& mesh) : SceneNode(parent), m_mesh(mesh) {}

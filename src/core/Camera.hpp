@@ -4,7 +4,19 @@
 
 #include "Common.hpp"
 
-class BaseCamera {
+struct alignas(256) _BaseCamera
+{
+	float4 camera_pos;
+	float4 camera_forward;
+	float4 camera_right;
+	float4 camera_up;
+
+	float tanHalfFov;
+	float aspect;
+	float2 paddding;
+};
+
+class BaseCamera: public _BaseCamera {
 public:
 	virtual ~BaseCamera() = default;
 	virtual void setPosition(float UNUSED_PARAM(x), float UNUSED_PARAM(x), float UNUSED_PARAM(z)) {};
@@ -14,7 +26,13 @@ public:
 protected:
 	BaseCamera() = default;
 };
-
+struct alignas(256)GeometryInstance
+{
+	uint vertex_resource_id;
+	uint index_resource_id;
+	uint material_id;
+	float4x4 world;
+};
 class Sampler;
 class Samples;
 class Rays;

@@ -62,7 +62,7 @@ void test_swap_chain(fptr_test_on_init on_init
 			on_init(*device, *command_queue, *command_buffer, *swap_chain);
 		});
 
-	callbacks.get()->main_loop = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
+	callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
 
 		render_pass->render_target_view = rhi_swap_chain_get_surface(swap_chain.get(), UINT64_MAX);
 		
@@ -133,13 +133,14 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiRenderPass& render_pass = unit_test.raster_render_pass;
 		
-		if(callbacks)
-			callbacks->on_device_config(device_features);
-
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = -1;
-		device_desc.features = device_features;
 		device_desc.shader_model = hlsl_shader_model_6_8;
+
+		if(callbacks)
+			callbacks->on_device_config(device_desc);
+
+		
 		device.create(device_desc);
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);

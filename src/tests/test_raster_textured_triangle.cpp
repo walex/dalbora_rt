@@ -155,7 +155,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             RHI_VIEW_DESC tex_view_desc;
             tex_view_desc.device = &device;
             tex_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(texture.get());
-            tex_view_desc.type = resource_type_texture_2d_read_only;
+            tex_view_desc.type = resource_type_read_only_texture_shader_buffer;
             tex_view_desc.format = texture_desc.format;
             tex_view_desc.mip_maps_count = texture->mip_maps_count;
             tex_view_desc.slot_id = 100;
@@ -200,7 +200,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             
             // descriptors
             RHI_SHADER_DESCRIPTOR_DESC& s_desc = layout.descriptors[layout.descriptor_count++];
-            s_desc.resource_type = resource_type_shader;
+            s_desc.resource_type = resource_type_read_only_shader_buffer;
             s_desc.shader_register_start = 0;
             s_desc.shader_register_max = 100;
 
@@ -260,9 +260,9 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
     RhiSharedBuffer texture_buffer;
 
     RhiUnitTestCallbacks unit_test_callbacks;
-    unit_test_callbacks.on_device_config = ([&](__int64& features_flags) {
+    unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
 
-        features_flags |= device_features_enable_texture_sampling;
+        device_desc.features |= device_features_enable_texture_sampling;
     });
     unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 

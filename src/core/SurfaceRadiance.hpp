@@ -4,16 +4,10 @@
 
 #include "Common.hpp"
 
-class SurfaceRadiance
-{
-};
-
-class SurfaceRadianceGPU : public SurfaceRadiance {
+class SurfaceRadiance {
 	
-public:
-	operator RhiRenderTarget& () { return m_render_target; }
 private:
-	RhiRenderTarget m_render_target;
+	RhiView m_surface_radiance_view;
 };
 
 #endif

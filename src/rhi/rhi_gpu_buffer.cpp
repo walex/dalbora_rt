@@ -33,7 +33,6 @@ void RhiGPUBuffer::upload(const RhiCommandBuffer& command_buffer, const RhiShare
 	const size_t offset_src, const size_t offset_dest, const size_t length) {
 
 	rhi_buffers_gpu_upload_region(command_buffer, sb, *this, offset_src, offset_dest, length);
-		
 }
 
 resource_format RhiGPUBuffer::get_format() { return static_cast<RHI_BUFFER*>(*this)->format; }
@@ -41,31 +40,43 @@ size_t RhiGPUBuffer::get_length() { return static_cast<RHI_BUFFER*>(*this)->leng
 size_t RhiGPUBuffer::get_stride() { return static_cast<RHI_BUFFER*>(*this)->stride; }
 
 RhiView RhiGPUBuffer::new_depth_buffer_view(const RhiDevice& device) {
+
 	RHI_VIEW_DESC desc;
 	desc.device = device;
 	desc.buffer = *this;
 	desc.type = resource_type_depth_stencil_target;
 	desc.format = this->get_format();
 	desc.slot_id = device.next_depth_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc), desc.slot_id);
+	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
 }
 
-RhiView RhiGPUBuffer::new_constant_buffer_view(const RhiDevice& device) {
+RhiView RhiGPUBuffer::new_shader_constant_view(const RhiDevice& device) {
 
 	RHI_VIEW_DESC object_cb_view_desc;
 	object_cb_view_desc.device = device;
 	object_cb_view_desc.buffer = *this;
 	object_cb_view_desc.type = resource_type_constant_buffer;
 	object_cb_view_desc.slot_id = device.next_constant_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&object_cb_view_desc), object_cb_view_desc.slot_id);
+	return RhiView(rhi_buffers_create_view(&object_cb_view_desc), static_cast<int>(object_cb_view_desc.slot_id));
 }
 
-RhiView RhiGPUBuffer::new_shader_view(const RhiDevice& device) {
+RhiView RhiGPUBuffer::new_shader_read_only_view(const RhiDevice& device) {
+
 	RHI_VIEW_DESC desc;
 	desc.device = device;
 	desc.buffer = *this;
-	desc.type = resource_type_shader;
+	desc.type = resource_type_read_only_shader_buffer;
+	desc.format = this->get_format();
+	desc.slot_id = device.next_read_only_buffer_slot_id();
+	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
+}
+
+RhiView RhiGPUBuffer::new_shader_rw_view(const RhiDevice& device) {
+	RHI_VIEW_DESC desc;
+	desc.device = device;
+	desc.buffer = *this;
+	desc.type = resource_type_rw_shader_buffer;
 	desc.format = this->get_format();
 	desc.slot_id = device.next_rw_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc), desc.slot_id);
+	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
 }

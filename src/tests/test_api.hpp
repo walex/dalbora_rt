@@ -66,7 +66,7 @@ struct RhiUnitTest {
 };
 
 struct RhiUnitTestCallbacks {
-	std::function<void(__int64&)>on_device_config = [](__int64& UNUSED_PARAM(feature_flags)) {};
+	std::function<void(RHI_DEVICE_DESC&)>on_device_config = [](RHI_DEVICE_DESC& UNUSED_PARAM(device_desc)) {};
 	std::function<void(RhiUnitTest&)> on_init = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_draw = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_end = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
@@ -78,4 +78,5 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks = nullptr);
+void test_rt_scene();
 #endif
