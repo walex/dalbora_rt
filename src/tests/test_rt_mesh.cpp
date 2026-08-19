@@ -124,18 +124,18 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 				size.z
 				});
 
-		//camera_matrices.camera_pos =
-		//	center  + float4(
-		//		0.0f,
-		//		0.0f,
-		//		max_dimension * 0.3f,
-		//		1.0f);
-		
-		camera_matrices.camera_pos = float4(
+		camera_matrices.camera_pos =
+			center  + float4(
 				0.0f,
-				1.50f,
-				-3.71f,
+				0.0f,
+				max_dimension * -0.09f,
 				1.0f);
+		
+		//camera_matrices.camera_pos = float4(
+		//		0.0f,
+		//		1.50f,
+		//		-3.71f,
+		//		1.0f);
 		
 		camera_matrices.camera_forward = (center - camera_matrices.camera_pos);
 		camera_matrices.camera_forward.xyz = normalize(camera_matrices.camera_forward.xyz);
@@ -144,7 +144,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		camera_matrices.camera_up =
 			float4(0.0f, 1.0f, 0.0f, 0.0f);
 		camera_matrices.tanHalfFov =
-			0.76f;
+			0.78f;
 		camera_matrices.aspect = image_aspect;
 
 		// view render_target (GPU read write)

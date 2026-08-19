@@ -7,7 +7,7 @@
 #include "Material.hpp"
 
 struct PBRMaterialProperties;
-
+class BaseCamera;
 struct SCENE_LOAD_CALLBACKS {
 	
 	virtual void on_geometry_attrib_loaded(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer),
@@ -30,6 +30,8 @@ struct SCENE_LOAD_CALLBACKS {
 	virtual const std::vector<std::unique_ptr<Mesh>>& get_meshes(const size_t UNUSED_PARAM(group_id)) const = 0;
 };
 
+class Renderer;
+class BaseCamera;
 class Scene: public SCENE_LOAD_CALLBACKS {
 public:
 	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(Scene);
@@ -63,6 +65,10 @@ public:
 	const std::vector<std::unique_ptr<Mesh>>& get_meshes(const size_t group_id) const override { return m_meshes.at(group_id); }
 	
 	SceneNode& get_root_node() { return m_root_node; }
+	
+	void set_camera(BaseCamera* camera) { m_camera = camera; }
+
+	virtual void draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport);
 protected:
 	size_t m_max_size = 0;
 	float3 m_bb_min, m_bb_max;
@@ -71,6 +77,7 @@ protected:
 	size_t tmp_buffer_offset = 0;
 	std::map<size_t, std::vector<std::unique_ptr<Mesh>>> m_meshes;
 	std::vector<std::unique_ptr<Material>> m_materials;
+	BaseCamera* m_camera = nullptr;
 };
 
 

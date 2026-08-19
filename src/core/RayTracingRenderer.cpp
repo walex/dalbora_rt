@@ -1,7 +1,8 @@
 #include "RayTracingRenderer.hpp"
 #include "SurfaceRadiance.hpp"
 
-RayTracingRenderer::RayTracingRenderer() {
+RayTracingRenderer::RayTracingRenderer(resource_format surface_format, size_t surface_width, 
+	size_t surface_height) {
 	
 	constexpr size_t read_only_shader_registers_count = 800;
 	constexpr size_t rw_shader_registers_count = 100;
@@ -15,15 +16,23 @@ RayTracingRenderer::RayTracingRenderer() {
 	device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 
 	this->create(device_desc);
+
+	m_ray_trace_surface.create(this->get_device(), surface_format,
+		surface_width, surface_height);
+	m_ray_trace_surface_view = m_ray_trace_surface.new_rw_view(this->get_device());
+	m_ray_trace_render_pass.create(this->get_device());
 }
 
-void RayTracingRenderer::on_draw(RhiView& surface)
+void RayTracingRenderer::on_draw(RhiView& out_surface_view)
 {
-	
-	// compose and draw the surface radiance
-	//for (auto& radiance : radiances) {
+	ASSERT_PTR(m_sbt);
 
-		//RhiGPUBuffer gpu_input_buffer = radiance;
-		//render_target.upload_to_region(gpu_input_buffer, radiance.get_region());
-	//}
+	m_ray_trace_render_pass.set_render_target(m_ray_trace_surface_view);
+
+	m_ray_trace_render_pass.render(this->get_command_buffer(), [&](RhiCommandBuffer& command_buffer) {
+
+		command_buffer.ray_trace(m_ray_trace_surface, *m_sbt);
+	});
+
+	out_surface_view.blit(this->get_command_buffer(), m_ray_trace_surface);
 }

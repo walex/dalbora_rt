@@ -3,6 +3,8 @@
 
 #include "rhi_impl.hpp"
 
+class RhiCommandBuffer;
+class RhiTexture;
 class RhiView 
 	: public RhiImpl<RHI_VIEW> {
 
@@ -14,6 +16,7 @@ public:
 	RhiView& operator=(const RhiView&) = delete;
 	virtual ~RhiView() = default;	
 	int get_view_id() const { return m_view_id; }
+	void blit(RhiCommandBuffer& command_buffer, RhiTexture& image);
 private:
 	int m_view_id = -1;
 };

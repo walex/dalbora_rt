@@ -2,6 +2,12 @@
 #include "GeometryNode.hpp"
 #include "Mesh.hpp"
 #include "PBRMaterial.hpp"
+#include "RayTracingRenderer.hpp"
+
+
+static const std::string k_ray_gen_entry_point = "RT_RayGen";
+static const std::string k_miss_entry_point = "RT_Miss";
+static const std::string k_closest_hit_entry_point = "RT_ClosestHit";
 
 RayTraceScene::RayTraceScene() {
 
@@ -84,9 +90,100 @@ void RayTraceScene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& c
 	Scene::on_scene_loaded(device, command_buffer, bb_min, bb_max);
 }
 
+
+void RayTraceScene::setup_shaders() {
+
+	std::filesystem::path shader_path = get_executable_folder("shaders");
+	shader_path = shader_path / "rt_scene.hlsl";
+	std::string ray_gen_shader_file = shader_path.string();
+	std::string miss_shader_file = shader_path.string();
+	std::string closest_hit_shader_file = shader_path.string();
+
+	// compile shaders
+	m_ray_gen_shader.create(ray_gen_shader_file,
+		k_ray_gen_entry_point, "lib_6_8");
+	m_miss_shader.create(miss_shader_file,
+		k_miss_entry_point, "lib_6_8");
+	m_closest_hit_shader.create(closest_hit_shader_file,
+		k_closest_hit_entry_point, "lib_6_8");
+
+}
+
+void RayTraceScene::setup_pipeline_layout(RhiDevice& device, resource_format surface_format,
+	size_t read_only_shader_registers_count, size_t rw_shader_registers_count, 
+	size_t constant_shader_registers_count) {
+	// add layout descriptors ( order mathers )
+
+	// 1 - GPU read only shader registers range to be used (Scene BVH)
+	m_pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
+
+	// 2 - GPU read write shader registers range to be used (Render buffer)
+	m_pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
+
+	// 3 - Constant buffer shader registers range to be used (Camera matrix)
+	m_pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);
+
+	// create pipeline layout
+	m_pipeline_layout.create(device, primitive_topology_triangle, surface_format, resource_format_d24_norm_s8_uint);
+
+}
+
+void RayTraceScene::setup_pipeline(RhiDevice& device, resource_format surface_format,
+	size_t read_only_shader_registers_count, size_t rw_shader_registers_count,
+	size_t constant_shader_registers_count) {
+	
+	this->setup_pipeline_layout(device, surface_format, read_only_shader_registers_count,
+		rw_shader_registers_count, constant_shader_registers_count);
+
+	// config ray trace shader
+	RhiRayTracePipelineShaderPrograms ray_trace_shader_programs;
+	std::vector<RHI_RT_HIT_GROUP_DESC>& hit_groups_desc = ray_trace_shader_programs.hit_groups_desc;
+	auto& hg = hit_groups_desc.emplace_back();
+	strcpy_s(hg.name_id, "HG_1");
+	hg.closest_hit.blob = m_closest_hit_shader;
+	strcpy_s(hg.closest_hit.name_id, k_closest_hit_entry_point.c_str());
+
+	std::vector<RHI_RT_SHADER_UNIT_DESC>& miss_shader_desc = ray_trace_shader_programs.miss_shaders_desc;
+	auto& miss_1 = miss_shader_desc.emplace_back();
+	miss_1.blob = m_miss_shader;
+	strcpy_s(miss_1.name_id, k_miss_entry_point.c_str());
+
+	std::vector<RHI_RT_SHADER_UNIT_DESC>& ray_gen_shader_desc = ray_trace_shader_programs.ray_gen_shaders_desc;
+	auto& ray_gen = ray_gen_shader_desc.emplace_back();
+	strcpy_s(ray_gen.name_id, k_ray_gen_entry_point.c_str());
+	ray_gen.blob = m_ray_gen_shader;
+
+	ray_trace_shader_programs.ray_gen_shader = &m_ray_gen_shader;
+	ray_trace_shader_programs.miss_shader = &m_miss_shader;
+	ray_trace_shader_programs.closest_hit_shader = &m_closest_hit_shader;
+
+	// create pipeline
+	m_pipeline.create(device, m_pipeline_layout, ray_trace_shader_programs);
+
+	// create shader binding table
+	m_sbt.create(device, m_pipeline, ray_trace_shader_programs);
+}
+
+void RayTraceScene::initialize(RhiDevice& device, resource_format surface_format,
+	size_t read_only_shader_registers_count, size_t rw_shader_registers_count,
+	size_t constant_shader_registers_count) {
+	
+	this->setup_shaders();
+	this->setup_pipeline(device, surface_format, read_only_shader_registers_count,
+		rw_shader_registers_count, constant_shader_registers_count);
+}
+
 void RayTraceScene::load(const std::string& scene_path, RhiDevice& device,
 	RhiCommandQueue& command_queue) {
 
 	Scene::load(scene_path, device, command_queue);
+}
 
+void RayTraceScene::draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
+
+	Scene::draw_scene(render, surface_view, viewport);
+
+	render.set_rt_pipeline(m_pipeline);
+	render.set_bindig_table(m_sbt);
+	render.draw(surface_view, viewport);
 }

@@ -1,6 +1,8 @@
 #include "Scene.hpp"
 #include "Mesh.hpp"
 #include "PBRMaterial.hpp"
+#include "Renderer.hpp"
+#include "Camera.hpp"
 #include "gltf_scene.hpp"
 
 void Scene::load(const std::string& scene_path, RhiDevice& device,
@@ -122,4 +124,13 @@ void Scene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& UNUSED_PA
 		}
 	}
 
+}
+
+void Scene::draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
+
+	ASSERT_PTR(m_camera);
+
+	m_camera->update(0.0f);
+
+	// TODO: cull here
 }

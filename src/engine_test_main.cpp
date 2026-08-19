@@ -67,7 +67,7 @@ void test_rt() {
 	// camera
 	auto camera = std::make_unique<Camera>();
 	camera->setSampler(sampler.get());
-	camera->setPosition(0, 1, 2);
+	camera->set_position(0, 1, 2);
 	camera->setLookAt(0, 1, 2);	
 
 	// material

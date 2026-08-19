@@ -8,19 +8,22 @@ public:
 	Renderer() = default;
 	virtual ~Renderer() = default;
 	void create(RHI_DEVICE_DESC& device_desc);
-	virtual void draw(RhiView& surface, const RHI_VIEWPORT& view_port);
-	RhiSwapChain create_swap_chain(const RhiWindow& window, const uint32_t buffer_count);
-protected:
-	virtual void on_draw(RhiView& surface) = 0;
+	virtual void draw(RhiView& out_surface, const RHI_VIEWPORT& view_port);
+	RhiSwapChain create_swap_chain(const RhiWindow& window, const uint32_t buffer_count,
+		resource_format surface_format);
 	RhiDevice& get_device() { return m_device; }
 	RhiGraphicsCommandQueue& get_command_queue() { return m_command_queue; }
+	virtual void set_rt_pipeline(RhiRayTracePipeline& pipeline) {}
+	virtual void set_bindig_table(RhiShaderBindingTable& sbt) {}
+protected:
+	virtual void on_draw(RhiView& surface) = 0;
+	
 	RhiCommandBuffer& get_command_buffer() { return m_command_buffer; }
 private:
 	RhiDevice m_device;
 	RhiGraphicsCommandQueue m_command_queue;
 	RhiCommandBuffer m_command_buffer;
-	RhiRasterRenderPass m_render_pass;
-
+	RhiRasterRenderPass m_raster_render_pass;
 };
 
 #endif

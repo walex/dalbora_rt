@@ -11,21 +11,28 @@ struct alignas(256) _BaseCamera
 	float4 camera_right;
 	float4 camera_up;
 
-	float tanHalfFov;
+	float tan_half_fov;
 	float aspect;
 	float2 paddding;
 };
 
-class BaseCamera: public _BaseCamera {
+class BaseCamera: protected _BaseCamera {
 public:
-	virtual ~BaseCamera() = default;
-	virtual void setPosition(float UNUSED_PARAM(x), float UNUSED_PARAM(x), float UNUSED_PARAM(z)) {};
-	virtual void setLookAt(float UNUSED_PARAM(x), float UNUSED_PARAM(x), float UNUSED_PARAM(z)) {};
-	virtual void setUp(float UNUSED_PARAM(x), float UNUSED_PARAM(x), float UNUSED_PARAM(z)) {};
-	virtual void setFOV(float UNUSED_PARAM(value)) {};
-protected:
-	BaseCamera() = default;
+	virtual void set_position(float3 pos) { camera_pos = float4(pos, 1.0f); }
+	virtual void set_look_at(float3 lookAt) { camera_forward = float4(normalize(lookAt), 0.0f); }
+	virtual void set_up(float3 up) { camera_up = float4(normalize(up), 0.0f); }
+	virtual void set_right(float3 right) { camera_right = float4(normalize(right), 0.0f); }
+	virtual void set_fov(float value) { tan_half_fov = value; }
+	virtual void set_aspect(float value) { aspect = value; }
+	virtual void update(float dt);
+	virtual ~BaseCamera();
+	BaseCamera(RhiDevice& device);
+private:
+	RhiSharedBuffer m_transforms;
+	RhiView m_transforms_view;
+	std::unique_ptr<RhiSharedBufferMap> m_buffer_map;
 };
+
 struct alignas(256)GeometryInstance
 {
 	uint vertex_resource_id;
@@ -33,6 +40,7 @@ struct alignas(256)GeometryInstance
 	uint material_id;
 	float4x4 world;
 };
+
 class Sampler;
 class Samples;
 class Rays;

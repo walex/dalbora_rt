@@ -4,14 +4,26 @@
 
 #include "Renderer.hpp"
 
+class RhiShaderBindingTable;
 class RayTracingRenderer: public Renderer
 {
 public:
-	RayTracingRenderer();
+	RayTracingRenderer(resource_format surface_format, size_t surface_width,
+		size_t surface_height);
 	virtual ~RayTracingRenderer() = default;
+	void set_rt_pipeline(RhiRayTracePipeline& pipeline) override {
+		m_ray_trace_render_pass.set_pipeline(pipeline);
+	}
+	void set_bindig_table(RhiShaderBindingTable& sbt) override {
+		m_sbt = &sbt;
+	}
 protected:
-	void on_draw(RhiView& surface) override;
-	
+	void on_draw(RhiView& out_surface_view);
+private:
+	RhiRenderTarget m_ray_trace_surface;
+	RhiView m_ray_trace_surface_view;
+	RhiRayTraceRenderPass m_ray_trace_render_pass;
+	RhiShaderBindingTable *m_sbt = nullptr;
 };
 
 #endif // __RayTracingRenderer_h__
