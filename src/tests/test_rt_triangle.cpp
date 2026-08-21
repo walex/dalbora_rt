@@ -523,7 +523,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
 		
 		// map constant buffers
-		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
+		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCB));
 		
 	});
 

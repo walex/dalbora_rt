@@ -1,6 +1,19 @@
 #include "rhi_shared_buffer.hpp"
 #include "rhi.hpp"
 
+RhiSharedBufferMap::RhiSharedBufferMap(RhiSharedBuffer& buffer, size_t offset, size_t length)
+	: m_buffer(&buffer)	
+	, m_offset(offset)
+	, m_length(length)
+	, m_data(static_cast<uint8_t*>(rhi_buffers_map_open(buffer, offset, length))) {
+}
+
+RhiSharedBufferMap::~RhiSharedBufferMap() {
+
+	ASSERT_PTR(m_buffer);
+	m_buffer->unmap(*this);
+}
+
 RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle, buffer_memory_type type)
 	: RhiBuffer(handle) {
 
@@ -28,9 +41,9 @@ void RhiSharedBuffer::create(const RhiDevice& device, const size_t length,
 RhiSharedBufferMap RhiSharedBuffer::map(const size_t offset, const size_t length) {
 
 	return RhiSharedBufferMap(
+		*this,
 		offset,
-		length,
-		static_cast<uint8_t*>(rhi_buffers_map_open(*this, offset, length)));
+		length);
 }
 
 void RhiSharedBuffer::unmap(const RhiSharedBufferMap& map_info) {

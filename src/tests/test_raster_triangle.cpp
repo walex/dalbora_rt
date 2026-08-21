@@ -428,8 +428,8 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		object_transform_view = object_transforms.new_constant_buffer_view(device);	// cb reg 1
 
 		// map constant buffers
-		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
-		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms.map(0, sizeof(ObjectCB)));
+		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCB));
+		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms, 0, sizeof(ObjectCB));
 		
 		// set depth buffer to render pass
 		unit_test.raster_render_pass.set_depth_buffer(depth_buffer_view);

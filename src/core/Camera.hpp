@@ -18,6 +18,9 @@ struct alignas(256) _BaseCamera
 
 class BaseCamera: protected _BaseCamera {
 public:
+
+	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(BaseCamera);
+
 	virtual void set_position(float3 pos) { camera_pos = float4(pos, 1.0f); }
 	virtual void set_look_at(float3 lookAt) { camera_forward = float4(normalize(lookAt), 0.0f); }
 	virtual void set_up(float3 up) { camera_up = float4(normalize(up), 0.0f); }
@@ -30,15 +33,7 @@ public:
 private:
 	RhiSharedBuffer m_transforms;
 	RhiView m_transforms_view;
-	std::unique_ptr<RhiSharedBufferMap> m_buffer_map;
-};
-
-struct alignas(256)GeometryInstance
-{
-	uint vertex_resource_id;
-	uint index_resource_id;
-	uint material_id;
-	float4x4 world;
+	RhiSharedBufferMap m_buffer_map;
 };
 
 class Sampler;

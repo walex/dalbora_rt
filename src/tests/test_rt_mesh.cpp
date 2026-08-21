@@ -201,7 +201,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		rt_render_pass.create(device);
 
 		// map constant buffers
-		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms.map(0, sizeof(CameraCB)));
+		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCB));
 
 		});
 

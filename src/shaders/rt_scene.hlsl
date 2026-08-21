@@ -6,6 +6,7 @@
 //#include "config.hlsl"
 #include "common.hlsl"
 #include "geometry.hlsl"
+#include "sampler.hlsl"
 //#include "bsdf.hlsl"
 //#include "environment.hlsl"
 //#include "material.hlsl"
@@ -14,23 +15,10 @@
 // Resources
 ///////////////////////////////////////////////////////////////////////////////
 
-struct CameraCB
-{
-    float4 camera_pos;
-    float4 camera_forward;
-    float4 camera_right;
-    float4 camera_up;
-
-    float tanHalfFov;
-    float aspect;
-    float2 padding;
-};
 
 
-
-RaytracingAccelerationStructure SceneBVH : register(t0);
-RWTexture2D<float4> Output : register(u0);
-ConstantBuffer<CameraCB> Camera : register(b0);
+RaytracingAccelerationStructure scene_bvh : register(t0);
+RWTexture2D<float4> render_surface : register(u0);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Ray Generation
@@ -40,41 +28,28 @@ ConstantBuffer<CameraCB> Camera : register(b0);
 // Generate Primary Ray
 ///////////////////////////////////////////////////////////////////////////////
 
-
-RayDesc GeneratePrimaryRay(
-    uint2 pixel,
-    float2 jitter)
+float4 paint_pixel_with_edges(bool is_edge)
 {
-    uint2 resolution = DispatchRaysDimensions().xy;
-
-    float2 uv =
-        (float2(pixel) + jitter) /
-        float2(resolution);
-
-    // pasar de [0,1] a [-1,1]
-    uv = uv * 2.0f - 1.0f;
-
-    // corregir eje Y de imagen
-    uv.y = -uv.y;
-
-    RayDesc ray;
-
-    float tanHalfFov = Camera.tanHalfFov;
-    float aspect = Camera.aspect;
-
-    float3 direction =
-        Camera.camera_forward.xyz +
-        uv.x * aspect * tanHalfFov * Camera.camera_right.xyz +
-        uv.y * tanHalfFov * Camera.camera_up.xyz;
-
-    ray.Origin = Camera.camera_pos.xyz;
-    ray.Direction = normalize(direction);
-
-    ray.TMin = EPSILON;
-    ray.TMax = FLT_MAX;
-
-    return ray;
+    float4 finalColor;
+    if (is_edge)
+        return float4(1.0, 0.0, 0.0, 1.0);
+    else
+        return float4(0.0, 1.0, 0.0, 1.0);
 }
+
+bool detect_edge(float2 barycentrics)
+{
+     // 1. Obtener las tres coordenadas baricéntricas del triángulo
+    float u = barycentrics.x;
+    float v = barycentrics.y;
+    float w = 1.0f - u - v;
+
+    // 2. Definir el grosor de la línea del wireframe (ajustable)
+    float edgeThickness = 0.02f;
+
+    // 3. Determinar si el rayo impactó cerca de un borde
+    return (u < edgeThickness || v < edgeThickness || w < edgeThickness);
+ }
 
 [shader("raygeneration")]
 void RT_RayGen()
@@ -82,9 +57,7 @@ void RT_RayGen()
     uint2 pixel = DispatchRaysIndex().xy;
 
     RayDesc ray =
-        GeneratePrimaryRay(
-            pixel,
-            float2(0.5, 0.5));
+        sampler_generate_rays(pixel);
 
     Payload payload;
 
@@ -95,7 +68,7 @@ void RT_RayGen()
     payload.barycentrics = 0;
 
     TraceRay(
-        SceneBVH,
+        scene_bvh,
         RAY_FLAG_NONE,
         0xFF,
         0,
@@ -116,22 +89,15 @@ void RT_RayGen()
             payload.primitive_index,
             surface);
 
-        // Temporary test color.
-        if (payload.is_edge)
-        {
-            finalColor = float4(1.0, 0.0, 0.0, 1.0);
-        }
-        else
-        {
-            finalColor = float4(0.0, 1.0, 0.0, 1.0);
-        }
+        // Temporary coloring.
+        finalColor = paint_pixel_with_edges(payload.is_edge);
     }
     else
     {
         finalColor = float4(0.1, 0.3, 0.8, 1.0);
     }
 
-    Output[pixel] = finalColor;
+    render_surface[pixel] = finalColor;
 }
 
 
@@ -147,23 +113,9 @@ void RT_ClosestHit(
     payload.hit = true;
     
   #ifdef DRAW_EDGES
-     // 1. Obtener las tres coordenadas baricéntricas del triángulo
-    float u = attribs.barycentrics.x;
-    float v = attribs.barycentrics.y;
-    float w = 1.0f - u - v;
-
-    // 2. Definir el grosor de la línea del wireframe (ajustable)
-    float edgeThickness = 0.02f;
-
-    // 3. Determinar si el rayo impactó cerca de un borde
-    if (u < edgeThickness || v < edgeThickness || w < edgeThickness)
-    {
-        payload.is_edge = true;
-    }
-    else
-    {
-        payload.is_edge = false;
-    }
+    
+    payload.is_edge = detect_edge(attribs.barycentrics);
+    
 #else
     payload.is_edge = false;
 #endif
