@@ -132,6 +132,7 @@ struct RHI_SHADER_DESCRIPTOR_DESC  {
 	resource_type resource_type = resource_type_rw_shader_buffer;
 	size_t shader_register_start = 0;
 	size_t shader_register_max = 0;
+	size_t space_index = 0;
 };
 
 #define MAX_PIPELINE_DESCRIPTORS 16

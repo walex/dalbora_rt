@@ -6,7 +6,7 @@
 //#include "config.hlsl"
 #include "common.hlsl"
 #include "geometry.hlsl"
-#include "sampler.hlsl"
+#include "camera.hlsl"
 //#include "bsdf.hlsl"
 //#include "environment.hlsl"
 //#include "material.hlsl"
@@ -15,10 +15,10 @@
 // Resources
 ///////////////////////////////////////////////////////////////////////////////
 
-
-
 RaytracingAccelerationStructure scene_bvh : register(t0);
 RWTexture2D<float4> render_surface : register(u0);
+ConstantBuffer<_BaseCamera> g_camera : register(b0);
+ConstantBuffer<_SamplerConfig> g_sampler_config : register(b1);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Ray Generation
@@ -57,7 +57,7 @@ void RT_RayGen()
     uint2 pixel = DispatchRaysIndex().xy;
 
     RayDesc ray =
-        sampler_generate_rays(pixel);
+        camera_generate_rays(pixel, g_camera, g_sampler_config);
 
     Payload payload;
 

@@ -172,4 +172,24 @@ struct SurfaceInteraction
     float3 emissive;
 };
 
+
+struct _BaseCamera
+{
+    float4 camera_pos;
+    float4 camera_forward;
+    float4 camera_right;
+    float4 camera_up;
+
+    float tanHalfFov;
+    float aspect;
+    float2 padding;
+};
+
+struct _SamplerConfig
+{
+    uint depth;
+    float2 jitter;
+    float padding; // 16 bytes alignment
+};
+
 #endif

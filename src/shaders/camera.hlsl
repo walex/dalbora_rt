@@ -1,17 +1,11 @@
 #ifndef CAMERA_HLSL
 #define CAMERA_HLSL
 
-struct _BaseCamera
+#include "sampler.hlsl"
+
+RayDesc camera_generate_rays(
+    uint2 pixel, _BaseCamera camera, _SamplerConfig sampler_config)
 {
-    float4 camera_pos;
-    float4 camera_forward;
-    float4 camera_right;
-    float4 camera_up;
-
-    float tanHalfFov;
-    float aspect;
-    float2 padding;
-};
-ConstantBuffer<_BaseCamera> g_camera : register(b0);
-
+    return sampler_generate_rays(pixel, camera, sampler_config);
+}
 #endif

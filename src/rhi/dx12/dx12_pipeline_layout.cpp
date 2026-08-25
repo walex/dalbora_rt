@@ -43,7 +43,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		range->RangeType = range_type;
 		range->BaseShaderRegister = static_cast<UINT>(descriptor.shader_register_start);
 		range->NumDescriptors = static_cast<UINT>(descriptor.shader_register_max);
-		range->RegisterSpace = 0;
+		range->RegisterSpace = static_cast<UINT>(descriptor.space_index);
 		range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 		range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	}

@@ -17,6 +17,7 @@
 #include "rhi_shader_program.hpp"
 #include "rhi_gpu_buffer.hpp"
 #include "rhi_shared_buffer.hpp"
+#include "rhi_shared_buffer_map.hpp"
 #include "rhi_ray_trace_geometry_buffer.hpp"
 #include "rhi_pipeline_layout.hpp"
 #include "rhi_raster_pipeline.hpp"

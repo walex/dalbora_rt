@@ -5,6 +5,7 @@
 #include "GeometryNode.hpp"
 #include "Mesh.hpp"
 #include "Material.hpp"
+#include "scene_binding_table.h"
 
 struct PBRMaterialProperties;
 class BaseCamera;
@@ -36,10 +37,7 @@ class Scene: public SCENE_LOAD_CALLBACKS {
 public:
 	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(Scene);
 
-	Scene(): m_root_node(nullptr) {
-	
-		
-	}
+	Scene(): m_root_node(nullptr) {}
 	virtual ~Scene() = default;
 
 	virtual void load(const std::string& scene_path, RhiDevice& device,

@@ -1,19 +1,6 @@
 #include "rhi_shared_buffer.hpp"
 #include "rhi.hpp"
 
-RhiSharedBufferMap::RhiSharedBufferMap(RhiSharedBuffer& buffer, size_t offset, size_t length)
-	: m_buffer(&buffer)	
-	, m_offset(offset)
-	, m_length(length)
-	, m_data(static_cast<uint8_t*>(rhi_buffers_map_open(buffer, offset, length))) {
-}
-
-RhiSharedBufferMap::~RhiSharedBufferMap() {
-
-	ASSERT_PTR(m_buffer);
-	m_buffer->unmap(*this);
-}
-
 RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle, buffer_memory_type type)
 	: RhiBuffer(handle) {
 
@@ -55,7 +42,6 @@ void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_
 
 	auto v_map_info = this->map(offset, length);
 	memcpy(v_map_info.get_data() + offset, data, length);
-	this->unmap(v_map_info);
 }
 
 RhiView RhiSharedBuffer::new_depth_buffer_view(RhiDevice& UNUSED_PARAM(device)) {

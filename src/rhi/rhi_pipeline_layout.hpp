@@ -15,15 +15,16 @@ public:
 
 	void create(const RhiDevice& device, const primitive_topology topology,
 				const resource_format surface_format, const resource_format depth_buffer_format);
-	void add_constants_buffer_descriptors(const size_t offset, const size_t count);
-	void add_read_only_buffer_descriptors(const size_t offset, const size_t count);
-	void add_rw_buffer_descriptors(const size_t offset, const size_t count);
-	void add_sampler_buffer_descriptors(const size_t offset, const size_t count);
+	void add_constants_buffer_descriptors(const size_t offset, const size_t count, const size_t space_index = 0);
+	void add_read_only_buffer_descriptors(const size_t offset, const size_t count, const size_t space_index = 0);
+	void add_rw_buffer_descriptors(const size_t offset, const size_t count, const size_t space_index = 0);
+	void add_sampler_buffer_descriptors(const size_t offset, const size_t count, const size_t space_index = 0);
 	primitive_topology get_topology() const;
 	resource_format get_format() const;
 	resource_format get_depth_buffer_format() const;
 private:
-	void add_descriptors(const resource_type rt, const size_t offset, const size_t count);
+	void add_descriptors(const resource_type rt, const size_t offset,
+		const size_t count, const size_t space_index);
 private:
 	RHI_PIPELINE_LAYOUT_DESC m_layout_desc;
 };
