@@ -11,7 +11,7 @@ class RhiGPUBuffer: public RhiBuffer {
 		
 
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiGPUBuffer);
+	IMPLEMENT_MOVABLE_CLASS(RhiGPUBuffer);
 
 	RhiGPUBuffer(RHI_BUFFER* handle = nullptr, buffer_memory_type type = buffer_memory_type_default);
 	virtual ~RhiGPUBuffer() = default;
@@ -20,9 +20,7 @@ public:
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb);
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb,
 		const size_t ofsset_src, const size_t offset_dest, const size_t length);
-	resource_format get_format();
-	size_t get_length();
-	size_t get_stride();
+	
 	RhiView new_depth_buffer_view(const RhiDevice& device);
 	RhiView new_shader_constant_view(const RhiDevice& device);
 	RhiView new_shader_read_only_view(const RhiDevice& device);

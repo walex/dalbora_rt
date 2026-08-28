@@ -41,9 +41,13 @@ void test_objects() {
 
 	// test_rt_triangle_obj();
 	
-	//test_rt_mesh_obj();
+   // test_rt_mesh_obj();
 
 	test_rt_scene();
+	
+//	test_rt_triangle_rm_obj();
+
+	
 
 	// end rhi
 	rhi_end();

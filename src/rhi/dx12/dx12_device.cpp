@@ -144,9 +144,9 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 				dx_device->rw_buffer_slot.max +
 				dx_device->constant_buffer_slot.max <= RESOURCES_HEAP_SLOT_COUNT);
 
-	dx_device->sampler_slot.current = SAMPLER_HEAP_SLOT_COUNT;
-	dx_device->render_target_slot.current = RTV_HEAP_SLOT_COUNT;
-	dx_device->depth_buffer_slot.current = DSV_HEAP_SLOT_COUNT;
+	dx_device->sampler_slot.current = 0;
+	dx_device->render_target_slot.current = 0;
+	dx_device->depth_buffer_slot.current = 0;
 	
 	if (heaps_desc.resources_heap_desc.enable == true) {
 		dx_device->resources_heap.reset(dx12_heap_create(dx_device, 

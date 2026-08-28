@@ -8,8 +8,9 @@ class RhiShaderBindingTable;
 class RayTracingRenderer: public Renderer
 {
 public:
-	RayTracingRenderer(resource_format surface_format, size_t surface_width,
-		size_t surface_height);
+	RayTracingRenderer(const resource_format surface_format, const size_t surface_width,
+		const size_t surface_height, const size_t read_only_shader_registers_count,
+		const size_t rw_shader_registers_count, const size_t constant_shader_registers_count);
 	virtual ~RayTracingRenderer() = default;
 	void set_rt_pipeline(RhiRayTracePipeline& pipeline) override {
 		m_ray_trace_render_pass.set_pipeline(pipeline);

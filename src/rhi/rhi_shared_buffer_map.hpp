@@ -7,7 +7,7 @@ class RhiSharedBuffer;
 class RhiSharedBufferMap {
 
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiSharedBufferMap);
+	IMPLEMENT_MOVABLE_CLASS(RhiSharedBufferMap);
 
 	RhiSharedBufferMap() = default;
 	RhiSharedBufferMap(RhiSharedBuffer& buffer, size_t offset, size_t length);

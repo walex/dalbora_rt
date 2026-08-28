@@ -71,7 +71,7 @@ RhiView RhiRayTraceGeometrydBufferInstances::new_view(const RhiDevice& device) {
 }
 
 RhiRayTraceGeometrydBufferInstances::RhiRayTraceGeometrydBufferInstances(RHI_BUFFER* handle)
-	: RhiImpl<RHI_BUFFER>(handle) {}
+	: RhiBuffer(handle) {}
 
 RhiRayTraceGeometryBuffer::RhiRayTraceGeometryBuffer(RHI_RT_BVH* handle)
 	: RhiImpl<RHI_RT_BVH>(handle) {}

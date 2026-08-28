@@ -114,18 +114,17 @@ void RayTraceScene::setup_pipeline_layout(RhiDevice& device, resource_format sur
 	size_t constant_shader_registers_count) {
 	// add layout descriptors ( order mathers )
 
-	// 1 - GPU read only shader registers range to be used (Scene BVH)
-	m_pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
+	// 1 - GPU read only shader registers range to be used (Scene BVH, geometries, materials, lights, cameras)
+	m_pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count,0);
 
 	// 2 - GPU read write shader registers range to be used (Render buffer)
-	m_pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
+	m_pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count,0);
 
 	// 3 - Constant buffer shader registers range to be used (Camera matrix)
-	m_pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);
+	m_pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count,0);
 
 	// create pipeline layout
 	m_pipeline_layout.create(device, primitive_topology_triangle, surface_format, resource_format_d24_norm_s8_uint);
-
 }
 
 void RayTraceScene::setup_pipeline(RhiDevice& device, resource_format surface_format,

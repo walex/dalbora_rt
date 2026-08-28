@@ -17,12 +17,19 @@ void test_rt_scene() {
 	RHI_VIEWPORT view_port;
 	std::unique_ptr<BaseCamera> camera;
 
+	// TODO: add resource manager
+	constexpr size_t read_only_shader_registers_count = 800;
+	constexpr size_t rw_shader_registers_count = 1;
+	constexpr size_t constant_shader_registers_count = 1;
+
 	RHI_WINDOW_CALLBACKS window_callbacks;
 	window_callbacks.on_init = ([&](RHI_WINDOW* const wnd) {
 
 		// create render and swap chain
 		resource_format surface_format = resource_format_R8G8B8A8_norm;
-		renderer = std::make_unique<RayTracingRenderer>(surface_format, window.get_width(), window.get_height());
+		renderer = std::make_unique<RayTracingRenderer>(surface_format, window.get_width(),
+			window.get_height(), read_only_shader_registers_count,
+			rw_shader_registers_count, constant_shader_registers_count);
 		swap_chain = renderer->create_swap_chain(window, SWAP_CHAIN_BUFFER_COUNT, surface_format);
 		view_port.x = 0;
 		view_port.y = 0;
@@ -37,7 +44,9 @@ void test_rt_scene() {
 		if (std::filesystem::exists(model_3d_file) == false) {
 			throw std::exception("3d model file deos not exists");
 		}
-		scene.initialize(renderer->get_device(), surface_format, 800, 100, 1);
+		scene.initialize(renderer->get_device(), surface_format, 
+			read_only_shader_registers_count, rw_shader_registers_count, 
+			constant_shader_registers_count);
 		scene.set_max_size(6 * 1024 * 1024);
 		scene.load(model_3d_file, renderer->get_device(), 
 			renderer->get_command_queue());

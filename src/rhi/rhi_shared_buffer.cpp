@@ -11,6 +11,8 @@ RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle, buffer_memory_type type)
 	// implement buffer_access_flags_rw with D3D12_HEAP_TYPE_CUSTOM
 }
 
+resource_format RhiSharedBuffer::get_format() { return static_cast<RHI_BUFFER*>(*this)->format; }
+
 void RhiSharedBuffer::create(const RhiDevice& device, const size_t length, 
 	const size_t stride, const resource_format format) {
 
@@ -44,17 +46,29 @@ void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_
 	memcpy(v_map_info.get_data() + offset, data, length);
 }
 
-RhiView RhiSharedBuffer::new_depth_buffer_view(RhiDevice& UNUSED_PARAM(device)) {
+RhiView RhiSharedBuffer::new_depth_buffer_view(const RhiDevice& UNUSED_PARAM(device)) {
 
 	throw std::exception("mappeable depth bufferview is not supported");
 }
 
-RhiView RhiSharedBuffer::new_constant_buffer_view(RhiDevice& device) {
+RhiView RhiSharedBuffer::new_constant_buffer_view(const RhiDevice& device) {
 
-	RHI_VIEW_DESC object_cb_view_desc;
-	object_cb_view_desc.device = device;
-	object_cb_view_desc.buffer = *this;
-	object_cb_view_desc.type = resource_type_constant_buffer;
-	object_cb_view_desc.slot_id = device.next_constant_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&object_cb_view_desc), static_cast<int>(object_cb_view_desc.slot_id));
+	RHI_VIEW_DESC desc;
+	desc.device = device;
+	desc.buffer = *this;
+	desc.type = resource_type_constant_buffer;
+	desc.slot_id = device.next_constant_buffer_slot_id();
+	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
+}
+
+
+RhiView RhiSharedBuffer::new_shader_read_only_view(const RhiDevice& device) {
+
+	RHI_VIEW_DESC desc;
+	desc.device = device;
+	desc.buffer = *this;
+	desc.type = resource_type_read_only_shader_buffer;
+	desc.format = this->get_format();
+	desc.slot_id = device.next_read_only_buffer_slot_id();
+	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
 }

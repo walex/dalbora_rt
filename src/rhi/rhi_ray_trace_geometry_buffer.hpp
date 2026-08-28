@@ -1,7 +1,7 @@
 #ifndef __rhi_ray_trace_geometry_buffer_hpp__
 #define __rhi_ray_trace_geometry_buffer_hpp__
 
-#include "rhi_impl.hpp"
+#include "rhi_buffer.hpp"
 
 class RhiDevice;
 class RhiView;
@@ -9,9 +9,9 @@ class RhiCommandBuffer;
 class RhiGPUBuffer;
 class RhiRayTraceGeometryBuffer;
 class RhiRayTraceGeometrydBufferInstances
-	: public RhiImpl<RHI_BUFFER> {
+	: public RhiBuffer {
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiRayTraceGeometrydBufferInstances);
+	IMPLEMENT_MOVABLE_CLASS(RhiRayTraceGeometrydBufferInstances);
 
 	RhiRayTraceGeometrydBufferInstances(RHI_BUFFER* buffer = nullptr);
 	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
@@ -23,6 +23,9 @@ public:
 	void update(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		RhiRayTraceGeometryBuffer& geometry_buffer, const std::vector<float*>& instance_transforms);
 	RhiView new_view(const RhiDevice& device);
+private:
+	void create(const RhiDevice& device, const size_t length,
+		const size_t stride, const resource_format format = resource_format_none) override {}
 };
 
 class RhiRayTraceGeometryBuffer 
@@ -32,7 +35,7 @@ class RhiRayTraceGeometryBuffer
 	const RhiGPUBuffer&, const RhiGPUBuffer*> {
 
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiRayTraceGeometryBuffer);
+	IMPLEMENT_MOVABLE_CLASS(RhiRayTraceGeometryBuffer);
 	RhiRayTraceGeometryBuffer(RHI_RT_BVH* handle = nullptr);
 	virtual ~RhiRayTraceGeometryBuffer() = default;
 	void create(const RhiDevice& device, const RhiCommandBuffer& command_buffer,

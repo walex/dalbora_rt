@@ -35,7 +35,7 @@ class Renderer;
 class BaseCamera;
 class Scene: public SCENE_LOAD_CALLBACKS {
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(Scene);
+	IMPLEMENT_MOVABLE_CLASS(Scene);
 
 	Scene(): m_root_node(nullptr) {}
 	virtual ~Scene() = default;

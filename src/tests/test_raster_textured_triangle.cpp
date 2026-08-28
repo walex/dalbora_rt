@@ -86,13 +86,9 @@ resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
     return static_cast<resource_format>(std::distance(s.begin(), it));
 }
 
-struct Vertex
-{
-    float x, y, z;
-    float u, v;
-};
 
-static Vertex vertices[] =
+
+static VertexUV vertices[] =
 {
     // position  // uv
     {0.0f, 0.5f, 0.0f, 0.5f, 0.0f},
@@ -220,7 +216,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             desc_tx.format = resource_format_float2;
             desc_tx.offset = 12;
 
-            vertex_size = sizeof(Vertex);
+            vertex_size = sizeof(VertexUV);
             *vertices_ptr = &vertices[0];
 
             //   paths
@@ -291,12 +287,12 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
 
         // copy texture data        
         texture_buffer.create(device, texture.get_hw_length());
-        auto map_info = texture_buffer.map(0, texture.get_hw_length());
-        size_t mip_count;
-        const RHI_TEXTURE_MIPS* const mips = texture.get_mips(mip_count);
-        copy_bc1_image_data_with_mips(dds, mips, mip_count, map_info.get_data());
-        texture_buffer.unmap(map_info);
-
+        {
+            auto map_info = texture_buffer.map(0, texture.get_hw_length());
+            size_t mip_count;
+            const RHI_TEXTURE_MIPS* const mips = texture.get_mips(mip_count);
+            copy_bc1_image_data_with_mips(dds, mips, mip_count, map_info.get_data());
+        }
         // upload texture buffer
         // upload vertices e indices data to gpu only memory
         command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {

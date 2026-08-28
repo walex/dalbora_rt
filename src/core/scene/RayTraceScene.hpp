@@ -7,7 +7,7 @@ class RayTracingRenderer;
 class RhiView;
 class RayTraceScene : public Scene {
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RayTraceScene);
+	IMPLEMENT_MOVABLE_CLASS(RayTraceScene);
 	RayTraceScene();
 	virtual ~RayTraceScene() = default;
 

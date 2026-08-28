@@ -125,10 +125,10 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		ASSERT_PTR(texture);
 		i_buffer->AddRef();
 		texture->set_handle(i_buffer);
-		texture->format = desc->color_format;
+		texture->hw_format = desc->color_format;
 		texture->width = desc->width;
 		texture->height = desc->height;
-		texture->length = static_cast<size_t>(totalUploadSize);
+		texture->hw_length = static_cast<size_t>(totalUploadSize);
 		texture->mip_maps_count = mip_count;
 		memcpy(texture->mip_maps, mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
 		view->buffer = texture;

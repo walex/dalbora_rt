@@ -8,7 +8,7 @@ template<typename T>
 class RhiImpl: public RhiObject {
 	
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(RhiImpl);
+	IMPLEMENT_MOVABLE_CLASS(RhiImpl);
 
 	virtual ~RhiImpl() {
 		if (m_owner == false)

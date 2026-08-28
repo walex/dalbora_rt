@@ -241,7 +241,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		if (callbacks)
 			callbacks->on_end(unit_test);
 
-		camera_transforms.unmap(*camera_constant_buffer_map);
 		});
 
 	test_create_swap_chain_obj(&unit_test_callbacks);

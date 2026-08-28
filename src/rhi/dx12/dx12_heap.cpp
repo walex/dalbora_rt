@@ -1,5 +1,30 @@
 #include "dx12_heap.hpp"
 
+RHI_HANDLE* dx12_descriptor_heap_create(const RHI_DEVICE* const device,
+	const resource_type resource_type, const size_t slots_size,
+	const bool shader_visible) {
+
+	ASSERT_PTR(device);
+
+	const DX_DEVICE* device_impl = static_cast<const DX_DEVICE*>(device);
+	return dx12_heap_create(device_impl, resource_type, slots_size, shader_visible);
+}
+
+void dx12_descriptor_heap_get_info(const RHI_HANDLE* const heap, uint64_t* const cpu_descriptor_base_address,
+	uint64_t* const gpu_descriptor_base_address, size_t* const descriptor_size) {
+
+	ASSERT_PTR(heap);
+	ASSERT_PTR(cpu_descriptor_base_address);
+	ASSERT_PTR(gpu_descriptor_base_address);
+	ASSERT_PTR(descriptor_size);
+
+	DX_HEAP* heap_impl = static_cast<DX_HEAP*>(const_cast<RHI_HANDLE*>(heap));
+	
+	*cpu_descriptor_base_address = heap_impl->descriptor_handle.cpu_descriptor_handle.ptr;
+	*gpu_descriptor_base_address = heap_impl->descriptor_handle.gpu_descriptor_handle.ptr;
+	*descriptor_size = heap_impl->descriptor_handle.descriptor_size;
+}
+
 ID3D12DescriptorHeap*
 dx12_heap_create_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESCRIPTOR_HEAP_TYPE type,
 	const size_t slot_count, const D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
@@ -21,9 +46,9 @@ dx12_heap_create_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESC
 }
 
 DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, 
-	resource_type resource_type, 
+	const resource_type resource_type, 
 	const size_t slots_size,
-	bool shader_visible) {
+	const bool shader_visible) {
 
 	ASSERT_PTR(device_impl);
 	ID3D12Device* i_device = *device_impl;

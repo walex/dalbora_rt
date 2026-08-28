@@ -5,13 +5,6 @@
 static constexpr float image_aspect = 800.0f / 600.0f;
 static constexpr float x = 0.5f;
 
-
-struct Vertex
-{
-	float x, y, z;
-	float u, v;
-};
-
 static Vertex vertices[] =
 {
 	{0.0f, x, 0.0f}, // top
@@ -317,8 +310,16 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	ObjectCB triangle_transforms;
 	get_transforms(triangle_transforms.world, camera.view, camera.projection);
 
+	size_t read_only_shader_registers_count = 1;
+	size_t rw_shader_registers_count = 1;
+	size_t constant_shader_registers_count = 2;
+
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
+
+		device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
+		device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
+		device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 
 		if (callbacks)
 			callbacks->on_device_config(device_desc);
@@ -340,13 +341,13 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// add layout descriptors ( order mathers )
 
 		// 1 - GPU read only (rd buffers)
-		pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+		pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
 
 		// 2 - GPU read write (rw buffers)
-		pipeline_layout.add_rw_buffer_descriptors(0, 100);
+		pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
 
 		// 3 - Constant buffer (constant buffers)
-		pipeline_layout.add_constants_buffer_descriptors(0, 100);
+		pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);
 	
 		
 		// setup pipeline
@@ -387,16 +388,18 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// copy vertices to cpu visible memory
 		vertex_buffer.create(device, unit_test.vertices.size(), unit_test.vertices_stride, resource_format_float3);
 		shared_vertex_buffer.create(device, unit_test.vertices.size());
-		auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
-		memcpy(v_map_info.get_data(), unit_test.vertices.data(), v_map_info.get_length());
-		shared_vertex_buffer.unmap(v_map_info);
+		{
+			auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
+			memcpy(v_map_info.get_data(), unit_test.vertices.data(), v_map_info.get_length());
+		}
 
 		// copy indices to cpu visible memory
 		index_buffer.create(device, unit_test.indices.size(), unit_test.indices_stride, resource_format_uint16);
 		shared_index_buffer.create(device, unit_test.indices.size());
-		auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
-		memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
-		shared_index_buffer.unmap(i_map_info);
+		{
+			auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
+			memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
+		}
 
 		// upload vertices e indices data to gpu only memory
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
@@ -456,8 +459,6 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 			
 		if (callbacks)
 			callbacks->on_end(unit_test);
-		camera_transforms.unmap(*camera_constant_buffer_map);
-		object_transforms.unmap(*object_constant_buffer_map);
 	});
 
 	test_create_swap_chain_obj(&unit_test_callbacks);

@@ -65,7 +65,7 @@ inline void (*rhi_buffers_map_write)(RHI_BUFFER* const shared_buffer, RHI_VOID_P
 inline void (*rhi_buffers_map_read)(RHI_BUFFER* const shared_buffer, RHI_VOID_PTR* const data,
 									size_t offset, size_t length);
 inline RHI_VIEW* (*rhi_buffers_create_view)(const RHI_VIEW_DESC* const desc);
-inline void (*rhi_buffers_update_view)(const RHI_DEVICE* const device, RHI_VIEW* const view, const RHI_BUFFER* const buffer);
+inline void (*rhi_buffers_update_view)(const RHI_DEVICE* const device_impl, RHI_VIEW* const view, const RHI_BUFFER* const buffer);
 inline void (*rhi_texture_2d_gpu_upload)(RHI_COMMAND_BUFFER* const command_buffer,
 	const RHI_BUFFER* const src_buffer,
 	RHI_TEXTURE_2D* const dest_buffer);
@@ -75,7 +75,7 @@ inline RHI_SAMPLER*(*rhi_sampler_create)(const RHI_RT_SAMPLER_DESC* const des);
 // pipeline
 inline RHI_RT_PIPELINE* (*rhi_rt_pipeline_create)(const RHI_RT_PIPELINE_DESC* const desc);
 inline RHI_RASTER_PIPELINE* (*rhi_raster_pipeline_create)(const RHI_RASTER_PIPELINE_DESC* const pipeline_desc);
-inline RHI_SBT_TABLE* (*rhi_rt_pipeline_create_sbt)(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline);
+inline RHI_SBT_TABLE* (*rhi_rt_pipeline_create_sbt)(const RHI_DEVICE* const device_impl, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline);
 
 // pipeline layout
 inline RHI_PIPELINE_LAYOUT* (*rhi_pipeline_layout_create)(const RHI_PIPELINE_LAYOUT_DESC* const desc);
@@ -100,4 +100,10 @@ inline void (*rhi_command_buffer_ray_trace)(RHI_COMMAND_BUFFER* const command_bu
 inline void (*rhi_rt_bvh_update_geometry_instances)(const RHI_RT_BVH_GEOMETRY_DESC* const desc,
 	RHI_BUFFER* const buffer);
 
+// heap
+
+inline RHI_HANDLE* (*rhi_descriptor_heap_create)(const RHI_DEVICE* const device_impl, const resource_type resource_type,
+	const size_t slots_size, const bool shader_visible);
+inline void (*rhi_descriptor_heap_get_info)(const RHI_HANDLE* const heap, uint64_t* const cpu_descriptor_base_address,
+	uint64_t* const gpu_descriptor_base_address, size_t* const descriptor_size);
 #endif // __rhi_c_h__

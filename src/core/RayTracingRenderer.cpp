@@ -1,13 +1,10 @@
 #include "RayTracingRenderer.hpp"
 #include "SurfaceRadiance.hpp"
 
-RayTracingRenderer::RayTracingRenderer(resource_format surface_format, size_t surface_width, 
-	size_t surface_height) {
+RayTracingRenderer::RayTracingRenderer(const resource_format surface_format, const size_t surface_width,
+	const size_t surface_height, const size_t read_only_shader_registers_count,
+	const size_t rw_shader_registers_count, const size_t constant_shader_registers_count) {
 	
-	constexpr size_t read_only_shader_registers_count = 800;
-	constexpr size_t rw_shader_registers_count = 100;
-	constexpr size_t constant_shader_registers_count = 1;
-
 	RHI_DEVICE_DESC device_desc;
 	device_desc.features |= device_features_raytracing;
 	device_desc.shader_model = hlsl_shader_model_6_8;

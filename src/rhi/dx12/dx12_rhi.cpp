@@ -15,6 +15,7 @@
 #include "dx12_sampler.hpp"
 #include "dx12_rt_pipeline.hpp"
 #include "dx12_rt_bvh.hpp"
+#include "dx12_heap.hpp"
 
 void dx12_rhi_init()
 {
@@ -98,7 +99,9 @@ void dx12_rhi_init()
 	rhi_rt_bvh_update_geometry_instances = &dx12_rt_bvh_update_geometry_instances;
 	rhi_rt_pipeline_create_sbt = &dx12_rt_pipeline_create_sbt;
 
-	
+	// heap
+	rhi_descriptor_heap_create = &dx12_descriptor_heap_create;
+	rhi_descriptor_heap_get_info = &dx12_descriptor_heap_get_info;
 }
 
 void dx12_rhi_end()

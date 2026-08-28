@@ -16,9 +16,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 RaytracingAccelerationStructure scene_bvh : register(t0);
+
 RWTexture2D<float4> render_surface : register(u0);
 ConstantBuffer<_BaseCamera> g_camera : register(b0);
 ConstantBuffer<_SamplerConfig> g_sampler_config : register(b1);
+
+//ByteAddressBuffer global_buffers[] : register(t0, space1);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Ray Generation
@@ -56,6 +59,8 @@ void RT_RayGen()
 {
     uint2 pixel = DispatchRaysIndex().xy;
 
+   // _BaseCamera camera = global_buffers[493].Load<_BaseCamera>(0);
+    
     RayDesc ray =
         camera_generate_rays(pixel, g_camera, g_sampler_config);
 

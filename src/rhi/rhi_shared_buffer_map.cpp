@@ -14,5 +14,6 @@ RhiSharedBufferMap::~RhiSharedBufferMap() {
 	if (m_mapped == true) {
 		ASSERT_PTR(m_buffer);
 		m_buffer->unmap(*this);
+		m_mapped = false;
 	}
 }

@@ -248,7 +248,7 @@ namespace cv
 #endif
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <numeric>
 #define __STDC_WANT_LIB_EXT1__ 1
 
 #ifndef _MAX_FNAME
@@ -309,10 +309,13 @@ std::string get_executable_folder(const std::string& concat_path = "");
 #define ALIGN(value, alignment) \
     (((value) + ((alignment) - 1)) & ~((alignment) - 1))
 
-#define IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(class_name)      \
+#define IMPLEMENT_COPYABLE_CLASS(class_name)      \
     class_name(const class_name&) = default;            \
-    class_name& operator=(const class_name&) = default; \
+    class_name& operator=(const class_name&) = default;
+
+#define IMPLEMENT_MOVABLE_CLASS(class_name)      \
     class_name(class_name&&) noexcept = default;        \
     class_name& operator=(class_name&&) noexcept = default;
+
 
 #endif

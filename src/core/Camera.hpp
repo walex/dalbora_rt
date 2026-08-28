@@ -19,7 +19,7 @@ struct alignas(256) _BaseCamera
 class BaseCamera: protected _BaseCamera {
 public:
 
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(BaseCamera);
+	IMPLEMENT_MOVABLE_CLASS(BaseCamera);
 
 	virtual void set_position(float3 pos) { camera_pos = float4(pos, 1.0f); }
 	virtual void set_look_at(float3 lookAt) { camera_forward = float4(normalize(lookAt), 0.0f); }

@@ -225,6 +225,9 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC*
 	result->set_handle(i_tlas_buffer);
 	result->scratch_handle.set_handle(i_scratch_buffer);
 	result->inputs_buffer_handle.set_handle(i_tlas_inputs_buffer);
+	result->length = offset;
+	result->type = resource_type_rt_bvh_buffer;
+	result->format = resource_format_none;
 	return result;
 }
 

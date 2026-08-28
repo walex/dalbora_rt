@@ -5,7 +5,7 @@
 
 class SceneNode : public Spatial {
 public:
-	IMPLEMENT_COPYABLE_AND_MOVABLE_CLASS(SceneNode)
+	IMPLEMENT_MOVABLE_CLASS(SceneNode)
 		SceneNode(SceneNode* parent) : m_parent(parent) {}
 	virtual ~SceneNode() = default;
 	void add_child(std::unique_ptr<SceneNode> node) { m_childs.push_back(std::move(node)); }

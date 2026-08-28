@@ -1,12 +1,7 @@
 #include "test_api.hpp"
 
-float image_aspect = 800.0f / 600.0f;
-float x = 0.5f;
-
-struct Vertex
-{
-	float x, y, z;
-};
+static float image_aspect = 800.0f / 600.0f;
+static float x = 0.5f;
 
 static Vertex vertices[] =
 {
@@ -375,6 +370,11 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		0.7002075f;
 	camera_matrices.aspect = image_aspect;
 
+	constexpr size_t read_only_shader_registers_count = 800;
+	constexpr size_t rw_shader_registers_count = 1;
+	constexpr size_t constant_shader_registers_count = 1;
+
+
 	float4x4 rotation_matrix = float4x4::Identity();
 	std::vector<std::vector<const float*>> instances_transforms;
 
@@ -389,7 +389,6 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
 		RhiRayTracePipeline& pipeline = unit_test.ray_trace_pipeline;
 		
-		// setup shaders
 		// setup shaders
 		std::filesystem::path shader_path = get_executable_folder("shaders");
 		shader_path = shader_path / "simple_rt.hlsl";
@@ -423,13 +422,13 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// add layout descriptors ( order mathers )
 
 		// 1 - GPU read only (Scene BVH)
-		pipeline_layout.add_read_only_buffer_descriptors(0, 100);
+		pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
 
 		// 2 - GPU read write (Render Target)
-		pipeline_layout.add_rw_buffer_descriptors(0, 100);
+		pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
 
 		// 3 - Constant buffer (Camera)
-		pipeline_layout.add_constants_buffer_descriptors(0, 100);		
+		pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);		
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
@@ -473,18 +472,19 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSharedBuffer shared_vertex_buffer;
 		vertex_buffer.create(device, unit_test.vertices.size(), unit_test.vertices_stride, resource_format_float3);
 		shared_vertex_buffer.create(device, unit_test.vertices.size());
-		auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
-		memcpy(v_map_info.get_data(), unit_test.vertices.data(), v_map_info.get_length());
-		shared_vertex_buffer.unmap(v_map_info);
+		{
+			auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
+			memcpy(v_map_info.get_data(), unit_test.vertices.data(), v_map_info.get_length());
+		}
 
 		// copy indices to cpu visible memory
 		RhiSharedBuffer shared_index_buffer;
 		index_buffer.create(device, unit_test.indices.size(), unit_test.indices_stride, resource_format_uint16);
 		shared_index_buffer.create(device, unit_test.indices.size());
-		auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
-		memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
-		shared_index_buffer.unmap(i_map_info);
-		
+		{
+			auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
+			memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
+		}
 		// upload vertices e indices data to gpu only memory
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
 
@@ -512,9 +512,6 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// view render_target (GPU read write)
 		render_target_view = render_target.new_rw_view(device);
 
-		// view camera (constant buffer)
-		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
-
 		// create render pass
 		rt_render_pass.create(device);
 		
@@ -523,8 +520,16 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
 		
 		// map constant buffers
-		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCB));
+		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCBRT));
 		
+	});
+
+	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
+		
+		device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
+		device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
+		device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
+
 	});
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
@@ -540,7 +545,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 			geometry_buffers.at(0), new_t);
 
 		// upload shaders constants
-		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCB));
+		memcpy(camera_constant_buffer_map->get_data(), &camera_matrices, sizeof(CameraCBRT));
 		
 		rt_render_pass.set_render_target(render_target_view);
 
@@ -560,7 +565,6 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		if (callbacks)
 			callbacks->on_end(unit_test);
 		
-		camera_transforms.unmap(*camera_constant_buffer_map);
 	});
 
 	test_create_swap_chain_obj(&unit_test_callbacks);

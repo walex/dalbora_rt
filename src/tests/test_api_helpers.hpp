@@ -7,6 +7,17 @@ constexpr float XMConvertToRadians(float fDegrees) noexcept { return fDegrees * 
 constexpr float XMConvertToDegrees(float fRadians) noexcept { return fRadians * (180.0f / XM_PI); }
 constexpr float XM_PIDIV4 = 0.785398163f;
 
+struct Vertex
+{
+	float x, y, z;
+};
+
+struct VertexUV
+{
+	float x, y, z;
+	float u, v;
+};
+
 struct alignas(256) CameraCB
 {
 	float4x4 view;

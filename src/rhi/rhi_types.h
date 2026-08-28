@@ -32,21 +32,6 @@ struct RHI_HANDLE {
 	virtual RHI_VOID_PTR get_handle() const = 0;
 };
 
-struct RHI_BUFFER { 
-	virtual ~RHI_BUFFER() = default;
-	size_t length = 0;
-	size_t stride = 0;
-	resource_format format = resource_format_none;
-};
-
-struct RHI_VIEW {
-	virtual ~RHI_VIEW() = default;
-	RHI_BUFFER* buffer = nullptr;
-	resource_type type = resource_type_none;
-	resource_format format = resource_format_none;
-	size_t mip_map_count = 0;
-};
-
 struct RhiShaderRegisterSlots {
 	size_t current = 0;
 	size_t max = 0;
@@ -72,6 +57,14 @@ struct RHI_TEXTURE_MIPS {
 	resource_format format = resource_format_none;
 };
 
+struct RHI_BUFFER {
+	virtual ~RHI_BUFFER() = default;
+	size_t length = 0;
+	size_t stride = 0;
+	resource_format format = resource_format_none;
+	resource_type type = resource_type_none;
+};
+
 #define MAX_TEXTURE_MIP_LEVELS 16
 struct RHI_TEXTURE_2D {
 	virtual ~RHI_TEXTURE_2D() = default;
@@ -81,6 +74,14 @@ struct RHI_TEXTURE_2D {
 	resource_format hw_format = resource_format_none;
 	RHI_TEXTURE_MIPS mip_maps[MAX_TEXTURE_MIP_LEVELS];
 	size_t mip_maps_count = 0;
+};
+
+struct RHI_VIEW {
+	virtual ~RHI_VIEW() = default;
+	RHI_BUFFER* buffer = nullptr;
+	resource_type type = resource_type_none;
+	resource_format format = resource_format_none;
+	size_t mip_map_count = 0;
 };
 
 #define MAX_RENDER_TARGETS 8
