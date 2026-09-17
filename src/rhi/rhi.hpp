@@ -22,11 +22,10 @@
 #include "rhi_sampler.hpp"
 #include "rhi_render_target.hpp"
 #include "rhi_shader_binding_table.hpp"
-#include "rhi_descriptor_heap.hpp"
 #include "rhi_buffer.hpp"
 #include "rhi_gpu_buffer.hpp"
 #include "rhi_depth_buffer.hpp"
 #include "rhi_shared_buffer.hpp"
 #include "rhi_shared_buffer_map.hpp"
-
+#include "rhi_memory_table.hpp"
 #endif

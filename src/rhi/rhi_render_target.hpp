@@ -3,8 +3,9 @@
 
 #include "rhi_texture.hpp"
 #include "rhi_view.hpp"
-
+#include "rhi_memory_table.hpp"
 class RhiDevice;
+class RhiMemoryTable;
 class RhiRenderTarget
     : public RhiTexture
     , public ICreateRhiObject<const RhiDevice&, const resource_format,
@@ -15,9 +16,10 @@ public:
 	virtual ~RhiRenderTarget() = default;
     void create(const RhiDevice& device, const resource_format format,
         const size_t width, const size_t heigh);
-    RhiView new_rw_view(RhiDevice& device) {
-        return RhiTexture::new_rw_view(device);
-    }
+    RhiView new_view(RhiDevice& device, const RhiMemoryTable& memory_table);
+private:
+    virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor) override;
+    virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor) override  ;
 };
 
-#endif // __rhi_texture_hpp__
+#endif // __rhi_render_target_hpp__

@@ -7,6 +7,7 @@
 class RhiDevice;
 class RhiSharedBuffer;
 class RhiCommandBuffer;
+class RhiMemoryTable;
 class RhiTexture
     : public RhiImpl<RHI_TEXTURE_2D>
     , public ICreateRhiObject<const RhiDevice&, const resource_format,
@@ -21,8 +22,9 @@ public:
         const size_t width, const size_t height,
         const bool is_cube_map, const size_t depth,
         const size_t dimension, const size_t mip_count);
-    RhiView new_read_only_view(RhiDevice& device);
-    RhiView new_rw_view(RhiDevice& device);
+    virtual RhiView new_view(RhiDevice& device, const RhiMemoryTable& memory_table);
+    virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor);
+    virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor);
     size_t get_hw_length();
     const RHI_TEXTURE_MIPS* const get_mips(size_t& mip_count);
     void upload(RhiCommandBuffer& command_buffer, RhiSharedBuffer& buffer);

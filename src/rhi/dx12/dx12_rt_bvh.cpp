@@ -79,7 +79,7 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 
 	RHI_BUFFER_DESC buffer_desc;
 	buffer_desc.device = desc->device;
-	buffer_desc.type = buffer_type_rt_bvh;
+	buffer_desc.type = buffer_type_bvh;
 	buffer_desc.format = resource_format_none;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = blasInfo.ResultDataMaxSizeInBytes;
@@ -188,7 +188,7 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC*
 
 	RHI_BUFFER_DESC buffer_desc;
 	buffer_desc.device = desc->device;
-	buffer_desc.type = buffer_type_rt_bvh;
+	buffer_desc.type = buffer_type_bvh;
 	buffer_desc.memory_type = buffer_memory_type_gpu_only;
 	buffer_desc.length = tlas_info.ResultDataMaxSizeInBytes;
 	buffer_desc.mips = 1;
@@ -226,7 +226,7 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC*
 	result->scratch_handle.set_handle(i_scratch_buffer);
 	result->inputs_buffer_handle.set_handle(i_tlas_inputs_buffer);
 	result->length = offset;
-	result->type = resource_type_rt_bvh_buffer;
+	result->type = buffer_type_bvh;
 	result->format = resource_format_none;
 	return result;
 }

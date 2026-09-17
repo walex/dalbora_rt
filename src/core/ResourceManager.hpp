@@ -6,11 +6,11 @@
 class ResourceManager {
 
 public:
-	ResourceManager(const RhiDevice& device, const std::vector<size_t>& space_slots);
-	RhiView new_resource_view(const RhiDevice& device, const RhiBuffer& buffer);
+	static void set_memory_descriptor(RhiMemoryTable* memory_descriptor);
+	static RhiMemoryTable& get_memory_descriptor();
+	static RhiView new_resource_view(const RhiDevice& device, const RhiBuffer& buffer);
 private:
-	RhiDescriptorHeap m_descriptor_heap;
-	std::vector<size_t> m_space_slots;
+	static RhiMemoryTable* g_memory_descriptor;
 };
 
 #endif // !__ResourceManager_hpp__

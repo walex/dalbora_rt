@@ -22,7 +22,7 @@ public:
 		const std::vector<std::vector<const float*>>& instance_transforms);
 	void update(const RhiDevice& device, const RhiCommandBuffer& command_buffer,
 		RhiRayTraceGeometryBuffer& geometry_buffer, const std::vector<float*>& instance_transforms);
-	RhiView new_view(const RhiDevice& device);
+	RhiView new_view(const RhiDevice& device, const RhiMemoryTable& descriptor_table);
 private:
 	void create(const RhiDevice& device, const size_t length,
 		const size_t stride, const resource_format format = resource_format_none) override {}

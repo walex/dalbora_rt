@@ -2,6 +2,7 @@
 #define __rhi_types_h__
 
 #include "rhi_defs.h"
+// remove this is not a pure c api
 #include <functional>
 #include <memory>
 struct RHI_WINDOW;
@@ -32,19 +33,18 @@ struct RHI_HANDLE {
 	virtual RHI_VOID_PTR get_handle() const = 0;
 };
 
-struct RhiShaderRegisterSlots {
-	size_t current = 0;
-	size_t max = 0;
+struct RHI_MEMORY_DESCRIPTOR {
+	size_t descriptor_count = 0;
+};
+
+struct RHI_MEMORY_DESCRIPTOR_SLOT {
+	
+	size_t slot_id = 0;
 };
 
 struct RHI_DEVICE {
 	virtual ~RHI_DEVICE() = default;
-	RhiShaderRegisterSlots constant_buffer_slot;
-	RhiShaderRegisterSlots rw_buffer_slot;
-	RhiShaderRegisterSlots read_only_buffer_slot;
-	RhiShaderRegisterSlots render_target_slot;
-	RhiShaderRegisterSlots depth_buffer_slot;
-	RhiShaderRegisterSlots sampler_slot;
+
 };
 
 struct RHI_TEXTURE_MIPS {
@@ -62,7 +62,7 @@ struct RHI_BUFFER {
 	size_t length = 0;
 	size_t stride = 0;
 	resource_format format = resource_format_none;
-	resource_type type = resource_type_none;
+	buffer_type type = buffer_type_undef;
 };
 
 #define MAX_TEXTURE_MIP_LEVELS 16
@@ -79,18 +79,18 @@ struct RHI_TEXTURE_2D {
 struct RHI_VIEW {
 	virtual ~RHI_VIEW() = default;
 	RHI_BUFFER* buffer = nullptr;
-	resource_type type = resource_type_none;
+	shader_view_type type = shader_view_type_none;
 	resource_format format = resource_format_none;
 	size_t mip_map_count = 0;
+	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
 };
 
 #define MAX_RENDER_TARGETS 8
 struct RHI_SWAP_CHAIN {
 	virtual ~RHI_SWAP_CHAIN() = default;
-	std::unique_ptr<RHI_VIEW> render_targets[MAX_RENDER_TARGETS];
 	resource_format format;
 	bool disable_vsync = false;
-	size_t render_targets_count = 0;
+	size_t buffers_count = 0;
 };
 
 struct RHI_COMPILED_SHADER_BUFFER {
@@ -106,6 +106,8 @@ struct RHI_PIPELINE_LAYOUT {
 
 struct RHI_COMMAND_BUFFER {
 	virtual ~RHI_COMMAND_BUFFER() = default;
+	RHI_MEMORY_DESCRIPTOR* buffer_memory_descriptor = nullptr;
+	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr;
 };
 
 struct RHI_FENCE {
@@ -114,7 +116,7 @@ struct RHI_FENCE {
 
 struct RHI_PIPELINE { 
 	virtual ~RHI_PIPELINE() = default;
-	RHI_PIPELINE_LAYOUT* layout = nullptr; 
+	RHI_PIPELINE_LAYOUT* layout = nullptr;
 };
 
 struct RHI_RASTER_PIPELINE : public RHI_PIPELINE {

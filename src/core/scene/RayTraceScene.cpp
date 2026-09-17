@@ -3,7 +3,7 @@
 #include "Mesh.hpp"
 #include "PBRMaterial.hpp"
 #include "RayTracingRenderer.hpp"
-
+#include "ResourceManager.hpp"
 
 static const std::string k_ray_gen_entry_point = "RT_RayGen";
 static const std::string k_miss_entry_point = "RT_Miss";
@@ -38,7 +38,7 @@ void RayTraceScene::create_blas_buffer(const RhiDevice& device, RhiCommandBuffer
 void RayTraceScene::create_tlas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer) {
 
 	this->m_tlas_buffers.create(device, command_buffer, this->m_blas_buffers, this->m_tlas_transforms);
-	this->m_tlas_view = this->m_tlas_buffers.new_view(device); // t0
+	this->m_tlas_view = this->m_tlas_buffers.new_view(device, ResourceManager::get_memory_descriptor()); // t0
 }
 
 void RayTraceScene::add_tlas_transform(const size_t blas_id, const float4x4& data) {

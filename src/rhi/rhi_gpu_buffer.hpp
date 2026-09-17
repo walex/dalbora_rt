@@ -7,9 +7,8 @@
 class RhiDevice;
 class RhiSharedBuffer;
 class RhiCommandBuffer;
+class RhiMemoryTable;
 class RhiGPUBuffer: public RhiBuffer {
-		
-
 public:
 	IMPLEMENT_MOVABLE_CLASS(RhiGPUBuffer);
 
@@ -20,11 +19,6 @@ public:
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb);
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb,
 		const size_t ofsset_src, const size_t offset_dest, const size_t length);
-	
-	RhiView new_depth_buffer_view(const RhiDevice& device);
-	RhiView new_shader_constant_view(const RhiDevice& device);
-	RhiView new_shader_read_only_view(const RhiDevice& device);
-	RhiView new_shader_rw_view(const RhiDevice& device);
 };
 
 #endif // __rhi_gpu_buffer_hpp__

@@ -23,24 +23,36 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	ASSERT_PTR(render_pass->pipeline);
 	ASSERT_PTR(render_pass->pipeline->layout);
 	ASSERT_PTR(command_buffer);
+	ASSERT_PTR(command_buffer->buffer_memory_descriptor);
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
-	ASSERT_PTR(device_impl->resources_heap);
 	
 	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
 	ASSERT_SUCCESS(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
 	ASSERT_PTR(i_command_buffer_5);
-	ASSERT_PTR(device_impl->resources_heap.get());
+
+	UINT heap_count = 1;
+	// configure heap
+	
+	ID3D12DescriptorHeap* resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR_TABLE*>(command_buffer->buffer_memory_descriptor);
+	ASSERT_PTR(resource_heap);
+
+	ID3D12DescriptorHeap* sampler_heap = nullptr;
+	if (command_buffer->sampler_memory_descriptor) {
+		sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR_TABLE*>(command_buffer->sampler_memory_descriptor);
+		heap_count++;
+	}
 	ID3D12DescriptorHeap* heaps[] =
 	{
-		*device_impl->resources_heap.get()
+		resource_heap,
+		sampler_heap
 	};
 
-	i_command_buffer_5->SetDescriptorHeaps(_countof(heaps), heaps);
+	i_command_buffer_5->SetDescriptorHeaps(heap_count, heaps);
 	i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
-	i_command_buffer_5->SetComputeRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);
+	i_command_buffer_5->SetComputeRootDescriptorTable(0, static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor)->gpu_handle);
 	i_command_buffer_5->SetPipelineState1(*static_cast<DX_RT_PIPELINE*>(pipeline_impl));
 	if (callback)
 		callback();
@@ -80,10 +92,11 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->buffer);
 	ASSERT_PTR(resource_impl);
 	
-	D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
+	const D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
 	if (depth_buffer_view_impl) {
 
-		dsv_handle = &depth_buffer_view_impl->cpu_descriptor_handle;
+		const DX_MEMORY_DESCRIPTOR_SLOT* dsv_slot = static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(depth_buffer_view_impl->memory_descriptor);
+		dsv_handle = &dsv_slot->cpu_handle;
 	}
 
 	dx12_command_buffer_resource_barrier_transition(i_command_buffer,
@@ -92,27 +105,31 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 		[&]() {
 		
 			// configure heap
-			ASSERT_PTR(device_impl->resources_heap.get());
-			ID3D12DescriptorHeap* resource_heap = *device_impl->resources_heap.get();
+			ASSERT_PTR(command_buffer->buffer_memory_descriptor);
+			ID3D12DescriptorHeap* resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR_TABLE*>(command_buffer->buffer_memory_descriptor);
 			ASSERT_PTR(resource_heap);
 
+			UINT heap_count = 1;
 			ID3D12DescriptorHeap* sampler_heap = nullptr;
-			if (device_impl->sampler_heap.get())
-				sampler_heap = *device_impl->sampler_heap.get();
+			if (command_buffer->sampler_memory_descriptor) {
+				sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR_TABLE*>(command_buffer->sampler_memory_descriptor);
+				heap_count++;
+			}
 			ID3D12DescriptorHeap* heaps[] =
 			{
 				resource_heap,
 				sampler_heap
 			};
-			i_command_buffer->SetDescriptorHeaps(sampler_heap ? 2 : 1, heaps);
+			i_command_buffer->SetDescriptorHeaps(heap_count, heaps);
 
 			static float clearColor[] = { 0.1f, 0.2f, 0.4f, 1.0f };
 
+			const DX_MEMORY_DESCRIPTOR_SLOT* rtv_slot = static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(render_target_view_impl->memory_descriptor);
 			i_command_buffer->RSSetViewports(1, &dx_vp);
 			i_command_buffer->RSSetScissorRects(1, &dx_scissor);
-			i_command_buffer->OMSetRenderTargets(1, &render_target_view_impl->cpu_descriptor_handle, FALSE, dsv_handle);
+			i_command_buffer->OMSetRenderTargets(1, &rtv_slot->cpu_handle, FALSE, dsv_handle);
 			i_command_buffer->ClearRenderTargetView(
-				render_target_view_impl->cpu_descriptor_handle,
+				rtv_slot->cpu_handle,
 				clearColor,
 				0,
 				nullptr
@@ -137,9 +154,9 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 				ID3D12RootSignature* i_signature = *static_cast<DX_PIPELINE_LAYOUT*>(pipeline_impl->layout);
 				ASSERT_PTR(i_signature);
 				i_command_buffer->SetGraphicsRootSignature(i_signature);
-				i_command_buffer->SetGraphicsRootDescriptorTable(0, device_impl->resources_heap->descriptor_handle.gpu_descriptor_handle);					
+				i_command_buffer->SetGraphicsRootDescriptorTable(0, static_cast<DX_MEMORY_DESCRIPTOR_TABLE*>(command_buffer->buffer_memory_descriptor)->gpu_handle);
 				if (sampler_heap)
-					i_command_buffer->SetGraphicsRootDescriptorTable(1, device_impl->sampler_heap->descriptor_handle.gpu_descriptor_handle);
+					i_command_buffer->SetGraphicsRootDescriptorTable(1, static_cast<DX_MEMORY_DESCRIPTOR_TABLE*>(command_buffer->sampler_memory_descriptor)->gpu_handle);
 			}
 
 			if (callback)

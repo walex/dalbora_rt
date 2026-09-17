@@ -32,8 +32,8 @@ void dx12_rhi_init()
 
 	// swap chain api
 	rhi_swap_chain_create = &dx12_swap_chain_create;
+	rhi_swap_chain_create_view = &dx12_swap_chain_create_view;
 	rhi_swap_chain_present = &dx12_swap_chain_present;
-	rhi_swap_chain_get_surface = &dx12_swap_chain_get_surface;
 	rhi_swap_chain_get_current_buffer_id = &dx12_swap_chain_get_current_buffer_id;
 
 	// command queue
@@ -100,8 +100,8 @@ void dx12_rhi_init()
 	rhi_rt_pipeline_create_sbt = &dx12_rt_pipeline_create_sbt;
 
 	// heap
-	rhi_descriptor_heap_create = &dx12_descriptor_heap_create;
-	rhi_descriptor_heap_get_info = &dx12_descriptor_heap_get_info;
+	rhi_memory_resource_create = &dx12_memory_resource_create;
+	rhi_memory_resource_get_descriptor = &dx12_memory_resource_get_descriptor;
 }
 
 void dx12_rhi_end()

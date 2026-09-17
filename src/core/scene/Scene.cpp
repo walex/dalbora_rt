@@ -4,6 +4,7 @@
 #include "Renderer.hpp"
 #include "Camera.hpp"
 #include "gltf_scene.hpp"
+#include "ResourceManager.hpp"
 
 void Scene::load(const std::string& scene_path, RhiDevice& device,
 	RhiCommandQueue& command_queue) {
@@ -111,13 +112,13 @@ void Scene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& UNUSED_PA
 	for (auto& [id, meshes] : this->m_meshes) {
 		for (auto& mesh : meshes) {
 			RhiGPUBuffer& vertex_buffer = mesh->get_vertex_buffer();
-			RhiView vb_view = vertex_buffer.new_shader_read_only_view(device);
+			RhiView vb_view = vertex_buffer.new_view(device, ResourceManager::get_memory_descriptor(), shader_view_type_read_only_buffer);
 			std::unique_ptr<RhiView> vertex_view = std::make_unique<RhiView>(std::move(vb_view));
 			mesh->set_vertex_view(std::move(vertex_view));
 			std::unique_ptr<RhiView> index_view;
 			RhiGPUBuffer* index_buffer = mesh->get_index_buffer();
 			if (index_buffer != nullptr) {
-				RhiView ib_view = index_buffer->new_shader_read_only_view(device);
+				RhiView ib_view = index_buffer->new_view(device, ResourceManager::get_memory_descriptor(), shader_view_type_read_only_buffer);
 				index_view = std::make_unique<RhiView>(std::move(ib_view));
 				mesh->set_index_view(std::move(index_view));
 			}

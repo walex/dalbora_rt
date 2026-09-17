@@ -23,7 +23,7 @@ public:
 	resource_format get_format() const;
 	resource_format get_depth_buffer_format() const;
 private:
-	void add_descriptors(const resource_type rt, const size_t offset,
+	void add_descriptors(const shader_view_type rt, const size_t offset,
 		const size_t count, const size_t space_index);
 private:
 	RHI_PIPELINE_LAYOUT_DESC m_layout_desc;

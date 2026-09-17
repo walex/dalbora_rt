@@ -17,12 +17,12 @@ void cull_geometries(SceneNode& node, std::vector<GeomrtryInstance>& visible_geo
 	if (geometry_node != nullptr) {
 		GeomrtryInstance& instance = visible_geometries.emplace_back();
 		auto& vertex_view = geometry_node->get_mesh().get_vertex_view();
-		instance.vertex_resource_id = vertex_view.get_view_id();
+		instance.vertex_resource_id = vertex_view.get_descriptor_id();
 		const RhiView* index_view = geometry_node->get_mesh().get_index_view();
 		if (index_view == nullptr) {
 			throw "Error: GeometryNode has no index buffer";
 		}
-		instance.index_resource_id = index_view->get_view_id();
+		instance.index_resource_id = index_view->get_descriptor_id();
 		instance.material_id = geometry_node->get_mesh().get_material_id();
 		instance.world = geometry_node->get_world_transform();
 	}
@@ -58,9 +58,9 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		
 		device_desc.features |= device_features_raytracing;
 		device_desc.shader_model = hlsl_shader_model_6_8;
-		device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
-		device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
-		device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
+	//	device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
+	//	device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
+	//	device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 	});
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
@@ -148,11 +148,11 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		camera_matrices.aspect = image_aspect;
 
 		// view render_target (GPU read write)
-		render_target_view = render_target.new_rw_view(device);
+		render_target_view = render_target.new_view(device, *unit_test.resources_memory_descriptors);
 
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		//  b0
+		camera_transform_view = camera_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);		//  b0
 
 		// add layout descriptors ( order mathers )
 

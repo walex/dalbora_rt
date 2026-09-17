@@ -4,6 +4,7 @@
 #include "rhi_impl.hpp"
 #include "rhi_view.hpp"
 
+class RhiMemoryTable;
 class RhiWindow;
 class RhiDevice;
 class RhiCommandQueue;
@@ -21,14 +22,17 @@ public:
 	RhiSwapChain(const RhiSwapChain&) = delete;
 	RhiSwapChain& operator=(const RhiSwapChain&) = delete;
 	virtual ~RhiSwapChain() = default;
-	void create(const RhiWindow& window, const RhiDevice& device, const RhiCommandQueue& command_queue,
-		const size_t buffers_count = 3,
-		resource_format format = resource_format_R8G8B8A8_norm,
+	void create(const RhiWindow& window, const RhiDevice& device, 
+		const RhiCommandQueue& command_queue,
+		const size_t buffers_count = 3, resource_format format = resource_format_R8G8B8A8_norm,
 		bool enable_vertical_sync = false) override;
+	void create_views(RhiDevice& device, RhiMemoryTable& memory_descriptor);
 	RhiView get_next_render_target();
 	resource_format get_format();
 	void blit(RhiCommandBuffer& command_buffer, RhiTexture& image);
 	void present();
+private:
+	std::vector<RhiView> m_views;
 };
 
 #endif // __rhi_swap_chain_hpp__

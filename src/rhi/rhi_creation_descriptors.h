@@ -3,18 +3,26 @@
 
 #include "rhi_types.h"
 
-// Creation params
-struct RHI_DEVICE_SHADER_RESOURCES_DESC {
-	size_t read_only_buffer_shader_registers_count = 0;
-	size_t rw_buffer_shader_registers_count = 0;
-	size_t constant_buffer_shader_registers_count = 0;
+struct RHI_MEMORY_DESCRIPTOR_DESC {
+	memory_descriptor_type type;
+	size_t count;
+	bool shader_visible;
+};
+struct RHI_MEMORY_POOL_DESC {
+	size_t size;
+};
+
+struct RHI_MEMORY_RESOURCE_DESC {
+	memory_resource_type type;
+	RHI_DEVICE* device;
+	RHI_MEMORY_DESCRIPTOR_DESC descriptor_desc;
+	RHI_MEMORY_POOL_DESC pool_desc;
 };
 
 struct RHI_DEVICE_DESC  {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
 	hlsl_shader_model shader_model = hlsl_shader_model_6_8;
-	RHI_DEVICE_SHADER_RESOURCES_DESC shader_resources_desc;
 };
 
 struct RHI_BUFFER_DESC  {
@@ -24,7 +32,6 @@ struct RHI_BUFFER_DESC  {
 	resource_format format = resource_format_none;
 	buffer_type type = buffer_type_undef;
 	resource_flags flags = resource_flags_none;
-
 };
 
 struct RHI_BUFFER_2D_DESC : RHI_BUFFER_DESC {
@@ -129,7 +136,7 @@ struct RHI_RT_PIPELINE_DESC  {
 };
 
 struct RHI_SHADER_DESCRIPTOR_DESC  {
-	resource_type resource_type = resource_type_rw_shader_buffer;
+	shader_view_type shader_view_type = shader_view_type_rw_buffer;
 	size_t shader_register_start = 0;
 	size_t shader_register_max = 0;
 	size_t space_index = 0;
@@ -186,8 +193,9 @@ struct RHI_RENDER_PASS_DESC  {
 	RHI_DEVICE* device = nullptr;
 };
 
-struct RHI_RT_SAMPLER_DESC {
+struct RHI_SAMPLER_DESC {
 	RHI_DEVICE* device = nullptr;
+	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
 };
 
 #define MAX_SBT_RAY_GEN_ENTRIES 8
@@ -200,14 +208,15 @@ struct RHI_RT_SBT_DESC {
 	size_t miss_shader_count = 0;
 	const char* hit_group_ids[MAX_SBT_GROUPS_ENTRIES];
 	size_t hit_group_count = 0;
+	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
 };
 
 struct RHI_VIEW_DESC  {
-	resource_type type = resource_type_rw_shader_buffer;
+	shader_view_type type = shader_view_type_rw_buffer;
 	resource_format format = resource_format_none;
 	size_t mip_maps_count  = 0;
 	RHI_DEVICE* device = nullptr;
 	RHI_BUFFER* buffer = nullptr;
-	size_t slot_id = 0;
+	const RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
 };
 #endif

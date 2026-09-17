@@ -1,5 +1,34 @@
 #include "test_api.hpp"
 
+std::unique_ptr<RhiMemoryTable> buffers_memory_table;
+std::unique_ptr<RhiMemoryTable> rtv_memory_table;
+std::unique_ptr<RhiMemoryTable> dsv_memory_table;
+std::unique_ptr<RhiMemoryTable> samplers_memory_table;
+
+RhiMemoryTable& get_buffers_memory_table() {
+	return *buffers_memory_table;
+}
+RhiMemoryTable& get_rtv_memory_table() {
+	return *rtv_memory_table;
+}
+RhiMemoryTable& get_dsv_memory_table() {
+	return *dsv_memory_table;
+}
+RhiMemoryTable& get_samplers_memory_table() {
+	return *samplers_memory_table;
+}
+
+void memory_table_init(RHI_DEVICE* device) {
+
+	RhiDevice device_obj(device);
+
+	std::vector<size_t> slot_group_start_indices = {0, 100, 200};
+	buffers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_buffer, BUFFERS_DESCRIPTORS_COUNT, slot_group_start_indices);
+	samplers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_sampler, SAMPLER_DESCRIPTORS_COUNT);
+	rtv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
+	dsv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
+}
+
 #ifdef TEST_SWAP_CHAIN
 void test_swap_chain(fptr_test_on_init on_init
 	, fptr_test_on_before_draw on_before_draw
@@ -13,8 +42,11 @@ void test_swap_chain(fptr_test_on_init on_init
 	std::unique_ptr<RHI_SWAP_CHAIN> swap_chain;
 	std::unique_ptr<RHI_COMMAND_BUFFER> command_buffer;
 	std::unique_ptr<RHI_RENDER_PASS> render_pass;
-	
+	std::vector<std::unique_ptr<RHI_VIEW>> views;
+	std::vector<std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT>> views_slots;
+
 	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
+
 	callbacks.get()->on_init = ([&](RHI_WINDOW* const window) {
 
 		RHI_DEVICE_DESC device_desc;
@@ -24,6 +56,8 @@ void test_swap_chain(fptr_test_on_init on_init
 			on_configure_device(device_desc);
 
 		device.reset(rhi_create_device(&device_desc));
+
+		memory_table_init(device.get());
 
 		RHI_COMMAND_QUEUE_DESC queue_desc;
 		queue_desc.device = device.get();
@@ -45,6 +79,13 @@ void test_swap_chain(fptr_test_on_init on_init
 		swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
 		swap_chain.reset(rhi_swap_chain_create(&swap_chain_desc));
 
+		for (size_t i = 0; i < swap_chain_desc.buffer_count; i++) {
+
+			views_slots.emplace_back(get_rtv_memory_table().next_descriptor().release());
+			RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device.get(), swap_chain.get(), views_slots.back().get(), swap_chain_desc.color_format, i);
+			views.push_back(std::unique_ptr<RHI_VIEW>(view_ptr));
+		}
+
 		RHI_VIEWPORT vp;
 		vp.x = 0;
 		vp.y = 0;
@@ -64,7 +105,8 @@ void test_swap_chain(fptr_test_on_init on_init
 
 	callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
 
-		render_pass->render_target_view = rhi_swap_chain_get_surface(swap_chain.get(), UINT64_MAX);
+		size_t i = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
+		render_pass->render_target_view = views[i].get();
 		
 		if (on_before_draw)
 			on_before_draw(*render_pass);
@@ -140,11 +182,25 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		if(callbacks)
 			callbacks->on_device_config(device_desc);
 
-		
+		if (callbacks)
+			callbacks->on_memory_descriptor_config(unit_test.read_only_shader_registers_count, unit_test.rw_shader_registers_count,
+				unit_test.constant_shader_registers_count);
+
 		device.create(device_desc);
+
+		std::vector<size_t> slot_group_start_indices = { 0, 100, 200 };
+		unit_test.resources_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_buffer,
+			unit_test.read_only_shader_registers_count + unit_test.rw_shader_registers_count + unit_test.constant_shader_registers_count,
+			slot_group_start_indices);
+
+		unit_test.rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
+		unit_test.dsv_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
+
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
+		command_buffer.set_resources_memory_descriptor(*unit_test.resources_memory_descriptors);
 		swap_chain.create(window, device, command_queue);
+		swap_chain.create_views(device, *unit_test.rtv_memory_descriptors);
 		render_pass.create(device);
 		if (callbacks)
 			callbacks->on_init(unit_test);
@@ -180,6 +236,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 
 	});
 
+	
 	test_create_window_obj(&unit_test_callbacks);
 }
 #endif

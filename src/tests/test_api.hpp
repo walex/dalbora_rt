@@ -6,7 +6,8 @@
 
 constexpr rhi_api render_api = rhi_api_dx12;
 
-using fptr_test_on_init = std::function<void(RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue, RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)>;
+using fptr_test_on_init = std::function<void(RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
+	RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)>;
 using fptr_test_on_before_draw = std::function<void(RHI_RENDER_PASS &render_pass)>;
 using fptr_test_on_draw = std::function<void(RHI_DEVICE& device, RHI_RENDER_PASS &render_pass, RHI_COMMAND_BUFFER &command_buffer)>;
 using fptr_test_on_before_present = std::function<void(RHI_RENDER_PASS &render_pass, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_BUFFER& command_buffer)>;
@@ -54,6 +55,10 @@ struct RhiUnitTest {
 	RhiPipelineLayout pipeline_layout;
 	RhiRasterPipeline raster_pipeline;
 	RhiRayTracePipeline ray_trace_pipeline;
+	std::unique_ptr<RhiMemoryTable> resources_memory_descriptors;
+	std::unique_ptr<RhiMemoryTable> rtv_memory_descriptors;
+	std::unique_ptr<RhiMemoryTable> dsv_memory_descriptors;
+	std::unique_ptr<RhiMemoryTable> samplers_memory_descriptors;
 	std::string vertex_shader_file;
 	std::string pixel_shader_file;
 	std::string ray_gen_shader_file;
@@ -63,14 +68,30 @@ struct RhiUnitTest {
 	std::vector<uint16_t> indices;
 	size_t vertices_stride;
 	size_t indices_stride;
+	size_t read_only_shader_registers_count = 0;
+	size_t rw_shader_registers_count = 0;
+	size_t constant_shader_registers_count = 0;
 };
 
 struct RhiUnitTestCallbacks {
 	std::function<void(RHI_DEVICE_DESC&)>on_device_config = [](RHI_DEVICE_DESC& UNUSED_PARAM(device_desc)) {};
+	std::function<void(size_t&, size_t&, size_t&)>on_memory_descriptor_config = [](size_t&, size_t&, size_t&) {};
 	std::function<void(RhiUnitTest&)> on_init = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_draw = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_end = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 };
+
+RhiMemoryTable& get_buffers_memory_table();
+RhiMemoryTable& get_rtv_memory_table();
+RhiMemoryTable& get_dsv_memory_table();
+RhiMemoryTable& get_samplers_memory_table();
+
+RHI_MEMORY_DESCRIPTOR_SLOT next_constant_buffer_descriptor();
+RHI_MEMORY_DESCRIPTOR_SLOT next_rw_buffer_descriptor();
+RHI_MEMORY_DESCRIPTOR_SLOT next_read_only_buffer_descriptor();
+RHI_MEMORY_DESCRIPTOR_SLOT next_render_target_descriptor();
+RHI_MEMORY_DESCRIPTOR_SLOT next_depth_buffer_descriptor();
+RHI_MEMORY_DESCRIPTOR_SLOT next_sampler_descriptor();
 
 void test_create_window_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks = nullptr);

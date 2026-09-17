@@ -3,6 +3,6 @@
 
 #include "dx12_rhi.hpp"
 
-RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc);
+RHI_SAMPLER* dx12_sampler_create(const RHI_SAMPLER_DESC* const desc);
 
 #endif

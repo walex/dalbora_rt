@@ -7,6 +7,7 @@
 
 class RhiDevice;
 class RhiView;
+class RhiMemoryTable;
 class RhiSharedBuffer: public RhiBuffer {
 
 public:
@@ -19,9 +20,6 @@ public:
 	RhiSharedBufferMap map(const size_t offset, const size_t length);
 	void unmap(const RhiSharedBufferMap& map_info);
 	void copy(const uint8_t* data, const size_t length, const size_t offset = 0);
-	RhiView new_depth_buffer_view(const RhiDevice& device);
-	RhiView new_constant_buffer_view(const RhiDevice& device);
-	RhiView new_shader_read_only_view(const RhiDevice& device);
 };
 
 #endif // __rhi_shared_buffer_hpp__

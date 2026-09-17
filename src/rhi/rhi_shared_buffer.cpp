@@ -45,30 +45,3 @@ void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_
 	auto v_map_info = this->map(offset, length);
 	memcpy(v_map_info.get_data() + offset, data, length);
 }
-
-RhiView RhiSharedBuffer::new_depth_buffer_view(const RhiDevice& UNUSED_PARAM(device)) {
-
-	throw std::exception("mappeable depth bufferview is not supported");
-}
-
-RhiView RhiSharedBuffer::new_constant_buffer_view(const RhiDevice& device) {
-
-	RHI_VIEW_DESC desc;
-	desc.device = device;
-	desc.buffer = *this;
-	desc.type = resource_type_constant_buffer;
-	desc.slot_id = device.next_constant_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
-}
-
-
-RhiView RhiSharedBuffer::new_shader_read_only_view(const RhiDevice& device) {
-
-	RHI_VIEW_DESC desc;
-	desc.device = device;
-	desc.buffer = *this;
-	desc.type = resource_type_read_only_shader_buffer;
-	desc.format = this->get_format();
-	desc.slot_id = device.next_read_only_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
-}

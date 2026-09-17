@@ -54,7 +54,7 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 		buffer_type = buffer_type_image_2d;
 		initial_state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	}
-	else if (buffer_type == buffer_type_rt_bvh) {
+	else if (buffer_type == buffer_type_bvh) {
 		flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		initial_state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	}
@@ -110,6 +110,7 @@ T* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc)
 	buffer_impl->format = desc->format;
 	buffer_impl->current_state = D3D12_RESOURCE_STATE_COMMON;
 	buffer_impl->stride = desc->stride;
+	buffer_impl->type = desc->type;
 	buffer_impl->set_handle(i_resource);
 
 	return buffer_impl;

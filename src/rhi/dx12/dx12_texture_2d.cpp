@@ -8,10 +8,6 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
 	ID3D12Device *i_device = *device_impl;
 	ASSERT_PTR(i_device);
-	DX_HEAP* heap_impl = device_impl->resources_heap.get();
-	ASSERT_PTR(heap_impl);
-	ID3D12DescriptorHeap* i_heap = *heap_impl;
-	ASSERT_PTR(i_heap);
 
 	RHI_BUFFER_2D_DESC buff_desc = {};
 	buff_desc.device = desc->device;
@@ -27,43 +23,8 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	ASSERT_PTR(buffer.get());
 	ID3D12Resource *i_texture = *static_cast<DX_BUFFER*>(buffer.get());
 	ASSERT_PTR(i_texture);
+
 	i_texture->AddRef();
-
-
-	// CREATE VIEW SEPARATELY
-	//
-	//std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE> srv_handle = dx12_helpers_get_rw_descriptor_heap_handle(i_device, i_heap, heap_slot);
-
-	//if (desc.default_state == resource_state_rt_render_target) {
-	//	D3D12_UNORDERED_ACCESS_VIEW_DESC uav = {};
-
-	//	uav.Format =
-	//		dx12_resource_format_type[desc.format];
-
-	//	uav.ViewDimension =
-	//		D3D12_UAV_DIMENSION_TEXTURE2D;
-
-	//	i_device->CreateUnorderedAccessView(
-	//		i_texture,
-	//		nullptr,
-	//		&uav,
-	//		*srv_handle
-	//	);
-	//}
-	//else {
-	//	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	//	srvDesc.Format = dx12_resource_format_type[desc.format];
-	//	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	//	srvDesc.Shader4ComponentMapping =
-	//		D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	//	srvDesc.Texture2D.MipLevels = static_cast<UINT>(desc.mips);
-	//	srvDesc.Texture1D.MostDetailedMip = 0;
-	//	i_device->CreateShaderResourceView(
-	//		i_texture,
-	//		&srvDesc,
-	//		*srv_handle);
-	//}
-
 	const UINT16 mip_count = static_cast<UINT16>(desc->mips);
 	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>
 		layouts(mip_count);

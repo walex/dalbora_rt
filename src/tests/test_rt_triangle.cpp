@@ -37,6 +37,10 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 	std::unique_ptr<RHI_RT_PIPELINE> pipeline;
 	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
 	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> bvh_descriptor_slot;
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> render_target_descriptor_slot;
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> camera_constant_buffer_descriptor_slot;
+
 	float4x4 rotation_matrix = float4x4::Identity();
 
 	RHI_VOID_PTR camera_constant_buffer_ptr;
@@ -66,6 +70,10 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 	test_swap_chain([&](RHI_DEVICE& dev, RHI_COMMAND_QUEUE& command_queue,
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
 		{
+			RhiMemoryTable& resources_memory_descriptor = get_buffers_memory_table();
+
+			command_buffer.buffer_memory_descriptor = resources_memory_descriptor;
+
 			swap_chain_ptr = &swap_chain;
 
 			RHI_TEXTURE_2D_DESC tx_desc;
@@ -95,21 +103,21 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 
 			// 1 - GPU read only (Scene BVH)
 			RHI_SHADER_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
-			s_desc.resource_type = resource_type_read_only_shader_buffer;
+			s_desc.shader_view_type = shader_view_type_read_only_buffer;
 			s_desc.shader_register_start = 0;
 			s_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 2 - GPU read write (Render Target)
 			RHI_SHADER_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
-			o_desc.resource_type = resource_type_rw_shader_buffer;
+			o_desc.shader_view_type = shader_view_type_rw_buffer;
 			o_desc.shader_register_start = 0;
 			o_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 3 - Constant buffer (Camera)
 			RHI_SHADER_DESCRIPTOR_DESC& c_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
-			c_desc.resource_type = resource_type_constant_buffer;
+			c_desc.shader_view_type = shader_view_type_constant_buffer;
 			c_desc.shader_register_start = 0;
 			c_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
@@ -246,19 +254,18 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 						tlas_desc.instance_info_count = 1;
 						tlas_desc.total_instances = 1;
 						bvh_instances.reset(rhi_rt_bvh_build_geometry_instances(&tlas_desc));
-
-						
-
 					});
 					command_buffer_list->push_back(&command_buffer);
 				});
 
+			
 			// view BVH (GPU read only)
 			RHI_VIEW_DESC bvh_instances_view_desc;
 			bvh_instances_view_desc.device = &dev;
 			bvh_instances_view_desc.buffer = bvh_instances.get();
-			bvh_instances_view_desc.type = resource_type_rt_bvh_buffer;
-			bvh_instances_view_desc.slot_id = 0;
+			bvh_instances_view_desc.type = shader_view_type_bvh_buffer;
+			bvh_descriptor_slot = resources_memory_descriptor.next_descriptor();
+			bvh_instances_view_desc.memory_descriptor = bvh_descriptor_slot.get();
 			bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
 
 			// view render_target (GPU read write)
@@ -266,8 +273,9 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			rt_instances_view_desc.format = tx_desc.format;
 			rt_instances_view_desc.device = &dev;
 			rt_instances_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(render_target.get());
-			rt_instances_view_desc.type = resource_type_rw_texture_shader_buffer;
-			rt_instances_view_desc.slot_id = 100;
+			rt_instances_view_desc.type = shader_view_type_rw_texture_buffer;
+			render_target_descriptor_slot = resources_memory_descriptor.next_descriptor(1);
+			rt_instances_view_desc.memory_descriptor = render_target_descriptor_slot.get();
 			render_target_view.reset(rhi_buffers_create_view(&rt_instances_view_desc));
 
 			// view camera (constant buffer)
@@ -275,8 +283,9 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			cb_instances_view_desc.format = tx_desc.format;
 			cb_instances_view_desc.device = &dev;
 			cb_instances_view_desc.buffer = static_cast<RHI_BUFFER*>(shared_camera_constant_buffer.get());
-			cb_instances_view_desc.type = resource_type_constant_buffer;
-			cb_instances_view_desc.slot_id = 200;
+			cb_instances_view_desc.type = shader_view_type_constant_buffer;
+			camera_constant_buffer_descriptor_slot = resources_memory_descriptor.next_descriptor(2);
+			cb_instances_view_desc.memory_descriptor = camera_constant_buffer_descriptor_slot.get();
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&cb_instances_view_desc));
 
 			// create render pass
@@ -285,13 +294,13 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			rt_render_pass.reset(rhi_render_pass_create(&render_pass_desc));
 			rt_render_pass->render_target_view = render_target_view.get();
 		}	
-		, [&](RHI_RENDER_PASS&) {
+		, [&](RHI_RENDER_PASS& render_pass) {
 			// before draw
 
 			rt_render_pass->pipeline = pipeline.get();
 			
 		}
-		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_COMMAND_BUFFER& command_buffer) {
+		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
 
 			float dt = get_delta_time();
 			rotation_matrix = rotate_triangle(dt);
@@ -320,9 +329,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 					render_target.get(),
 					sbt.get());
 			});
-
-			const RHI_VIEW* back_buffer = rhi_swap_chain_get_surface(swap_chain_ptr, INT64_MAX);
-			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(back_buffer->buffer), render_target.get());
+			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(render_pass.render_target_view->buffer), render_target.get());
 		}
 		, [&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer)) {
 
@@ -507,17 +514,17 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// views	
 		// 
 		// view BVH (GPU read only)
-		geometry_instances_views = geometry_instances.new_view(device);
+		geometry_instances_views = geometry_instances.new_view(device, *unit_test.resources_memory_descriptors);
 
 		// view render_target (GPU read write)
-		render_target_view = render_target.new_rw_view(device);
+		render_target_view = render_target.new_view(device, *unit_test.resources_memory_descriptors);
 
 		// create render pass
 		rt_render_pass.create(device);
 		
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
+		camera_transform_view = camera_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);		// cb reg 0
 		
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCBRT));
@@ -526,9 +533,9 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
 		
-		device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
-		device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
-		device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
+		//device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
+		//device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
+		//device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 
 	});
 

@@ -2,25 +2,30 @@
 #define __rhi_view_hpp__
 
 #include "rhi_impl.hpp"
-#include "rhi_descriptor_heap.hpp"
 
 class RhiCommandBuffer;
 class RhiTexture;
+class RhiDevice;
+class RhiBuffer;
+class RhiMemoryTable;
 class RhiView 
-	: public RhiImpl<RHI_VIEW> {
+	: public RhiImpl<RHI_VIEW> 
+	, public ICreateRhiObject<const RhiDevice&, const RhiBuffer&,
+	const RhiMemoryTable&, const shader_view_type,
+	const resource_format, const size_t> {
 
 public:	
-	RhiView(RHI_VIEW* handle, RhiDescriptorHeapResource&& slot);
-	RhiView(RHI_VIEW* handle = nullptr, int resource_id = 0);
-
+	RhiView(RHI_VIEW* handle = nullptr, bool ownership = false);
 	IMPLEMENT_MOVABLE_CLASS(RhiView);
 
 	virtual ~RhiView() = default;	
-	int get_view_id() const { return m_view_id; }
+	void create(const RhiDevice& device, const RhiBuffer& buffer,
+		const RhiMemoryTable& memory_descriptor, const shader_view_type type,
+		const resource_format format, const size_t mip_maps_count = 0);
 	void blit(RhiCommandBuffer& command_buffer, RhiTexture& image);
+	size_t get_descriptor_id() const { return static_cast<RHI_VIEW*>(*this)->memory_descriptor->slot_id; }
 private:
-	int m_view_id = -1;
-	RhiDescriptorHeapResource m_slot;
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> m_memory_descriptor;
 };
 
 #endif // __rhi_view_hpp__

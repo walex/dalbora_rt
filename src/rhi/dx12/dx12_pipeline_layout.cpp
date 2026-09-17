@@ -20,21 +20,21 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		}
 		const RHI_SHADER_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
-		switch (descriptor.resource_type) {
-		case resource_type_read_only_shader_buffer:
+		switch (descriptor.shader_view_type) {
+		case shader_view_type_read_only_buffer:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			break;
-		case resource_type_rw_shader_buffer:
+		case shader_view_type_rw_buffer:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			break;
-		case resource_type_constant_buffer:
+		case shader_view_type_constant_buffer:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 			break;
-		case resource_type_sampler:
+		case shader_view_type_sampler:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 			break;
 		default:
-			throw std::exception("Resource type not supported %d", (int)descriptor.resource_type);
+			throw std::exception("Resource type not supported %d", (int)descriptor.shader_view_type);
 		}
 
 		D3D12_DESCRIPTOR_RANGE1* range = (range_type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)

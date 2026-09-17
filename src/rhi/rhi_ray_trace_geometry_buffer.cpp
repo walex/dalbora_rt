@@ -60,14 +60,15 @@ void RhiRayTraceGeometrydBufferInstances::update(const RhiDevice& device, const 
 	rhi_rt_bvh_update_geometry_instances(&tlas_desc, *this);
 }
 
-RhiView RhiRayTraceGeometrydBufferInstances::new_view(const RhiDevice& device) {
+RhiView RhiRayTraceGeometrydBufferInstances::new_view(const RhiDevice& device, const RhiMemoryTable& descriptor_table) {
 
-	RHI_VIEW_DESC desc;
-	desc.device = device;
-	desc.buffer = *this;
-	desc.type = resource_type_rt_bvh_buffer;
-	desc.slot_id = device.next_read_only_buffer_slot_id();
-	return RhiView(rhi_buffers_create_view(&desc), static_cast<int>(desc.slot_id));
+	//RHI_VIEW_DESC desc;
+	//desc.device = device;
+	//desc.buffer = *this;
+	//desc.type = shader_view_type_bvh_buffer;
+	//desc.memory_descriptor = descriptor_table.next_descriptor().release();
+	//return RhiView(rhi_buffers_create_view(&desc), desc.memory_descriptor);
+	return RhiBuffer::new_view(device, descriptor_table, shader_view_type_bvh_buffer);
 }
 
 RhiRayTraceGeometrydBufferInstances::RhiRayTraceGeometrydBufferInstances(RHI_BUFFER* handle)

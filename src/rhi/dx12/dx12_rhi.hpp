@@ -17,16 +17,6 @@ struct DX_DEVICE_HEAP_ELEMENT_DESC {
 	size_t max_elements = 0;
 };
 
-struct DX_DEVICE_HEAP_DESC
-{
-	RHI_DEVICE* device;
-	
-	DX_DEVICE_HEAP_ELEMENT_DESC resources_heap_desc;
-	DX_DEVICE_HEAP_ELEMENT_DESC rtv_heap_desc;
-	DX_DEVICE_HEAP_ELEMENT_DESC dsv_heap_desc;
-	DX_DEVICE_HEAP_ELEMENT_DESC sampler_heap_desc;
-};
-
 template <typename T>
 struct DX_HANDLE : public RHI_HANDLE
 {
@@ -46,36 +36,28 @@ struct DX_HANDLE : public RHI_HANDLE
 	Microsoft::WRL::ComPtr<T> com_ptr;
 };
 
-enum heap_id_type {
-	heap_id_type_rtv,
-	heap_id_type_dsv,
-	heap_id_type_sampler,
-	heap_id_type_resources,
-	heap_id_type_count,
-};
-
 typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
-struct DX_RESOURCE_HEAP_DESCRIPTOR
+struct DX_MEMORY_DESCRIPTOR : public RHI_MEMORY_DESCRIPTOR
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor_handle;
-	D3D12_GPU_DESCRIPTOR_HANDLE gpu_descriptor_handle;
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
 	size_t descriptor_size = 0;
 };
 
-struct DX_HEAP : public DX_HANDLE<ID3D12DescriptorHeap> {
+struct DX_MEMORY_DESCRIPTOR_SLOT : public RHI_MEMORY_DESCRIPTOR_SLOT, public DX_MEMORY_DESCRIPTOR
+{
 
-	size_t count[heap_id_type_count];
-	size_t max_count[heap_id_type_count];
-	DX_RESOURCE_HEAP_DESCRIPTOR descriptor_handle = { 0 };
+};
+
+struct DX_MEMORY_DESCRIPTOR_TABLE :  public DX_MEMORY_DESCRIPTOR,
+	public DX_HANDLE<ID3D12DescriptorHeap> {
+};
+
+struct DX_MEMORY_POOL : public DX_MEMORY_DESCRIPTOR, public DX_HANDLE<ID3D12Heap> {
 };
 
 struct DX_DEVICE : public RHI_DEVICE, public DX_HANDLE<ID3D12Device>
 {
-	std::unique_ptr<DX_HEAP> rtv_heap;
-	std::unique_ptr<DX_HEAP> dsv_heap;
-	std::unique_ptr<DX_HEAP> sampler_heap;
-	std::unique_ptr<DX_HEAP> resources_heap;
-	DX_DEVICE_HEAP_DESC heap_desc;
 };
 
 struct DX_RESOURCE : public DX_HANDLE<ID3D12Resource> {
@@ -126,7 +108,7 @@ struct DX_BVH_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
 struct DX_FENCE : public RHI_FENCE, public DX_HANDLE<ID3D12Fence> {
 };
 
-struct DX_VIEW : public RHI_VIEW, public DX_RESOURCE_HEAP_DESCRIPTOR {
+struct DX_VIEW : public RHI_VIEW {
 
 };
 

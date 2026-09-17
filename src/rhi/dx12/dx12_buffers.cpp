@@ -31,10 +31,6 @@ void dx12_buffers_copy_buffer(RHI_COMMAND_BUFFER* const command_buffer, const RH
 	ASSERT_PTR(src_buffer);
 	ASSERT_PTR(dest_buffer);
 
-	// ID3D12GraphicsCommandList* i_command_buffer = static_cast<ID3D12GraphicsCommandList*>(*static_cast<DX_COMMAND_BUFFER*>(command_buffer));
-	// ID3D12Resource* src = *static_cast<const DX_BUFFER*>(src_buffer);
-	// ID3D12Resource* dest = *static_cast<DX_BUFFER*>(dest_buffer);
-	// i_command_buffer->CopyResource(dest, src);
 	static_cast<ID3D12GraphicsCommandList*>(
 		*static_cast<DX_COMMAND_BUFFER*>(command_buffer))->CopyResource(
 			*static_cast<DX_BUFFER*>(dest_buffer),
@@ -208,6 +204,7 @@ RHI_VIEW* dx12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
 	ASSERT_PTR(desc->buffer);
+    ASSERT_PTR(desc->memory_descriptor);
 
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
 	ASSERT_PTR(i_device);
@@ -218,18 +215,13 @@ RHI_VIEW* dx12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 
-	result->descriptor_size = dx12_heap_next_handle(
-		static_cast<DX_DEVICE*>(desc->device), 
-		heap_id_type_dsv, 
-		desc->slot_id,
-		&result->cpu_descriptor_handle, 
-		&result->gpu_descriptor_handle);
-
-	dx12_buffers_create_dsv_from_handle(i_device, i_resource, desc->format, result->cpu_descriptor_handle);
+	dx12_buffers_create_dsv_from_handle(i_device, i_resource, desc->format, 
+		{static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor)->cpu_handle});
 	result->buffer = desc->buffer;
 	result->type = desc->type;
 	result->format = desc->format;
 	result->mip_map_count = 1;
+	result->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor);
 	return result;
 }
 
@@ -249,6 +241,7 @@ RHI_VIEW* dx12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
 	ASSERT_PTR(desc->buffer);
+	ASSERT_PTR(desc->memory_descriptor);
 
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
 	ASSERT_PTR(i_device);
@@ -259,15 +252,8 @@ RHI_VIEW* dx12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
 
-	dx12_heap_next_handle(
-		static_cast<DX_DEVICE*>(desc->device), 
-		heap_id_type_rtv, 
-		desc->slot_id,
-		&result->cpu_descriptor_handle,
-		&result->gpu_descriptor_handle);
-
 	dx12_buffers_create_rtv_from_handle(i_device, i_resource,
-		desc->format, result->cpu_descriptor_handle);
+		desc->format, {static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor)->cpu_handle});
 	result->buffer = desc->buffer;
 	result->type = desc->type;
 	result->format = desc->format;
@@ -277,20 +263,20 @@ RHI_VIEW* dx12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 
 void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device, 
 	ID3D12Resource* const i_resource,
-	resource_type type,
+	shader_view_type type,
 	size_t buffer_length,
 	size_t buffer_stride,
 	resource_format format,
 	size_t mip_maps_count,
 	D3D12_CPU_DESCRIPTOR_HANDLE handle) {
 
-	if (type == resource_type_constant_buffer) {
+	if (type == shader_view_type_constant_buffer) {
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
 		cbv_desc.BufferLocation = i_resource->GetGPUVirtualAddress();
 		cbv_desc.SizeInBytes = static_cast<UINT>(buffer_length); // MUST BE ALIGNED
 		i_device->CreateConstantBufferView(&cbv_desc, handle);
 	}
-	else if (type == resource_type_rw_shader_buffer) {
+	else if (type == shader_view_type_rw_buffer) {
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
 		uav_desc.Format = dx12_resource_format_type[format];
 		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -300,7 +286,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
 	}
-	else if (type == resource_type_read_only_shader_buffer) {
+	else if (type == shader_view_type_read_only_buffer) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = dx12_resource_format_type[format];
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -312,7 +298,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 		srv_desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 		i_device->CreateShaderResourceView(i_resource, &srv_desc, handle);
 	}
-	else if (type == resource_type_rw_texture_shader_buffer) {
+	else if (type == shader_view_type_rw_texture_buffer) {
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
 		uav_desc.Format = dx12_resource_format_type[format];
 		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
@@ -322,7 +308,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 	//	uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 		i_device->CreateUnorderedAccessView(i_resource, nullptr, &uav_desc, handle);
 	}
-	else if (type == resource_type_read_only_texture_shader_buffer) {
+	else if (type == shader_view_type_read_only_texture_buffer) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 		srv_desc.Format = dx12_resource_format_type[format];
 		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -335,7 +321,7 @@ void dx12_buffers_create_cbv_srv_uav_from_handle(ID3D12Device* const i_device,
 			&srv_desc,
 			handle);
 	}
-	else if (type == resource_type_rt_bvh_buffer) {
+	else if (type == shader_view_type_bvh_buffer) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
 		srv.ViewDimension =
 			D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
@@ -363,15 +349,6 @@ RHI_VIEW* dx12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(desc->buffer);
 	ASSERT_PTR(i_resource);
 
-	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
-	size_t descriptor_size = 
-		dx12_heap_next_handle(
-			static_cast<DX_DEVICE*>(desc->device), 
-			heap_id_type_resources, 
-			desc->slot_id,
-			&cpu_handle, 
-			&gpu_handle);
 
 	dx12_buffers_create_cbv_srv_uav_from_handle(i_device,
 		i_resource,
@@ -380,17 +357,15 @@ RHI_VIEW* dx12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 		desc->buffer->stride,
 		desc->format,
 		desc->mip_maps_count,
-		cpu_handle);
+		{static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor)->cpu_handle});
 
 	DX_VIEW* result = new DX_VIEW();
 	ASSERT_PTR(result);
-	result->cpu_descriptor_handle = cpu_handle;
-	result->gpu_descriptor_handle = gpu_handle;
-	result->descriptor_size = descriptor_size;
 	result->buffer = desc->buffer;
 	result->type = desc->type;
 	result->format = desc->format;
 	result->mip_map_count = desc->mip_maps_count;
+	result->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor);
 	return result;
 }
 
@@ -399,9 +374,9 @@ RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc) {
 	ASSERT_PTR(desc);
 
 	RHI_VIEW* result = nullptr;
-	if (desc->type == resource_type_depth_stencil_target)
+	if (desc->type == shader_view_type_depth_stencil_target)
 		result = dx12_buffers_create_dsv(desc);
-	else if (desc->type == resource_type_render_target)
+	else if (desc->type == shader_view_type_render_target)
 		result = dx12_buffers_create_rtv(desc);
 	else
 		result = dx12_buffers_create_cbv_srv_uav(desc);
@@ -410,8 +385,8 @@ RHI_VIEW* dx12_buffers_create_view(const RHI_VIEW_DESC* const desc) {
 	return result;
 }
 
-void dx12_buffers_update_view(const RHI_DEVICE* const device, 
-	RHI_VIEW* const view, 
+void dx12_buffers_update_view(const RHI_DEVICE* const device,
+	RHI_VIEW* const view,
 	const RHI_BUFFER* const buffer) {
 
 	ASSERT_PTR(device);
@@ -425,17 +400,17 @@ void dx12_buffers_update_view(const RHI_DEVICE* const device,
 	ASSERT_PTR(i_resource);
 
 	DX_VIEW* view_impl = static_cast<DX_VIEW*>(view);
-
-	if (view_impl->type == resource_type_depth_stencil_target)
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(view_impl->memory_descriptor)->cpu_handle };
+	if (view_impl->type == shader_view_type_depth_stencil_target)
 		dx12_buffers_create_dsv_from_handle(i_device,
 			i_resource,			
 			view_impl->format,
-			view_impl->cpu_descriptor_handle);
-	else if (view->type == resource_type_render_target)
+			cpu_handle);
+	else if (view->type == shader_view_type_render_target)
 		 dx12_buffers_create_rtv_from_handle(i_device,
 			i_resource,
 			view_impl->format,
-			view_impl->cpu_descriptor_handle);
+			cpu_handle);
 	else
 		dx12_buffers_create_cbv_srv_uav_from_handle(i_device,
 			i_resource,
@@ -444,7 +419,7 @@ void dx12_buffers_update_view(const RHI_DEVICE* const device,
 			view_impl->buffer->stride,
 			view_impl->format,
 			view_impl->mip_map_count,
-			view_impl->cpu_descriptor_handle);
+			cpu_handle);
 }
 
 RHI_BUFFER* dx12_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc) {

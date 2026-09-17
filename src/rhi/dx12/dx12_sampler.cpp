@@ -1,10 +1,11 @@
 #include "dx12_sampler.hpp"
 #include "dx12_heap.hpp"
 
-RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc) {
+RHI_SAMPLER* dx12_sampler_create(const RHI_SAMPLER_DESC* const desc) {
 
     ASSERT_PTR(desc);
     ASSERT_PTR(desc->device);
+    ASSERT_PTR(desc->memory_descriptor);
 
     DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
     ID3D12Device* i_device = *device_impl;
@@ -29,10 +30,7 @@ RHI_SAMPLER* dx12_sampler_create(const RHI_RT_SAMPLER_DESC* const desc) {
     DX_SAMPLER* result = new DX_SAMPLER();
     ASSERT_PTR(result);
 
-    dx12_heap_next_handle(device_impl, 
-        heap_id_type_sampler, 
-        0,
-        &result->cpu_handle);
-    i_device->CreateSampler(&sampDesc, result->cpu_handle);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{static_cast<DX_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor)->cpu_handle};
+    i_device->CreateSampler(&sampDesc, cpu_handle);
     return result;
 }

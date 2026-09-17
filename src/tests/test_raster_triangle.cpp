@@ -1,4 +1,5 @@
 #include "test_api.hpp"
+#include "dx12_rhi.hpp"
 
 #ifdef TEST_RASTER_TRIANGLE
 
@@ -42,7 +43,10 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	RHI_VOID_PTR camera_constant_buffer_ptr;
 	RHI_VOID_PTR object_constant_buffer_ptr;
 
-	
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> camera_descriptor_slot;
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> object_descriptor_slot;
+	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> depth_descriptor_slot;
+
 	CameraCB camera;
 	ObjectCB triangle_transforms;
 	get_transforms(triangle_transforms.world, camera.view, camera.projection);	
@@ -53,6 +57,9 @@ void test_raster_triangle(fptr_test_on_init on_init,
 						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)
 					{
 			
+			RhiMemoryTable& memory_descriptor = get_buffers_memory_table();
+			command_buffer.buffer_memory_descriptor = memory_descriptor;
+
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
 			std::unique_ptr<RHI_BUFFER> shared_vertex_buffer;
@@ -64,7 +71,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			// add constant buffer descriptors for camera and object transforms;
 			RHI_SHADER_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
-			cb_desc.resource_type = resource_type_constant_buffer;
+			cb_desc.shader_view_type = shader_view_type_constant_buffer;
 			cb_desc.shader_register_start = 0; // ie: b0 in hlsl
 			cb_desc.shader_register_max = 100;
 			
@@ -96,7 +103,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			
 			// create pipeline layout
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
-			
+
 			// compile shaders
 
 			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
@@ -137,8 +144,9 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_VIEW_DESC camera_cb_view_desc;
 			camera_cb_view_desc.device = &device;
 			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
-			camera_cb_view_desc.type = resource_type_constant_buffer;
-			camera_cb_view_desc.slot_id = 0;
+			camera_cb_view_desc.type = shader_view_type_constant_buffer;
+			camera_descriptor_slot = memory_descriptor.next_descriptor();
+			camera_cb_view_desc.memory_descriptor = camera_descriptor_slot.get();
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
 			
 			// create shared memory for object transforms
@@ -154,8 +162,9 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_VIEW_DESC object_cb_view_desc;
 			object_cb_view_desc.device = &device;
 			object_cb_view_desc.buffer = shared_object_constant_buffer.get();
-			object_cb_view_desc.type = resource_type_constant_buffer;
-			object_cb_view_desc.slot_id = 1;
+			object_cb_view_desc.type = shader_view_type_constant_buffer;
+			object_descriptor_slot = memory_descriptor.next_descriptor();
+			object_cb_view_desc.memory_descriptor = object_descriptor_slot.get();
 			object_constant_buffer_view.reset(rhi_buffers_create_view(&object_cb_view_desc));
 			
 			camera_constant_buffer_ptr = rhi_buffers_map_open(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
@@ -225,9 +234,10 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_VIEW_DESC db_view_desc;
 			db_view_desc.device = &device;
 			db_view_desc.buffer = depth_buffer.get();
-			db_view_desc.type = resource_type_depth_stencil_target;
+			db_view_desc.type = shader_view_type_depth_stencil_target;
 			db_view_desc.format = db_desc.format;
-			db_view_desc.slot_id = 0;
+			depth_descriptor_slot = get_dsv_memory_table().next_descriptor();
+			db_view_desc.memory_descriptor = depth_descriptor_slot.get();
 			depth_buffer_view.reset(rhi_buffers_create_view(&db_view_desc));
 			
 			// create pipeline
@@ -241,11 +251,11 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipe_desc.topology = primitive_topology_triangle;
 			pipe_desc.format = resource_format_R8G8B8A8_norm;
 			pipe_desc.depth_buffer_format = resource_format_d24_norm_s8_uint;
-			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));
-
+			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));			
+			
 			// on init
 			if (on_init)
-				on_init(device, command_queue, command_buffer, swap_chain); 
+				on_init(device, command_queue, command_buffer, swap_chain);
 			},
 
 			[&](RHI_RENDER_PASS &render_pass)
@@ -258,6 +268,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 				RHI_COMMAND_BUFFER &command_buffer)
 			{
 				// on draw
+
+				
 
 				float dt = get_delta_time();
 				triangle_transforms.world = rotate_triangle(dt);
@@ -305,25 +317,29 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiView depth_buffer_view;
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	std::unique_ptr<RhiSharedBufferMap> object_constant_buffer_map;
-	
+
 	CameraCB camera;
 	ObjectCB triangle_transforms;
 	get_transforms(triangle_transforms.world, camera.view, camera.projection);
 
-	size_t read_only_shader_registers_count = 1;
-	size_t rw_shader_registers_count = 1;
-	size_t constant_shader_registers_count = 2;
-
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
-
-		device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
-		device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
-		device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 
 		if (callbacks)
 			callbacks->on_device_config(device_desc);
 	});
+
+	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& read_only_shader_registers_count, 
+		size_t& rw_shader_registers_count, size_t& constant_shader_registers_count) {
+	
+		read_only_shader_registers_count = 1;
+		rw_shader_registers_count = 1;
+		constant_shader_registers_count = 2;
+		if (callbacks)
+			callbacks->on_memory_descriptor_config(read_only_shader_registers_count, rw_shader_registers_count,
+				constant_shader_registers_count);
+	});
+
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
 		RhiWindow& window = unit_test.window;
@@ -341,15 +357,14 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// add layout descriptors ( order mathers )
 
 		// 1 - GPU read only (rd buffers)
-		pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
+		pipeline_layout.add_read_only_buffer_descriptors(0, unit_test.read_only_shader_registers_count);
 
 		// 2 - GPU read write (rw buffers)
-		pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
+		pipeline_layout.add_rw_buffer_descriptors(0, unit_test.rw_shader_registers_count);
 
 		// 3 - Constant buffer (constant buffers)
-		pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);
+		pipeline_layout.add_constants_buffer_descriptors(0, unit_test.constant_shader_registers_count);
 	
-		
 		// setup pipeline
 		RhiRasterPipelineShaderPrograms shader_programs;
 		shader_programs.vertex_shader = &vertex_shader;
@@ -423,12 +438,12 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		object_transforms.create(device, sizeof(ObjectCB));
 
 		// views
-		depth_buffer_view = depth_buffer.new_depth_buffer_view(device);
+		depth_buffer_view = depth_buffer.new_view(device, *unit_test.dsv_memory_descriptors, shader_view_type_depth_stencil_target);
 
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_constant_buffer_view(device);		// cb reg 0
-		object_transform_view = object_transforms.new_constant_buffer_view(device);	// cb reg 1
+		camera_transform_view = camera_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);		// cb reg 0
+		object_transform_view = object_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);	// cb reg 1
 
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCB));

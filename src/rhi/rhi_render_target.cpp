@@ -19,3 +19,14 @@ void RhiRenderTarget::create(const RhiDevice& device, const resource_format form
     this->set_handle(rhi_texture_2d_create(&desc));
 }
 
+RhiView RhiRenderTarget::new_view(RhiDevice& device, const RhiMemoryTable& memory_table) {
+    return RhiTexture::new_rw_view(device, memory_table);
+}
+
+RhiView RhiRenderTarget::new_read_only_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor) {
+	throw std::runtime_error("RhiRenderTarget::new_read_only_view is not implemented yet.");
+}
+
+RhiView RhiRenderTarget::new_rw_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor) {
+	throw std::runtime_error("RhiRenderTarget::new_rw_view is not implemented yet.");   
+}

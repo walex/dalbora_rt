@@ -1,28 +1,51 @@
 #include "dx12_heap.hpp"
 
-RHI_HANDLE* dx12_descriptor_heap_create(const RHI_DEVICE* const device,
-	const resource_type resource_type, const size_t slots_size,
-	const bool shader_visible) {
+RHI_MEMORY_DESCRIPTOR* dx12_heap_create_descriptor_table(const DX_DEVICE* const device_impl,
+	const memory_descriptor_type heap_type,
+	const size_t slots_size,
+	const bool shader_visible);
 
-	ASSERT_PTR(device);
+RHI_MEMORY_DESCRIPTOR* dx12_memory_resource_create(const RHI_MEMORY_RESOURCE_DESC* const desc) {
+	
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
 
-	const DX_DEVICE* device_impl = static_cast<const DX_DEVICE*>(device);
-	return dx12_heap_create(device_impl, resource_type, slots_size, shader_visible);
+	switch (desc->type) {
+	case memory_resource_type_descriptor_table:
+		return dx12_heap_create_descriptor_table(static_cast<const DX_DEVICE*>(desc->device), desc->descriptor_desc.type,
+			desc->descriptor_desc.count, desc->descriptor_desc.shader_visible);
+	case memory_resource_type_pool:
+		throw std::exception("memory resource type pool not implemented");
+	default:
+		throw std::exception("memory resource type not supported");
+	}
 }
 
-void dx12_descriptor_heap_get_info(const RHI_HANDLE* const heap, uint64_t* const cpu_descriptor_base_address,
-	uint64_t* const gpu_descriptor_base_address, size_t* const descriptor_size) {
-
-	ASSERT_PTR(heap);
-	ASSERT_PTR(cpu_descriptor_base_address);
-	ASSERT_PTR(gpu_descriptor_base_address);
-	ASSERT_PTR(descriptor_size);
-
-	DX_HEAP* heap_impl = static_cast<DX_HEAP*>(const_cast<RHI_HANDLE*>(heap));
+RHI_MEMORY_DESCRIPTOR_SLOT* dx12_memory_resource_get_descriptor(const RHI_MEMORY_DESCRIPTOR* const heap, const size_t index) {
 	
-	*cpu_descriptor_base_address = heap_impl->descriptor_handle.cpu_descriptor_handle.ptr;
-	*gpu_descriptor_base_address = heap_impl->descriptor_handle.gpu_descriptor_handle.ptr;
-	*descriptor_size = heap_impl->descriptor_handle.descriptor_size;
+	ASSERT_EXPR(index < heap->descriptor_count);
+	ASSERT_PTR(heap);
+	const DX_MEMORY_DESCRIPTOR_TABLE* dt = static_cast<const DX_MEMORY_DESCRIPTOR_TABLE*>(heap);
+
+	DX_MEMORY_DESCRIPTOR_SLOT* result = new DX_MEMORY_DESCRIPTOR_SLOT();
+	ASSERT_PTR(result);
+
+	result->slot_id = index;
+	result->descriptor_size = dt->descriptor_size;
+	result->descriptor_count = 1;
+	if (dt->cpu_handle.ptr != 0) {
+		result->cpu_handle.ptr = dt->cpu_handle.ptr + index * dt->descriptor_size;
+	}
+	else {
+		result->cpu_handle.ptr = 0;
+	}
+	if (dt->gpu_handle.ptr != 0) {
+		result->gpu_handle.ptr = dt->gpu_handle.ptr + index * dt->descriptor_size;
+	}
+	else {
+		result->gpu_handle.ptr = 0;
+	}
+	return result;
 }
 
 ID3D12DescriptorHeap*
@@ -45,8 +68,8 @@ dx12_heap_create_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESC
 	return i_heap;
 }
 
-DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl, 
-	const resource_type resource_type, 
+RHI_MEMORY_DESCRIPTOR* dx12_heap_create_descriptor_table(const DX_DEVICE* const device_impl,
+	const memory_descriptor_type heap_type,
 	const size_t slots_size,
 	const bool shader_visible) {
 
@@ -54,92 +77,43 @@ DX_HEAP* dx12_heap_create(const DX_DEVICE* const device_impl,
 	ID3D12Device* i_device = *device_impl;
 	ASSERT_PTR(i_device);
 
-	DX_HEAP* result = new DX_HEAP();
+	DX_MEMORY_DESCRIPTOR_TABLE* result = new DX_MEMORY_DESCRIPTOR_TABLE();
 	ASSERT_PTR(result);
 
 	D3D12_DESCRIPTOR_HEAP_TYPE type;
-	heap_id_type heap_id;
-	switch (resource_type) {
-		case resource_type_constant_buffer:
-		case resource_type_rw_shader_buffer:
-		case resource_type_read_only_shader_buffer:
+	switch (heap_type) {
+		case memory_descriptor_type_buffer:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			heap_id = heap_id_type_resources;
 			break;
-		case resource_type_sampler:
+		case memory_descriptor_type_sampler:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-			heap_id = heap_id_type_sampler;
 			break;
-		case resource_type_render_target:
+		case memory_descriptor_type_dx_rtv:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-			heap_id = heap_id_type_rtv;
+			const_cast<bool&>(shader_visible) = false; // RTV heap cannot be shader visible
 			break;
-		case resource_type_depth_stencil_target:
+		case memory_descriptor_type_dx_dsv:
 			type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-			heap_id = heap_id_type_dsv;
+			const_cast<bool&>(shader_visible) = false; // DSV heap cannot be shader visible
 			break;
 		default:
-			throw std::exception("resource type not supported");
+			throw std::exception("heap type not supported");
 	}	
-	result->max_count[heap_id] = slots_size;
 	ID3D12DescriptorHeap* dh = dx12_heap_create_descriptor(device_impl, type,
-		result->max_count[heap_id],
+		slots_size,
 		(shader_visible == true)
 		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
 		: D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 	
 	result->set_handle(dh);
-
+	result->descriptor_count = slots_size;
 	D3D12_DESCRIPTOR_HEAP_DESC desc = dh->GetDesc();
-	result->count[heap_id] = 0;
-	result->descriptor_handle.cpu_descriptor_handle = dh->GetCPUDescriptorHandleForHeapStart();
+	result->cpu_handle = dh->GetCPUDescriptorHandleForHeapStart();
 	if (shader_visible == true)
-		result->descriptor_handle.gpu_descriptor_handle = dh->GetGPUDescriptorHandleForHeapStart();
+		result->gpu_handle = dh->GetGPUDescriptorHandleForHeapStart();
 	else
-		result->descriptor_handle.gpu_descriptor_handle.ptr = 0;
-	result->descriptor_handle.descriptor_size = i_device->GetDescriptorHandleIncrementSize(desc.Type);
+		result->gpu_handle.ptr = 0;
+	result->descriptor_size = i_device->GetDescriptorHandleIncrementSize(desc.Type);
+
 	return result;
-}
-
-size_t dx12_heap_next_handle(const DX_DEVICE* const device_impl,
-	const heap_id_type heap_id,
-	const size_t slot,
-	D3D12_CPU_DESCRIPTOR_HANDLE* const cpu_descriptor_handle,
-	D3D12_GPU_DESCRIPTOR_HANDLE* const gpu_descriptor_handle) {
-
-	ASSERT_PTR(device_impl);
-	ASSERT_EXPR(heap_id < heap_id_type_count);
-	ASSERT_PTR(cpu_descriptor_handle);
-
-	DX_HEAP* heap_impl = nullptr;
-	switch (heap_id) {
-	case heap_id_type_resources:
-		heap_impl = device_impl->resources_heap.get();
-		break;
-	case heap_id_type_sampler:
-		heap_impl = device_impl->sampler_heap.get();
-		break;
-	case heap_id_type_rtv:
-		heap_impl = device_impl->rtv_heap.get();
-		break;
-	case heap_id_type_dsv:
-		heap_impl = device_impl->dsv_heap.get();
-		break;
-	default:
-		throw std::exception("heap type not supported");
-	}
-	ASSERT_PTR(heap_impl);
-	ASSERT_EXPR(heap_impl->count[heap_id] < heap_impl->max_count[heap_id]);
-	
-	size_t offset = (slot * heap_impl->descriptor_handle.descriptor_size);
-	*cpu_descriptor_handle = heap_impl->descriptor_handle.cpu_descriptor_handle;
-	cpu_descriptor_handle->ptr += offset;
-
-	if (gpu_descriptor_handle) {
-		*gpu_descriptor_handle = heap_impl->descriptor_handle.gpu_descriptor_handle;
-		gpu_descriptor_handle->ptr += offset;
-	}
-
-	heap_impl->count[heap_id]++;
-	return heap_impl->descriptor_handle.descriptor_size;
 }

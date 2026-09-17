@@ -30,22 +30,22 @@ enum resource_format
 	resource_format_bc1_norm
 };
 
-enum resource_type
+enum shader_view_type
 {
-	resource_type_none,
-	resource_type_rt_bvh_buffer,
-	resource_type_sampler,
-	resource_type_render_target,
-	resource_type_depth_stencil_target,
-	resource_type_constant_buffer,
-	resource_type_rw_shader_buffer,
-	resource_type_read_only_shader_buffer,
-	resource_type_rw_texture_shader_buffer,
-	resource_type_read_only_texture_shader_buffer,
-	resource_type_count
+	shader_view_type_none,
+	shader_view_type_bvh_buffer,
+	shader_view_type_sampler,
+	shader_view_type_render_target,
+	shader_view_type_depth_stencil_target,
+	shader_view_type_constant_buffer,
+	shader_view_type_rw_buffer,
+	shader_view_type_read_only_buffer,
+	shader_view_type_rw_texture_buffer,
+	shader_view_type_read_only_texture_buffer,
+	shader_view_type_count
 };
 
-constexpr size_t resources_count = static_cast<size_t>(resource_type_count);
+constexpr size_t resources_count = static_cast<size_t>(shader_view_type_count);
 
 enum buffer_type
 {
@@ -55,7 +55,7 @@ enum buffer_type
 	buffer_type_image_1d,
 	buffer_type_image_2d,
 	buffer_type_image_3d,
-	buffer_type_rt_bvh,
+	buffer_type_bvh,
 	buffer_type_depth_stencil
 };
 
@@ -119,6 +119,30 @@ enum hlsl_shader_model
 	hlsl_shader_model_6_7 = 0x67,
 	hlsl_shader_model_6_8 = 0x68,
 	hlsl_shader_model_6_9 = 0x69
+};
+
+enum memory_resource_type {
+	memory_resource_type_descriptor_table,
+	memory_resource_type_pool
+};
+
+enum memory_descriptor_type
+{
+	memory_descriptor_type_buffer, // VkDescriptorPool + VkDescriptor UNIFORM_BUFFER(CBV), SAMPLED_IMAGE / STORAGE_TEXEL_BUFFER(SRV) y STORAGE_IMAGE / STORAGE_BUFFER(UAV)
+	memory_descriptor_type_sampler,
+	memory_descriptor_type_dx_rtv,
+	memory_descriptor_type_dx_dsv,
+	memory_descriptor_type_count
+};
+
+enum shader_binding_signature
+{
+	shader_binding_signature_bindless_table = 0,
+	shader_binding_signature_32bits_constants = 1,
+	shader_binding_signature_constant_buffer = 2,
+	shader_binding_signature_rw_buffer = 3,
+	shader_binding_signature_read_only_buffer = 4,
+	shader_binding_signature_count
 };
 
 constexpr __int64 device_features_none = 0x0;

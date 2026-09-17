@@ -2,7 +2,7 @@
 #define __rhi_command_buffer_hpp__
 
 #include "rhi_impl.hpp"
-
+#include "rhi_memory_table.hpp"
 using RhiCommandBufferRecordCallback = std::function<void()>;
 
 class RhiDevice;
@@ -22,6 +22,12 @@ public:
 	void record(RhiCommandBufferRecordCallback callback);
 	void draw_triangle_list(RhiGPUBuffer& vertex_buffer, RhiGPUBuffer* index_buffer = nullptr);
 	void ray_trace(RhiRenderTarget& render_target, RhiShaderBindingTable& sbt);
+
+	void set_resources_memory_descriptor(RhiMemoryTable& resources_memory);
+	void set_sampler_memory_descriptor(RhiMemoryTable& sampler_memory);
+
+	RhiMemoryTable get_resources_memory_descriptor();
+	RhiMemoryTable get_sampler_memory_descriptor();
 };
 
 #endif // __rhi_command_buffer_hpp__

@@ -35,15 +35,12 @@ void test_rt() {
 	device_desc.adapter_id = -1;
 	device_desc.features = device_features_raytracing;
 	device_desc.shader_model = hlsl_shader_model_6_8;
-	device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
-	device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
-	device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
-
+	
 	// init device
 	rhi_init(device_type_dx12);
 	device.create(device_desc);
 	render_target.create(device, surface_format, surface_width, surface_height);
-	render_target_view = render_target.new_rw_view(device);
+	render_target_view = render_target.new_view(device);
 	command_queue.create(device);
 
 	// load scene from file

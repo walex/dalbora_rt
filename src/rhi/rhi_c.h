@@ -15,8 +15,10 @@ inline RHI_DEVICE* (*rhi_create_device)(const RHI_DEVICE_DESC* const desc);
 
 // swap chain api
 inline RHI_SWAP_CHAIN* (*rhi_swap_chain_create)(const RHI_SWAP_CHAIN_DESC* const swpc_desc);
+inline RHI_VIEW* (*rhi_swap_chain_create_view)(const RHI_DEVICE* const device, const RHI_SWAP_CHAIN* const swap_chain,
+	const RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor, resource_format format,
+	const size_t buffer_id);
 inline void (*rhi_swap_chain_present)(const RHI_SWAP_CHAIN* const);
-inline RHI_VIEW* const (*rhi_swap_chain_get_surface)(const RHI_SWAP_CHAIN* const swap_chain, const size_t surface_index);
 inline uint32_t (*rhi_swap_chain_get_current_buffer_id)(const RHI_SWAP_CHAIN* const swap_chain);
 inline void (*rhi_swap_chain_copy_direct)(RHI_SWAP_CHAIN& swap_chain, RHI_TEXTURE_2D& render_target);
 
@@ -70,7 +72,7 @@ inline void (*rhi_texture_2d_gpu_upload)(RHI_COMMAND_BUFFER* const command_buffe
 	const RHI_BUFFER* const src_buffer,
 	RHI_TEXTURE_2D* const dest_buffer);
 inline RHI_TEXTURE_2D* (*rhi_texture_2d_create)(const RHI_TEXTURE_2D_DESC* const tex_desc);
-inline RHI_SAMPLER*(*rhi_sampler_create)(const RHI_RT_SAMPLER_DESC* const des);
+inline RHI_SAMPLER*(*rhi_sampler_create)(const RHI_SAMPLER_DESC* const des);
 
 // pipeline
 inline RHI_RT_PIPELINE* (*rhi_rt_pipeline_create)(const RHI_RT_PIPELINE_DESC* const desc);
@@ -102,8 +104,6 @@ inline void (*rhi_rt_bvh_update_geometry_instances)(const RHI_RT_BVH_GEOMETRY_DE
 
 // heap
 
-inline RHI_HANDLE* (*rhi_descriptor_heap_create)(const RHI_DEVICE* const device_impl, const resource_type resource_type,
-	const size_t slots_size, const bool shader_visible);
-inline void (*rhi_descriptor_heap_get_info)(const RHI_HANDLE* const heap, uint64_t* const cpu_descriptor_base_address,
-	uint64_t* const gpu_descriptor_base_address, size_t* const descriptor_size);
+inline RHI_MEMORY_DESCRIPTOR* (*rhi_memory_resource_create)(const RHI_MEMORY_RESOURCE_DESC* const desc);
+inline RHI_MEMORY_DESCRIPTOR_SLOT* (*rhi_memory_resource_get_descriptor)(const RHI_MEMORY_DESCRIPTOR* const heap, const size_t index);
 #endif // __rhi_c_h__

@@ -11,26 +11,30 @@ public:
 	IMPLEMENT_MOVABLE_CLASS(RhiImpl);
 
 	virtual ~RhiImpl() {
-		if (m_owner == false)
-			m_handle.release();
+		if (m_handle != nullptr) {
+			if (m_owner == true)
+				m_handle.reset();
+			else
+				m_handle.release();
+		}
 	};
 	operator T* () const { return m_handle.get(); }
+	bool empty() const { return m_handle == nullptr; }
+protected:
+	RhiImpl(T* handle, bool ownership = false) {
+		if (handle) {
+			m_handle.reset(handle);
+			m_owner = ownership;
+		}
+	}
 	void set_handle(T* handle) {
 		if (m_owner == false)
 			m_handle.release();
 		m_handle.reset(handle);
 		m_owner = true;
 	}
-	bool empty() const { return m_handle == nullptr; }
-protected:
-	RhiImpl(T* no_owned_handle) {
-		if (no_owned_handle) {
-			m_handle.reset(no_owned_handle);
-			m_owner = false;
-		}
-	}
 private:
-	bool m_owner = true;
+	bool m_owner = false;
 	std::unique_ptr<T> m_handle;
 };
 
