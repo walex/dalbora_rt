@@ -195,7 +195,7 @@ struct RHI_RENDER_PASS_DESC  {
 
 struct RHI_SAMPLER_DESC {
 	RHI_DEVICE* device = nullptr;
-	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
+	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot = nullptr;
 };
 
 #define MAX_SBT_RAY_GEN_ENTRIES 8

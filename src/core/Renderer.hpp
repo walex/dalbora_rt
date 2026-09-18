@@ -3,15 +3,15 @@
 
 #include "Common.hpp"
 
+class ResourceManager;
 class Renderer {
 public:
-	Renderer() = default;
+	Renderer(ResourceManager& rm) : m_resource_manager(rm) {};
 	virtual ~Renderer() = default;
-	void create(RHI_DEVICE_DESC& device_desc);
+	void create();
 	virtual void draw(RhiView& out_surface, const RHI_VIEWPORT& view_port);
 	RhiSwapChain create_swap_chain(const RhiWindow& window, const uint32_t buffer_count,
 		resource_format surface_format);
-	RhiDevice& get_device() { return m_device; }
 	RhiGraphicsCommandQueue& get_command_queue() { return m_command_queue; }
 	virtual void set_rt_pipeline(RhiRayTracePipeline& pipeline) {}
 	virtual void set_bindig_table(RhiShaderBindingTable& sbt) {}
@@ -19,8 +19,9 @@ protected:
 	virtual void on_draw(RhiView& surface) = 0;
 	
 	RhiCommandBuffer& get_command_buffer() { return m_command_buffer; }
+
+	ResourceManager& m_resource_manager;
 private:
-	RhiDevice m_device;
 	RhiGraphicsCommandQueue m_command_queue;
 	RhiCommandBuffer m_command_buffer;
 	RhiRasterRenderPass m_raster_render_pass;

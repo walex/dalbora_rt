@@ -22,9 +22,9 @@ public:
         const size_t width, const size_t height,
         const bool is_cube_map, const size_t depth,
         const size_t dimension, const size_t mip_count);
-    virtual RhiView new_view(RhiDevice& device, const RhiMemoryTable& memory_table);
-    virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor);
-    virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryTable& memory_descriptor);
+    virtual RhiView new_view(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slote);
+    virtual RhiView new_read_only_view(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slotr);
+    virtual RhiView new_rw_view(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot);
     size_t get_hw_length();
     const RHI_TEXTURE_MIPS* const get_mips(size_t& mip_count);
     void upload(RhiCommandBuffer& command_buffer, RhiSharedBuffer& buffer);

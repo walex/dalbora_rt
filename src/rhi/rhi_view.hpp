@@ -11,7 +11,7 @@ class RhiMemoryTable;
 class RhiView 
 	: public RhiImpl<RHI_VIEW> 
 	, public ICreateRhiObject<const RhiDevice&, const RhiBuffer&,
-	const RhiMemoryTable&, const shader_view_type,
+	RHI_MEMORY_DESCRIPTOR_SLOT*, const shader_view_type,
 	const resource_format, const size_t> {
 
 public:	
@@ -20,7 +20,7 @@ public:
 
 	virtual ~RhiView() = default;	
 	void create(const RhiDevice& device, const RhiBuffer& buffer,
-		const RhiMemoryTable& memory_descriptor, const shader_view_type type,
+		RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot, const shader_view_type type,
 		const resource_format format, const size_t mip_maps_count = 0);
 	void blit(RhiCommandBuffer& command_buffer, RhiTexture& image);
 	size_t get_descriptor_id() const { return static_cast<RHI_VIEW*>(*this)->memory_descriptor->slot_id; }

@@ -377,11 +377,6 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		0.7002075f;
 	camera_matrices.aspect = image_aspect;
 
-	constexpr size_t read_only_shader_registers_count = 800;
-	constexpr size_t rw_shader_registers_count = 1;
-	constexpr size_t constant_shader_registers_count = 1;
-
-
 	float4x4 rotation_matrix = float4x4::Identity();
 	std::vector<std::vector<const float*>> instances_transforms;
 
@@ -426,16 +421,11 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		closest_hit_shader.create(unit_test.closest_hit_shader_file,
 			"ClosestHit", "lib_6_6");
 
-		// add layout descriptors ( order mathers )
+		// add layout descriptors
 
-		// 1 - GPU read only (Scene BVH)
-		pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
-
-		// 2 - GPU read write (Render Target)
-		pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
-
-		// 3 - Constant buffer (Camera)
-		pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);		
+		pipeline_layout.add_resources_buffers_descriptors(0, unit_test.constant_shader_registers_count,
+			0, unit_test.read_only_shader_registers_count,
+			0, unit_test.rw_shader_registers_count);
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
@@ -514,17 +504,17 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// views	
 		// 
 		// view BVH (GPU read only)
-		geometry_instances_views = geometry_instances.new_view(device, *unit_test.resources_memory_descriptors);
+		geometry_instances_views = geometry_instances.new_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(1));
 
 		// view render_target (GPU read write)
-		render_target_view = render_target.new_view(device, *unit_test.resources_memory_descriptors);
+		render_target_view = render_target.new_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(2));
 
 		// create render pass
 		rt_render_pass.create(device);
 		
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);		// cb reg 0
+		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, unit_test.buffers_memory_descriptors->next_descriptor_ptr());		// cb reg 0
 		
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCBRT));
@@ -538,6 +528,18 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		//device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 
 	});
+
+	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,
+		size_t& read_only_shader_registers_count, size_t& rw_shader_registers_count) {
+
+			constant_shader_registers_count = 1;
+			read_only_shader_registers_count = 1;
+			rw_shader_registers_count = 1;
+			if (callbacks)
+				return callbacks->on_memory_descriptor_config(constant_shader_registers_count, read_only_shader_registers_count,
+					rw_shader_registers_count);
+			return true;
+		});
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
 

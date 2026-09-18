@@ -1,18 +1,19 @@
 #include "Renderer.hpp"
+#include "ResourceManager.hpp"
 
-void Renderer::create(RHI_DEVICE_DESC& device_desc) {
+void Renderer::create() {
 
-	m_device.create(device_desc);
-	m_command_queue.create(m_device);
-	m_command_buffer.create(m_device, m_command_queue);
-	m_raster_render_pass.create(m_device);
+	m_command_queue.create(m_resource_manager.get_device());
+	m_command_buffer.create(m_resource_manager.get_device(), m_command_queue);
+	m_command_buffer.set_buffers_memory_descriptor(m_resource_manager);
+	m_raster_render_pass.create(m_resource_manager.get_device());
 }
 
 RhiSwapChain Renderer::create_swap_chain(const RhiWindow& window, const uint32_t buffer_count,
 	resource_format surface_format) {
 	
 	RhiSwapChain swap_chain;
-	swap_chain.create(window, m_device, m_command_queue, buffer_count, surface_format, true);
+	swap_chain.create(window, m_resource_manager.get_device(), m_command_queue, buffer_count, surface_format, true);
 	return swap_chain;
 }
 

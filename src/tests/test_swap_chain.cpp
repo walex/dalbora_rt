@@ -167,38 +167,49 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiUnitTestCallbacks unit_test_callbacks;
 
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
-		
+
 		RhiWindow& window = unit_test.window;
 		RhiDevice& device = unit_test.device;
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiRenderPass& render_pass = unit_test.raster_render_pass;
-		
+
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = -1;
 		device_desc.shader_model = hlsl_shader_model_6_8;
 
-		if(callbacks)
+		if (callbacks)
 			callbacks->on_device_config(device_desc);
 
+		bool create_descriptors = false;
 		if (callbacks)
-			callbacks->on_memory_descriptor_config(unit_test.read_only_shader_registers_count, unit_test.rw_shader_registers_count,
-				unit_test.constant_shader_registers_count);
+			create_descriptors = callbacks->on_memory_descriptor_config(unit_test.constant_shader_registers_count, unit_test.read_only_shader_registers_count,
+				unit_test.rw_shader_registers_count);
 
 		device.create(device_desc);
-
-		std::vector<size_t> slot_group_start_indices = { 0, 100, 200 };
-		unit_test.resources_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_buffer,
-			unit_test.read_only_shader_registers_count + unit_test.rw_shader_registers_count + unit_test.constant_shader_registers_count,
-			slot_group_start_indices);
 
 		unit_test.rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
 		unit_test.dsv_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
 
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
-		command_buffer.set_resources_memory_descriptor(*unit_test.resources_memory_descriptors);
+
+		if (create_descriptors == true) {
+			size_t resources_count = unit_test.constant_shader_registers_count + unit_test.read_only_shader_registers_count + unit_test.rw_shader_registers_count;
+
+			if (resources_count > 0) {
+				std::vector<size_t> slot_group_start_indices = { 0, unit_test.constant_shader_registers_count,
+				unit_test.constant_shader_registers_count + unit_test.read_only_shader_registers_count };
+				unit_test.buffers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_buffer,
+					resources_count,
+					slot_group_start_indices);
+				command_buffer.set_buffers_memory_descriptor(*unit_test.buffers_memory_descriptors);
+			}
+			else {
+				printf("Warning: No resources descriptors created, all shader registers counts are zero.\n");
+			}
+		}
 		swap_chain.create(window, device, command_queue);
 		swap_chain.create_views(device, *unit_test.rtv_memory_descriptors);
 		render_pass.create(device);

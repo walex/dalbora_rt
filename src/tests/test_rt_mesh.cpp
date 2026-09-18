@@ -1,6 +1,7 @@
 #include "test_api.hpp"
 #include "gltf_scene.hpp"
 #include "RayTraceScene.hpp"
+#include "ResourceManager.hpp"
 
 static constexpr float image_aspect = 800.0f / 600.0f;
 
@@ -43,25 +44,29 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiView camera_transform_view;
 	RhiRayTraceRenderPass rt_render_pass;
 	RhiShaderBindingTable sbt;
-	RayTraceScene scene;
-
+	std::unique_ptr<RayTraceScene> scene;
+	std::unique_ptr<ResourceManager> resources_manager;
 	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
 	CameraCBRT camera_matrices;
 
 	RhiUnitTestCallbacks unit_test_callbacks;
 
-	size_t read_only_shader_registers_count = 800;
-	size_t rw_shader_registers_count = 100;
-	size_t constant_shader_registers_count = 1;
+	size_t read_only_shaders = 800;
+	size_t rw_shaders = 100;
+	size_t constant_shaders = 1;
 
 	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
 		
 		device_desc.features |= device_features_raytracing;
 		device_desc.shader_model = hlsl_shader_model_6_8;
-	//	device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
-	//	device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
-	//	device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;
 	});
+
+	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,
+		size_t& read_only_shader_registers_count, size_t& rw_shader_registers_count) {
+
+			return false;
+		});
+
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
 		RhiWindow& window = unit_test.window;
@@ -70,6 +75,17 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiSwapChain& swap_chain = unit_test.swap_chain;
 		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
 		RhiRayTracePipeline& pipeline = unit_test.ray_trace_pipeline;
+		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
+
+		// create resource manager
+		resources_manager = std::make_unique<ResourceManager>(device);
+		resources_manager->create_descriptor_table(constant_shaders, read_only_shaders, rw_shaders);
+
+		// set command buffer memory descriptor
+		command_buffer.set_buffers_memory_descriptor(*resources_manager);
+
+		// create scene
+		scene = std::make_unique<RayTraceScene>(*resources_manager, swap_chain.get_format());
 
 		// setup shaders
 		std::filesystem::path shader_path = get_executable_folder("shaders");
@@ -97,21 +113,19 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		closest_hit_shader.create(unit_test.closest_hit_shader_file,
 			closest_hit_entry_point, "lib_6_8");
 
-		
 		// load scene from file
 		std::filesystem::path model_3d_folder = get_executable_folder("test_3d_models");
 		std::string model_3d_file = (model_3d_folder / "scene.gltf").string();
 		if (std::filesystem::exists(model_3d_file) == false) {
 			throw std::exception("3d model file deos not exists");
 		}
-		scene.set_max_size(6 * 1024 * 1024);
-		scene.load(model_3d_file,
-			device,	command_queue);
+		scene->set_max_size(6 * 1024 * 1024);
+		scene->load(model_3d_file, command_queue);
 
 		// create camera and setup transform
 		camera_transforms.create(device, sizeof(CameraCBRT));
-		float3 bb_min = scene.get_bb_min();
-		float3 bb_max = scene.get_bb_max();
+		float3 bb_min = scene->get_bb_min();
+		float3 bb_max = scene->get_bb_max();
 
 		float4 center = float4((bb_min + bb_max) * 0.5f, 1.0f);
 
@@ -148,22 +162,17 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 		camera_matrices.aspect = image_aspect;
 
 		// view render_target (GPU read write)
-		render_target_view = render_target.new_view(device, *unit_test.resources_memory_descriptors);
+		render_target_view = render_target.new_view(device, resources_manager->get_rw_buffer_descriptor_slot());
 
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);		//  b0
+		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, resources_manager->get_constant_buffer_descriptor_slot());		//  b0
 
 		// add layout descriptors ( order mathers )
 
-		// 1 - GPU read only shader registers range to be used (Scene BVH)
-		pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count);
-
-		// 2 - GPU read write shader registers range to be used (Render buffer)
-		pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count);
-
-		// 3 - Constant buffer shader registers range to be used (Camera matrix)
-		pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count);
+		pipeline_layout.add_resources_buffers_descriptors(0, resources_manager->get_constant_buffer_descriptor_size(),
+			0, resources_manager->get_read_only_buffer_descriptor_size(),
+			0, resources_manager->get_rw_buffer_descriptor_size());
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);

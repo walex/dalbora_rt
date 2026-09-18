@@ -33,6 +33,7 @@ public:
 		m_descriptor_group_offsets = slot_group_group_offsets;
 	}
 	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> next_descriptor(size_t group_index = 0) const;
+	RHI_MEMORY_DESCRIPTOR_SLOT* next_descriptor_ptr(size_t group_index = 0) const;
 private:
 
 	void create(const RhiDevice& device, const memory_descriptor_type type,

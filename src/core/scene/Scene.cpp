@@ -6,16 +6,21 @@
 #include "gltf_scene.hpp"
 #include "ResourceManager.hpp"
 
-void Scene::load(const std::string& scene_path, RhiDevice& device,
-	RhiCommandQueue& command_queue) {
+void Scene::set_camera(BaseCamera* camera) {
+
+	ASSERT_PTR(camera);
+	m_camera = camera;
+}
+
+void Scene::load(const std::string& scene_path,	RhiCommandQueue& command_queue) {
 
 	RhiCommandBuffer command_buffer;
 
 	// create command buffer
-	command_buffer.create(device, command_queue);
+	command_buffer.create(m_resources_manager.get_device(), command_queue);
 
 	// create temmp buffer
-	m_tmp_buffer.create(device, this->m_max_size);
+	m_tmp_buffer.create(m_resources_manager.get_device(), this->m_max_size);
 
 	command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
 
@@ -23,7 +28,7 @@ void Scene::load(const std::string& scene_path, RhiDevice& device,
 
 			// load scene
 			// TODO: check file extension
-			load_gltf_scene(device, command_buffer,
+			load_gltf_scene(m_resources_manager.get_device(), command_buffer,
 				scene_path, 0, this->m_root_node, *this);
 		});
 		list.add_command_buffer(command_buffer);
@@ -32,7 +37,7 @@ void Scene::load(const std::string& scene_path, RhiDevice& device,
 }
 
 // scene load callback
-void Scene::on_geometry_attrib_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void Scene::on_geometry_attrib_loaded(RhiCommandBuffer& command_buffer,
 	Mesh& mesh, const std::string& attr,
 	const uint8_t* const data, const size_t length,
 	const size_t stride, const resource_format format) {
@@ -41,23 +46,23 @@ void Scene::on_geometry_attrib_loaded(const RhiDevice& device, RhiCommandBuffer&
 	if (data != nullptr) {
 		m_tmp_buffer.copy(data, length, tmp_buffer_offset);
 		if (attr == "POSITION") {
-			mesh.set_vertices(device, command_buffer,
+			mesh.set_vertices(m_resources_manager.get_device(), command_buffer,
 				m_tmp_buffer, tmp_buffer_offset,
 				length, stride, format);
 		}
 		else if (attr == "NORMAL") {
-			mesh.set_normals(device, command_buffer,
+			mesh.set_normals(m_resources_manager.get_device(), command_buffer,
 				m_tmp_buffer, tmp_buffer_offset,
 				length, stride, format);
 		}
 		else if (attr == "TEXCOORD_0") {
-			mesh.set_uvs(device, command_buffer,
+			mesh.set_uvs(m_resources_manager.get_device(), command_buffer,
 				m_tmp_buffer, tmp_buffer_offset,
 				length, stride, format);
 		}
 		else if (attr == "__indices__") {
 
-			mesh.set_indices(device, command_buffer,
+			mesh.set_indices(m_resources_manager.get_device(), command_buffer,
 				m_tmp_buffer, tmp_buffer_offset,
 				length, stride, format);
 		}
@@ -65,7 +70,7 @@ void Scene::on_geometry_attrib_loaded(const RhiDevice& device, RhiCommandBuffer&
 	tmp_buffer_offset += length;
 }
 
-void Scene::on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) {
+void Scene::on_geometry_loaded(std::unique_ptr<Mesh> mesh) {
 	/*
 	static std::vector<std::unique_ptr<RhiView>> g_views;
 	RhiGPUBuffer& vertex_buffer = mesh->get_vertex_buffer();
@@ -96,13 +101,13 @@ void Scene::on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> me
 }
 
 // callbak when have new scene node
-void Scene::on_new_scene_node(const RhiDevice& UNUSED_PARAM(device), RhiCommandBuffer& UNUSED_PARAM(command_buffer),
+void Scene::on_new_scene_node(RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 	SceneNode& node) {
 
 	node.update_world_transform();
 }
 
-void Scene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& UNUSED_PARAM(command_buffer),
+void Scene::on_scene_loaded(RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 	const float3 bb_min, const float3 bb_max) {
 
 	m_bb_min = bb_min;
@@ -112,13 +117,15 @@ void Scene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& UNUSED_PA
 	for (auto& [id, meshes] : this->m_meshes) {
 		for (auto& mesh : meshes) {
 			RhiGPUBuffer& vertex_buffer = mesh->get_vertex_buffer();
-			RhiView vb_view = vertex_buffer.new_view(device, ResourceManager::get_memory_descriptor(), shader_view_type_read_only_buffer);
+			RhiView vb_view = vertex_buffer.new_view(m_resources_manager.get_device(), shader_view_type_read_only_buffer,
+				m_resources_manager.get_read_only_buffer_descriptor_slot());
 			std::unique_ptr<RhiView> vertex_view = std::make_unique<RhiView>(std::move(vb_view));
 			mesh->set_vertex_view(std::move(vertex_view));
 			std::unique_ptr<RhiView> index_view;
 			RhiGPUBuffer* index_buffer = mesh->get_index_buffer();
 			if (index_buffer != nullptr) {
-				RhiView ib_view = index_buffer->new_view(device, ResourceManager::get_memory_descriptor(), shader_view_type_read_only_buffer);
+				RhiView ib_view = index_buffer->new_view(m_resources_manager.get_device(), shader_view_type_read_only_buffer,
+					m_resources_manager.get_read_only_buffer_descriptor_slot());
 				index_view = std::make_unique<RhiView>(std::move(ib_view));
 				mesh->set_index_view(std::move(index_view));
 			}

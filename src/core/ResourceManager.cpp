@@ -1,35 +1,50 @@
 #include "ResourceManager.hpp"
-//
-//ResourceManager::ResourceManager(const RhiDevice& device, const std::vector<size_t>& space_slots)
-//	: m_space_slots(space_slots) {
-//
-//	size_t heap_slots_count = std::accumulate(m_space_slots.begin(), m_space_slots.end(), 0);
-//	m_descriptor_heap.create(device, memory_descriptor_type_buffer, heap_slots_count);
-//}
-//
 
-RhiMemoryTable* ResourceManager::g_memory_descriptor = nullptr;
+constexpr size_t k_scene_buffers_descriptor_group_constant_buffers = 0;
+constexpr size_t k_scene_buffers_descriptor_group_read_only_buffers = 1;
+constexpr size_t k_scene_buffers_descriptor_group_rw_buffers = 2;
 
-void ResourceManager::set_memory_descriptor(RhiMemoryTable* memory_descriptor) {
-	ResourceManager::g_memory_descriptor = memory_descriptor;
+ResourceManager::ResourceManager(RhiDevice& device)
+	: m_device(device) {}
+
+void ResourceManager::create_descriptor_table(const size_t constants_buffers_size,
+	const size_t read_only_buffers_size, const size_t rw_buffers_size) {
+
+	const size_t descriptors_count = constants_buffers_size + read_only_buffers_size + rw_buffers_size;
+	const std::vector<size_t> descriptor_groups = { 0, constants_buffers_size, constants_buffers_size + read_only_buffers_size };
+	m_memory_descriptors = std::make_unique<RhiMemoryTable>(m_device, memory_descriptor_type_buffer,
+		descriptors_count, descriptor_groups);
+	m_constants_buffers_size = constants_buffers_size;
+	m_read_only_buffers_size = read_only_buffers_size;
+	m_rw_buffers_size = rw_buffers_size;
 }
 
-RhiMemoryTable& ResourceManager::get_memory_descriptor() {
-	ASSERT_PTR(ResourceManager::g_memory_descriptor);
-	return *ResourceManager::g_memory_descriptor;
+RHI_MEMORY_DESCRIPTOR_SLOT* ResourceManager::get_read_only_buffer_descriptor_slot() {
+
+	return m_memory_descriptors->next_descriptor_ptr(k_scene_buffers_descriptor_group_read_only_buffers);
 }
 
-RhiView ResourceManager::new_resource_view(const RhiDevice& device, const RhiBuffer& buffer ) {
+RHI_MEMORY_DESCRIPTOR_SLOT* ResourceManager::get_constant_buffer_descriptor_slot() {
 
-	//ASSERT_PTR(g_memory_descriptor);
+	return m_memory_descriptors->next_descriptor_ptr(k_scene_buffers_descriptor_group_constant_buffers);
+}
 
-	//RHI_VIEW_DESC desc;
-	//desc.device = device;
-	//desc.buffer = buffer;
-	//desc.type = buffer.get_type();
-	//desc.format = buffer.get_format();
-	//desc.memory_descriptor = g_memory_descriptor->next_descriptor().get();
-	//return RhiView(rhi_buffers_create_view(&desc), desc.memory_descriptor->slot_id);
+RHI_MEMORY_DESCRIPTOR_SLOT* ResourceManager::get_rw_buffer_descriptor_slot() {
 
-	return RhiView();
+	return m_memory_descriptors->next_descriptor_ptr(k_scene_buffers_descriptor_group_rw_buffers);
+}
+
+size_t ResourceManager::get_constant_buffer_descriptor_size() {
+	
+	return m_constants_buffers_size;
+}
+
+size_t ResourceManager::get_read_only_buffer_descriptor_size() {
+
+	return m_read_only_buffers_size;
+}
+
+size_t ResourceManager::get_rw_buffer_descriptor_size() {
+
+	return m_rw_buffers_size;
 }

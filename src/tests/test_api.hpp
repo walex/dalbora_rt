@@ -55,7 +55,7 @@ struct RhiUnitTest {
 	RhiPipelineLayout pipeline_layout;
 	RhiRasterPipeline raster_pipeline;
 	RhiRayTracePipeline ray_trace_pipeline;
-	std::unique_ptr<RhiMemoryTable> resources_memory_descriptors;
+	std::unique_ptr<RhiMemoryTable> buffers_memory_descriptors;
 	std::unique_ptr<RhiMemoryTable> rtv_memory_descriptors;
 	std::unique_ptr<RhiMemoryTable> dsv_memory_descriptors;
 	std::unique_ptr<RhiMemoryTable> samplers_memory_descriptors;
@@ -75,7 +75,7 @@ struct RhiUnitTest {
 
 struct RhiUnitTestCallbacks {
 	std::function<void(RHI_DEVICE_DESC&)>on_device_config = [](RHI_DEVICE_DESC& UNUSED_PARAM(device_desc)) {};
-	std::function<void(size_t&, size_t&, size_t&)>on_memory_descriptor_config = [](size_t&, size_t&, size_t&) {};
+	std::function<bool(size_t&, size_t&, size_t&)>on_memory_descriptor_config = [](size_t&, size_t&, size_t&) { return true; };
 	std::function<void(RhiUnitTest&)> on_init = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_draw = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
 	std::function<void(RhiUnitTest&)> on_end = [](RhiUnitTest& UNUSED_PARAM(unit_test)) {};
@@ -99,7 +99,6 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks = nullptr);
-void test_rt_triangle_rm_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_scene();
 
 #endif

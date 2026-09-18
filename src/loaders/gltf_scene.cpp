@@ -263,7 +263,7 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	std::unique_ptr<SceneNode> scene_node = std::make_unique<SceneNode>(&parent_node);
 	scene_node->set_local_transform(local);
 
-	scene_callbacks.on_new_scene_node(device, command_buffer, *scene_node);
+	scene_callbacks.on_new_scene_node(command_buffer, *scene_node);
 
 	//------------------------------------
 	// Mesh
@@ -274,7 +274,7 @@ void process_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const std::vector<std::unique_ptr<Mesh>>& meshes = scene_callbacks.get_meshes(node.mesh);
 		for (auto& mesh : meshes) {
 			auto geo_node = std::make_unique<GeometryNode>(scene_node.get(), *mesh);
-			scene_callbacks.on_new_scene_node(device, command_buffer, *geo_node);
+			scene_callbacks.on_new_scene_node(command_buffer, *geo_node);
 			scene_node->add_child(std::move(geo_node));
 		}
 	}
@@ -312,7 +312,7 @@ void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 
 				const uint8_t* data = get_mesh_buffer(gltf_model, gltf_primitive,
 					attr.first, length, stride, format);
-				scene_callbacks.on_geometry_attrib_loaded(device, command_buffer,
+				scene_callbacks.on_geometry_attrib_loaded(command_buffer,
 					*mesh, attr.first,
 					data, length,
 					stride, format);
@@ -320,14 +320,14 @@ void load_geometries(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 			// INDICES
 			const uint8_t* data = get_mesh_buffer(gltf_model, gltf_primitive,
 				"__indices__", length, stride, format);
-			scene_callbacks.on_geometry_attrib_loaded(device, command_buffer,
+			scene_callbacks.on_geometry_attrib_loaded(command_buffer,
 				*mesh, "__indices__",
 				data, length,
 				stride, format);
 
-			scene_callbacks.on_geometry_loaded(device, std::move(mesh));
+			scene_callbacks.on_geometry_loaded(std::move(mesh));
 		}
-		scene_callbacks.on_geometry_group_loaded(device, command_buffer, i);
+		scene_callbacks.on_geometry_group_loaded(command_buffer, i);
 	}
 }
 
@@ -397,5 +397,5 @@ void load_gltf_scene(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	float3 bb_min, bb_max;
 	compute_scene_bounds(gltf_model, float4x4::Identity(), bb_min, bb_max);
 
-	scene_callbacks.on_scene_loaded(device, command_buffer, bb_min, bb_max);
+	scene_callbacks.on_scene_loaded(command_buffer, bb_min, bb_max);
 }

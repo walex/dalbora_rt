@@ -12,7 +12,7 @@ RhiView::RhiView(RHI_VIEW* handle, bool ownership)
 }
 
 void RhiView::create(const RhiDevice& device, const RhiBuffer& buffer,
-	const RhiMemoryTable& memory_descriptor, const shader_view_type type,
+	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot, const shader_view_type type,
 	const resource_format format, const size_t mip_maps_count) {
 	
 	RHI_VIEW_DESC desc;
@@ -21,7 +21,6 @@ void RhiView::create(const RhiDevice& device, const RhiBuffer& buffer,
 	desc.type = type;
 	desc.format = format;
 	desc.mip_maps_count = mip_maps_count;
-	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot = memory_descriptor.next_descriptor().release();
 	desc.memory_descriptor = memory_descriptor_slot;
 	this->set_handle(rhi_buffers_create_view(&desc));
 	m_memory_descriptor.reset(memory_descriptor_slot);

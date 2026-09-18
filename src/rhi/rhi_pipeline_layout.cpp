@@ -15,18 +15,14 @@ void RhiPipelineLayout::create(const RhiDevice& device, const primitive_topology
 	this->set_handle(rhi_pipeline_layout_create(&m_layout_desc));
 }
 
-void RhiPipelineLayout::add_constants_buffer_descriptors(const size_t offset, const size_t count
-	, const size_t space_index) {
-	this->add_descriptors(shader_view_type_constant_buffer, offset, count, space_index);
-}
+void RhiPipelineLayout::add_resources_buffers_descriptors(const size_t cb_offset, const size_t cb_count,
+	const size_t rd_offset, const size_t rd_count,
+	const size_t rw_offset, const size_t rw_count,
+	const size_t space_index) {
 
-void RhiPipelineLayout::add_read_only_buffer_descriptors(const size_t offset, const size_t count
-	, const size_t space_index) {
-	this->add_descriptors(shader_view_type_read_only_buffer, offset, count, space_index);
-}
-
-void RhiPipelineLayout::add_rw_buffer_descriptors(const size_t offset, const size_t count, const size_t space_index) {
-	this->add_descriptors(shader_view_type_rw_buffer, offset, count, space_index);
+	this->add_descriptors(shader_view_type_constant_buffer, cb_offset, cb_count, space_index);
+	this->add_descriptors(shader_view_type_read_only_buffer, rd_offset, rd_count, space_index);
+	this->add_descriptors(shader_view_type_rw_buffer, rw_offset, rw_count, space_index);
 }
 
 void RhiPipelineLayout::add_sampler_buffer_descriptors(const size_t offset, const size_t count, const size_t space_index) {
@@ -47,6 +43,9 @@ resource_format RhiPipelineLayout::get_depth_buffer_format() const {
 
 void RhiPipelineLayout::add_descriptors(const shader_view_type rt, const size_t offset, 
 	const size_t count, const size_t space_index) {
+
+	if (count == 0)
+		return;
 
 	RHI_SHADER_DESCRIPTOR_DESC& cbd = m_layout_desc.descriptors[m_layout_desc.descriptor_count++];
 	cbd.shader_view_type = rt;

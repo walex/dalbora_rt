@@ -16,6 +16,7 @@ struct alignas(256) _BaseCamera
 	float2 paddding;
 };
 
+class ResourceManager;
 class BaseCamera: protected _BaseCamera {
 public:
 
@@ -29,10 +30,9 @@ public:
 	virtual void set_aspect(float value) { aspect = value; }
 	virtual void update(float dt);
 	virtual ~BaseCamera();
-	BaseCamera(RhiDevice& device);
+	BaseCamera(ResourceManager& rn);
 private:
 	RhiSharedBuffer m_transforms;
-	RhiView m_transforms_view;
 	RhiSharedBufferMap m_buffer_map;
 };
 

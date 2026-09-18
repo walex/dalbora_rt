@@ -20,3 +20,7 @@ std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> RhiMemoryTable::next_descriptor(size
 	RHI_MEMORY_DESCRIPTOR_SLOT* descriptor = rhi_memory_resource_get_descriptor(*this, idx);
 	return std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT>(descriptor);
 }
+
+RHI_MEMORY_DESCRIPTOR_SLOT* RhiMemoryTable::next_descriptor_ptr(size_t group_index) const {
+	return this->next_descriptor(group_index).release();
+}

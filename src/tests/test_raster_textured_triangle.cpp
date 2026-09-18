@@ -138,7 +138,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             RHI_SAMPLER_DESC sampler_desc;
             sampler_desc.device = &device;
 			sampler_memory_descriptor_slot = samplers_memory_descriptor.next_descriptor();
-			sampler_desc.memory_descriptor = sampler_memory_descriptor_slot.get();
+			sampler_desc.memory_descriptor_slot = sampler_memory_descriptor_slot.get();
             sampler.reset(rhi_sampler_create(&sampler_desc));
             
             // create texture
@@ -277,7 +277,9 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
         RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
-        sampler.create(device);
+        unit_test.samplers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_sampler, SAMPLER_DESCRIPTORS_COUNT);
+
+        sampler.create(device, unit_test.samplers_memory_descriptors->next_descriptor_ptr());
         texture.create(device,
             dxgi_to_resource(dds.GetFormat()),
             static_cast<size_t>(dds.GetWidth()),
@@ -286,7 +288,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
             static_cast<size_t>(dds.GetDepth()),
             static_cast<size_t>(dds.GetTextureDimension()) - 1,
             static_cast<size_t>(dds.GetMipCount()));
-        texture_view = texture.new_read_only_view(device, *unit_test.resources_memory_descriptors);
+        texture_view = texture.new_read_only_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(1));
 
         // add layout descriptor for samplers
         pipeline_layout.add_sampler_buffer_descriptors(0, 1);
@@ -323,7 +325,16 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         unit_test.vertices.resize(sizeof(vertices));
         memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
         unit_test.vertices_stride = sizeof(vertices[0]);
+
+		command_buffer.set_sampler_memory_descriptor(*unit_test.samplers_memory_descriptors);
     });
+
+    unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,
+        size_t& read_only_shader_registers_count, size_t& rw_shader_registers_count) {
+
+            read_only_shader_registers_count = 1;
+            return true;
+        });
 
     unit_test_callbacks.on_draw = ([&](RhiUnitTest& UNUSED_PARAM(unit_test)) {
 

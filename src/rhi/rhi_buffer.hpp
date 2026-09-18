@@ -21,8 +21,8 @@ public:
 	buffer_type get_type() const { return static_cast<RHI_BUFFER*>(*this)->type; }
 	size_t get_length() const { return static_cast<RHI_BUFFER*>(*this)->length; }
 	size_t get_stride() const  { return static_cast<RHI_BUFFER*>(*this)->stride; }
-	RhiView new_view(const RhiDevice& device, const RhiMemoryTable& descriptor_table,
-		const shader_view_type shader_type);
+	RhiView new_view(const RhiDevice& device, const shader_view_type shader_type,
+		RHI_MEMORY_DESCRIPTOR_SLOT* descriptor_table);
 };
 
 #endif // __rhi_buffer_hpp__

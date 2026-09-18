@@ -329,15 +329,17 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 			callbacks->on_device_config(device_desc);
 	});
 
-	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& read_only_shader_registers_count, 
-		size_t& rw_shader_registers_count, size_t& constant_shader_registers_count) {
+	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,
+		size_t& read_only_shader_registers_count, size_t& rw_shader_registers_count) {
 	
-		read_only_shader_registers_count = 1;
-		rw_shader_registers_count = 1;
 		constant_shader_registers_count = 2;
+		read_only_shader_registers_count = 0;
+		rw_shader_registers_count = 0;
+		
 		if (callbacks)
-			callbacks->on_memory_descriptor_config(read_only_shader_registers_count, rw_shader_registers_count,
-				constant_shader_registers_count);
+			return callbacks->on_memory_descriptor_config(constant_shader_registers_count, read_only_shader_registers_count, 
+				rw_shader_registers_count);
+		return true;
 	});
 
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
@@ -355,16 +357,11 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// setup pipeline layout
 		// add layout descriptors ( order mathers )
-
-		// 1 - GPU read only (rd buffers)
-		pipeline_layout.add_read_only_buffer_descriptors(0, unit_test.read_only_shader_registers_count);
-
-		// 2 - GPU read write (rw buffers)
-		pipeline_layout.add_rw_buffer_descriptors(0, unit_test.rw_shader_registers_count);
-
-		// 3 - Constant buffer (constant buffers)
-		pipeline_layout.add_constants_buffer_descriptors(0, unit_test.constant_shader_registers_count);
 	
+		pipeline_layout.add_resources_buffers_descriptors(0, unit_test.constant_shader_registers_count,
+			0, unit_test.read_only_shader_registers_count,
+			0, unit_test.rw_shader_registers_count);
+
 		// setup pipeline
 		RhiRasterPipelineShaderPrograms shader_programs;
 		shader_programs.vertex_shader = &vertex_shader;
@@ -395,25 +392,31 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 			"PSMain", "ps_6_0");
 
 		// create pipeline layout
-		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
+		pipeline_layout.create(device, primitive_topology_triangle, 
+			swap_chain.get_format(), resource_format_d24_norm_s8_uint);
 
 		// create pipeline
-		pipeline.create(device, pipeline_layout, shader_programs);
+		pipeline.create(device, pipeline_layout, 
+			shader_programs);
 
 		// copy vertices to cpu visible memory
-		vertex_buffer.create(device, unit_test.vertices.size(), unit_test.vertices_stride, resource_format_float3);
+		vertex_buffer.create(device, unit_test.vertices.size(), 
+			unit_test.vertices_stride, resource_format_float3);
 		shared_vertex_buffer.create(device, unit_test.vertices.size());
 		{
 			auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
-			memcpy(v_map_info.get_data(), unit_test.vertices.data(), v_map_info.get_length());
+			memcpy(v_map_info.get_data(), unit_test.vertices.data(), 
+				v_map_info.get_length());
 		}
 
 		// copy indices to cpu visible memory
-		index_buffer.create(device, unit_test.indices.size(), unit_test.indices_stride, resource_format_uint16);
+		index_buffer.create(device, unit_test.indices.size(), 
+			unit_test.indices_stride, resource_format_uint16);
 		shared_index_buffer.create(device, unit_test.indices.size());
 		{
 			auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
-			memcpy(i_map_info.get_data(), unit_test.indices.data(), i_map_info.get_length());
+			memcpy(i_map_info.get_data(), unit_test.indices.data(),
+				i_map_info.get_length());
 		}
 
 		// upload vertices e indices data to gpu only memory
@@ -429,7 +432,8 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		});
 
 		// create depth buffers
-		depth_buffer.create(device, window.get_width(), window.get_height(), resource_format_d24_norm_s8_uint);
+		depth_buffer.create(device, window.get_width(), 
+			window.get_height(), resource_format_d24_norm_s8_uint);
 
 		// create camera transform buffer
 		camera_transforms.create(device, sizeof(CameraCB));
@@ -438,16 +442,21 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		object_transforms.create(device, sizeof(ObjectCB));
 
 		// views
-		depth_buffer_view = depth_buffer.new_view(device, *unit_test.dsv_memory_descriptors, shader_view_type_depth_stencil_target);
+		depth_buffer_view = depth_buffer.new_view(device, shader_view_type_depth_stencil_target,
+			unit_test.dsv_memory_descriptors->next_descriptor_ptr());
 
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);		// cb reg 0
-		object_transform_view = object_transforms.new_view(device, *unit_test.resources_memory_descriptors, shader_view_type_constant_buffer);	// cb reg 1
+		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, 
+			unit_test.buffers_memory_descriptors->next_descriptor_ptr());		// cb reg 0
+		object_transform_view = object_transforms.new_view(device, shader_view_type_constant_buffer, 
+			unit_test.buffers_memory_descriptors->next_descriptor_ptr());	// cb reg 1
 
 		// map constant buffers
-		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCB));
-		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms, 0, sizeof(ObjectCB));
+		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0,
+			sizeof(CameraCB));
+		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms, 0, 
+			sizeof(ObjectCB));
 		
 		// set depth buffer to render pass
 		unit_test.raster_render_pass.set_depth_buffer(depth_buffer_view);
@@ -461,8 +470,10 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		triangle_transforms.world = rotate_triangle(dt);
 
 		// upload shaders constants
-		memcpy(camera_constant_buffer_map->get_data(), &camera, sizeof(CameraCB));
-		memcpy(object_constant_buffer_map->get_data(), &triangle_transforms, sizeof(ObjectCB));
+		memcpy(camera_constant_buffer_map->get_data(), &camera, 
+			sizeof(CameraCB));
+		memcpy(object_constant_buffer_map->get_data(), &triangle_transforms,
+			sizeof(ObjectCB));
 		unit_test.command_buffer.draw_triangle_list(vertex_buffer, &index_buffer);
 		
 

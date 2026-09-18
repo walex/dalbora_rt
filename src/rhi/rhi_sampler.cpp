@@ -3,9 +3,11 @@
 
 RhiSampler::RhiSampler(RHI_SAMPLER* handle) : RhiImpl<RHI_SAMPLER>(handle) {}
 
-void RhiSampler::create(const RhiDevice& device) {
+void RhiSampler::create(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot) {
 	
 	RHI_SAMPLER_DESC desc;
 	desc.device = device;
+	desc.memory_descriptor_slot = memory_descriptor_slot;
 	this->set_handle(rhi_sampler_create(&desc));
+	m_memory_descriptor.reset(memory_descriptor_slot);
 }

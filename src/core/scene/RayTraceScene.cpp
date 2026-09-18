@@ -9,13 +9,16 @@ static const std::string k_ray_gen_entry_point = "RT_RayGen";
 static const std::string k_miss_entry_point = "RT_Miss";
 static const std::string k_closest_hit_entry_point = "RT_ClosestHit";
 
-RayTraceScene::RayTraceScene() {
+RayTraceScene::RayTraceScene(ResourceManager& rm, const resource_format surface_format)
+ : Scene(rm) {
 
 	this->m_blas_buffers.reserve(300);
 	this->m_tlas_transforms.reserve(300);
+
+	this->initialize(surface_format);
 }
 
-void RayTraceScene::create_blas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void RayTraceScene::create_blas_buffer(RhiCommandBuffer& command_buffer,
 	const std::vector<std::unique_ptr<Mesh>>& meshes) {
 
 	std::vector<RHI_BUFFER*> vertices_ptr;
@@ -32,13 +35,13 @@ void RayTraceScene::create_blas_buffer(const RhiDevice& device, RhiCommandBuffer
 	}
 	auto& blas_buffer = this->m_blas_buffers.emplace_back();
 	this->m_tlas_transforms.emplace_back();
-	blas_buffer.create(device, command_buffer, vertices_ptr, indices_ptr);
+	blas_buffer.create(m_resources_manager.get_device(), command_buffer, vertices_ptr, indices_ptr);
 }
 
-void RayTraceScene::create_tlas_buffer(const RhiDevice& device, RhiCommandBuffer& command_buffer) {
+void RayTraceScene::create_tlas_buffer(RhiCommandBuffer& command_buffer) {
 
-	this->m_tlas_buffers.create(device, command_buffer, this->m_blas_buffers, this->m_tlas_transforms);
-	this->m_tlas_view = this->m_tlas_buffers.new_view(device, ResourceManager::get_memory_descriptor()); // t0
+	this->m_tlas_buffers.create(m_resources_manager.get_device(), command_buffer, this->m_blas_buffers, this->m_tlas_transforms);
+	this->m_tlas_view = this->m_tlas_buffers.new_view(m_resources_manager.get_device(), m_resources_manager.get_read_only_buffer_descriptor_slot()); // t0
 }
 
 void RayTraceScene::add_tlas_transform(const size_t blas_id, const float4x4& data) {
@@ -46,18 +49,18 @@ void RayTraceScene::add_tlas_transform(const size_t blas_id, const float4x4& dat
 	this->m_tlas_transforms.at(blas_id).push_back(reinterpret_cast<const float*>(&data));
 }
 
-void RayTraceScene::on_geometry_attrib_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void RayTraceScene::on_geometry_attrib_loaded(RhiCommandBuffer& command_buffer,
 	Mesh& mesh, const std::string& name,
 	const uint8_t* const data, const size_t length,
 	const size_t stride, const resource_format format) {
 
-	Scene::on_geometry_attrib_loaded(device, command_buffer, mesh, name, data, length, stride, format);
+	Scene::on_geometry_attrib_loaded(command_buffer, mesh, name, data, length, stride, format);
 }
 
-void RayTraceScene::on_new_scene_node(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void RayTraceScene::on_new_scene_node(RhiCommandBuffer& command_buffer,
 	SceneNode& node) {
 
-	Scene::on_new_scene_node(device, command_buffer, node);
+	Scene::on_new_scene_node(command_buffer, node);
 	GeometryNode* geometry_node = dynamic_cast<GeometryNode*>(&node);
 	if (geometry_node != nullptr) {
 		this->add_tlas_transform(geometry_node->get_mesh().get_group_id(), geometry_node->get_world_transform());
@@ -71,23 +74,23 @@ void RayTraceScene::on_new_pbr_material(const std::string& name, const PBRMateri
 	m_materials.push_back(std::move(material));
 }
 
-void RayTraceScene::on_geometry_loaded(const RhiDevice& device, std::unique_ptr<Mesh> mesh) {
+void RayTraceScene::on_geometry_loaded(std::unique_ptr<Mesh> mesh) {
 
 	// call parent callback to store the mesh in the scene
-	Scene::on_geometry_loaded(device, std::move(mesh));
+	Scene::on_geometry_loaded(std::move(mesh));
 }
 
-void RayTraceScene::on_geometry_group_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer, 
+void RayTraceScene::on_geometry_group_loaded(RhiCommandBuffer& command_buffer, 
 	size_t group_id) {
 	
-	this->create_blas_buffer(device, command_buffer, this->get_meshes(group_id));
+	this->create_blas_buffer(command_buffer, this->get_meshes(group_id));
 }
 
-void RayTraceScene::on_scene_loaded(const RhiDevice& device, RhiCommandBuffer& command_buffer,
+void RayTraceScene::on_scene_loaded(RhiCommandBuffer& command_buffer,
 	const float3 bb_min, const float3 bb_max) {
 
-	this->create_tlas_buffer(device, command_buffer);
-	Scene::on_scene_loaded(device, command_buffer, bb_min, bb_max);
+	this->create_tlas_buffer(command_buffer);
+	Scene::on_scene_loaded(command_buffer, bb_min, bb_max);
 }
 
 
@@ -109,30 +112,20 @@ void RayTraceScene::setup_shaders() {
 
 }
 
-void RayTraceScene::setup_pipeline_layout(RhiDevice& device, resource_format surface_format,
-	size_t read_only_shader_registers_count, size_t rw_shader_registers_count, 
-	size_t constant_shader_registers_count) {
-	// add layout descriptors ( order mathers )
-
-	// 1 - GPU read only shader registers range to be used (Scene BVH, geometries, materials, lights, cameras)
-	m_pipeline_layout.add_read_only_buffer_descriptors(0, read_only_shader_registers_count,0);
-
-	// 2 - GPU read write shader registers range to be used (Render buffer)
-	m_pipeline_layout.add_rw_buffer_descriptors(0, rw_shader_registers_count,0);
-
-	// 3 - Constant buffer shader registers range to be used (Camera matrix)
-	m_pipeline_layout.add_constants_buffer_descriptors(0, constant_shader_registers_count,0);
+void RayTraceScene::setup_pipeline_layout(resource_format surface_format) {
+	
+	// add layout descriptors
+	m_pipeline_layout.add_resources_buffers_descriptors(0, m_resources_manager.get_constant_buffer_descriptor_size(),
+		0, m_resources_manager.get_read_only_buffer_descriptor_size(),
+		0, m_resources_manager.get_rw_buffer_descriptor_size());
 
 	// create pipeline layout
-	m_pipeline_layout.create(device, primitive_topology_triangle, surface_format, resource_format_d24_norm_s8_uint);
+	m_pipeline_layout.create(m_resources_manager.get_device(), primitive_topology_triangle, surface_format, resource_format_d24_norm_s8_uint);
 }
 
-void RayTraceScene::setup_pipeline(RhiDevice& device, resource_format surface_format,
-	size_t read_only_shader_registers_count, size_t rw_shader_registers_count,
-	size_t constant_shader_registers_count) {
+void RayTraceScene::setup_pipeline(resource_format surface_format) {
 	
-	this->setup_pipeline_layout(device, surface_format, read_only_shader_registers_count,
-		rw_shader_registers_count, constant_shader_registers_count);
+	this->setup_pipeline_layout(surface_format);
 
 	// config ray trace shader
 	RhiRayTracePipelineShaderPrograms ray_trace_shader_programs;
@@ -157,25 +150,21 @@ void RayTraceScene::setup_pipeline(RhiDevice& device, resource_format surface_fo
 	ray_trace_shader_programs.closest_hit_shader = &m_closest_hit_shader;
 
 	// create pipeline
-	m_pipeline.create(device, m_pipeline_layout, ray_trace_shader_programs);
+	m_pipeline.create(m_resources_manager.get_device(), m_pipeline_layout, ray_trace_shader_programs);
 
 	// create shader binding table
-	m_sbt.create(device, m_pipeline, ray_trace_shader_programs);
+	m_sbt.create(m_resources_manager.get_device(), m_pipeline, ray_trace_shader_programs);
 }
 
-void RayTraceScene::initialize(RhiDevice& device, resource_format surface_format,
-	size_t read_only_shader_registers_count, size_t rw_shader_registers_count,
-	size_t constant_shader_registers_count) {
+void RayTraceScene::initialize(resource_format surface_format) {
 	
 	this->setup_shaders();
-	this->setup_pipeline(device, surface_format, read_only_shader_registers_count,
-		rw_shader_registers_count, constant_shader_registers_count);
+	this->setup_pipeline(surface_format);
 }
 
-void RayTraceScene::load(const std::string& scene_path, RhiDevice& device,
-	RhiCommandQueue& command_queue) {
+void RayTraceScene::load(const std::string& scene_path,	RhiCommandQueue& command_queue) {
 
-	Scene::load(scene_path, device, command_queue);
+	Scene::load(scene_path, command_queue);
 }
 
 void RayTraceScene::draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {

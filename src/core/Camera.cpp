@@ -3,11 +3,10 @@
 #include "Samples.hpp"
 #include "ResourceManager.hpp"
 
-BaseCamera::BaseCamera(RhiDevice& device) {
-	m_transforms.create(device, sizeof(_BaseCamera), sizeof(float), resource_format_float);
-	m_transforms_view = m_transforms.new_view(device, ResourceManager::get_memory_descriptor(), shader_view_type_constant_buffer);
-	//m_transforms_view = m_transforms.new_shader_read_only_view(device, memory_descriptor);
+BaseCamera::BaseCamera(ResourceManager& rm) {
+	m_transforms.create(rm.get_device(), sizeof(_BaseCamera), sizeof(float), resource_format_float);
 	m_buffer_map = RhiSharedBufferMap(m_transforms, 0, sizeof(_BaseCamera));
+	m_transforms.new_view(rm.get_device(), shader_view_type_constant_buffer, rm.get_constant_buffer_descriptor_slot());
 }
 
 BaseCamera::~BaseCamera() {

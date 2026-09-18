@@ -11,7 +11,7 @@ void RhiCommandBuffer::create(const RhiDevice& device, const RhiCommandQueue& co
 	this->set_handle(rhi_command_buffer_create_for_render(&command_buffer_desc));
 }
 
-void RhiCommandBuffer::set_resources_memory_descriptor(RhiMemoryTable& resources_memory) {
+void RhiCommandBuffer::set_buffers_memory_descriptor(RhiMemoryTable& resources_memory) {
 	static_cast<RHI_COMMAND_BUFFER*>(*this)->buffer_memory_descriptor = resources_memory;
 }
 
