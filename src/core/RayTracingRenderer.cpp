@@ -15,7 +15,7 @@ RayTracingRenderer::RayTracingRenderer(ResourceManager& rm, const resource_forma
 	m_ray_trace_render_pass.create(device);
 }
  
-void RayTracingRenderer::on_draw(RhiView& out_surface_view)
+void RayTracingRenderer::on_render(RhiView& out_surface_view)
 {
 	ASSERT_PTR(m_sbt);
 

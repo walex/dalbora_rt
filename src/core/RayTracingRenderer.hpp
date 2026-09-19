@@ -18,7 +18,7 @@ public:
 		m_sbt = &sbt;
 	}
 protected:
-	void on_draw(RhiView& out_surface_view);
+	void on_render(RhiView& out_surface_view);
 private:
 	RhiRenderTarget m_ray_trace_surface;
 	RhiView m_ray_trace_surface_view;

@@ -115,7 +115,7 @@ void test_rt_scene() {
 		// get next render target view from swap chain
 		RhiView render_target_view = swap_chain.get_next_render_target();
 
-		scene->draw_scene(*renderer, render_target_view, view_port);
+		scene->draw(*renderer, render_target_view, view_port);
 
 		// present swap chain
 		swap_chain.present();

@@ -167,11 +167,11 @@ void RayTraceScene::load(const std::string& scene_path,	RhiCommandQueue& command
 	Scene::load(scene_path, command_queue);
 }
 
-void RayTraceScene::draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
+void RayTraceScene::draw(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
 
-	Scene::draw_scene(render, surface_view, viewport);
+	Scene::draw(render, surface_view, viewport);
 
 	render.set_rt_pipeline(m_pipeline);
 	render.set_bindig_table(m_sbt);
-	render.draw(surface_view, viewport);
+	render.render(surface_view, viewport);
 }

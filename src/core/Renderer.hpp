@@ -9,7 +9,7 @@ public:
 	Renderer(ResourceManager& rm) : m_resource_manager(rm) {};
 	virtual ~Renderer() = default;
 	void create();
-	virtual void draw(RhiView& out_surface, const RHI_VIEWPORT& view_port);
+	virtual void render(RhiView& out_surface, const RHI_VIEWPORT& view_port);
 	RhiSwapChain create_swap_chain(const RhiWindow& window, const uint32_t buffer_count,
 		resource_format surface_format);
 	RhiGraphicsCommandQueue& get_command_queue() { return m_command_queue; }
@@ -18,7 +18,7 @@ public:
 
 	RhiCommandBuffer& get_command_buffer() { return m_command_buffer; }
 protected:
-	virtual void on_draw(RhiView& surface) = 0;
+	virtual void on_render(RhiView& surface) = 0;
 
 	ResourceManager& m_resource_manager;
 private:

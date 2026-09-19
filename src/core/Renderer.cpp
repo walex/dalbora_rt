@@ -20,7 +20,7 @@ RhiSwapChain Renderer::create_swap_chain(const RhiWindow& window, const uint32_t
 	return swap_chain;
 }
 
-void Renderer::draw(RhiView& out_surface, const RHI_VIEWPORT& view_port) {
+void Renderer::render(RhiView& out_surface, const RHI_VIEWPORT& view_port) {
 
 	m_command_buffer.record([&] {
 
@@ -28,7 +28,7 @@ void Renderer::draw(RhiView& out_surface, const RHI_VIEWPORT& view_port) {
 		m_raster_render_pass.set_render_target(out_surface);
 		m_raster_render_pass.render(m_command_buffer, [&](RhiCommandBuffer& UNUSED_PARAM(command_buffer)) {
 			
-			this->on_draw(out_surface);
+			this->on_render(out_surface);
 		});
 	});
 	

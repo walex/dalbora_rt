@@ -134,7 +134,7 @@ void Scene::on_scene_loaded(RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 
 }
 
-void Scene::draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
+void Scene::draw(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
 
 	ASSERT_PTR(m_camera);
 

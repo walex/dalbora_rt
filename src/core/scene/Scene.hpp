@@ -67,7 +67,7 @@ public:
 	
 	void set_camera(BaseCamera* camera);
 
-	virtual void draw_scene(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport);
+	virtual void draw(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport);
 protected:
 	size_t m_max_size = 0;
 	float3 m_bb_min, m_bb_max;

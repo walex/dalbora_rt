@@ -33,7 +33,7 @@ public:
 	void load(const std::string& scene_path,
 		RhiCommandQueue& command_queue) override;
 
-	void draw_scene(Renderer& render, RhiView& surface_view,
+	void draw(Renderer& render, RhiView& surface_view,
 		const RHI_VIEWPORT& viewport);
 	
 	const RhiRayTracePipeline& get_pipeline() const { return m_pipeline; }

@@ -121,7 +121,7 @@ void test_rt() {
 
 		// draw
 		renderer->setView(&render_target_view);
-		renderer->draw(out_radiances);
+		renderer->render(out_radiances);
 		});
 
 	// ---- graphics device end ----
