@@ -11,7 +11,7 @@ public:
 
 	RhiSharedBufferMap() = default;
 	RhiSharedBufferMap(RhiSharedBuffer& buffer, size_t offset, size_t length);
-	~RhiSharedBufferMap();
+	virtual ~RhiSharedBufferMap();
 	size_t get_offset() const { return m_offset; }
 	size_t get_length() const { return m_length; }
 	uint8_t* get_data() const { return m_data; }

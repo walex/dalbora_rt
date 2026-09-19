@@ -3,17 +3,20 @@
 
 void Renderer::create() {
 
-	m_command_queue.create(m_resource_manager.get_device());
-	m_command_buffer.create(m_resource_manager.get_device(), m_command_queue);
+	const RhiDevice& device = m_resource_manager.get_device();
+	m_command_queue.create(device);
+	m_command_buffer.create(device, m_command_queue);
 	m_command_buffer.set_buffers_memory_descriptor(m_resource_manager);
-	m_raster_render_pass.create(m_resource_manager.get_device());
+	m_raster_render_pass.create(device);
 }
 
 RhiSwapChain Renderer::create_swap_chain(const RhiWindow& window, const uint32_t buffer_count,
 	resource_format surface_format) {
-	
+
+	const RhiDevice& device = m_resource_manager.get_device();
 	RhiSwapChain swap_chain;
-	swap_chain.create(window, m_resource_manager.get_device(), m_command_queue, buffer_count, surface_format, true);
+	swap_chain.create(window, device, m_command_queue, buffer_count, surface_format, true);
+	swap_chain.create_views(device, m_resource_manager.get_rtv_memory_descriptor());
 	return swap_chain;
 }
 

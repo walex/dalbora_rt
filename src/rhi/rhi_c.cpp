@@ -23,3 +23,5 @@ void rhi_end() {
 	dx12_rhi_end();
 	g_device_type = device_type_none;
 }
+
+device_type rhi_get_device_type() { return g_device_type; }

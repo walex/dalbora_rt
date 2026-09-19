@@ -318,4 +318,6 @@ std::string get_executable_folder(const std::string& concat_path = "");
     class_name& operator=(class_name&&) noexcept = default;
 
 
+#define DEGREE_TO_RADIAN(x) ((x) * 3.14159265358979323846 / 180.0)
+
 #endif

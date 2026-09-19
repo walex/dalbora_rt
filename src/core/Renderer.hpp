@@ -15,10 +15,10 @@ public:
 	RhiGraphicsCommandQueue& get_command_queue() { return m_command_queue; }
 	virtual void set_rt_pipeline(RhiRayTracePipeline& pipeline) {}
 	virtual void set_bindig_table(RhiShaderBindingTable& sbt) {}
+
+	RhiCommandBuffer& get_command_buffer() { return m_command_buffer; }
 protected:
 	virtual void on_draw(RhiView& surface) = 0;
-	
-	RhiCommandBuffer& get_command_buffer() { return m_command_buffer; }
 
 	ResourceManager& m_resource_manager;
 private:

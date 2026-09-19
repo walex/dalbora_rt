@@ -36,6 +36,9 @@ public:
 	void draw_scene(Renderer& render, RhiView& surface_view,
 		const RHI_VIEWPORT& viewport);
 	
+	const RhiRayTracePipeline& get_pipeline() const { return m_pipeline; }
+	const RhiShaderBindingTable& get_sbt() const { return m_sbt; }
+
 private:
 
 	void initialize(resource_format surface_format);

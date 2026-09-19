@@ -21,7 +21,7 @@ public:
 	void create(const RhiDevice& device, const RhiCommandQueue& command_queue) override;
 	void record(RhiCommandBufferRecordCallback callback);
 	void draw_triangle_list(RhiGPUBuffer& vertex_buffer, RhiGPUBuffer* index_buffer = nullptr);
-	void ray_trace(RhiRenderTarget& render_target, RhiShaderBindingTable& sbt);
+	void ray_trace(RhiRenderTarget& render_target, const RhiShaderBindingTable& sbt);
 
 	void set_buffers_memory_descriptor(RhiMemoryTable& resources_memory);
 	void set_sampler_memory_descriptor(RhiMemoryTable& sampler_memory);

@@ -45,7 +45,7 @@ void RhiCommandBuffer::draw_triangle_list(RhiGPUBuffer& vertex_buffer, RhiGPUBuf
 }
 
 
-void RhiCommandBuffer::ray_trace(RhiRenderTarget& render_target, RhiShaderBindingTable& sbt) {
+void RhiCommandBuffer::ray_trace(RhiRenderTarget& render_target, const RhiShaderBindingTable& sbt) {
 
 	rhi_command_buffer_ray_trace(*this, render_target, sbt);
 

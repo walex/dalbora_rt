@@ -8,6 +8,7 @@ class RhiDevice
 	, public RhiImpl<RHI_DEVICE> {
 
 public:
+	IMPLEMENT_MOVABLE_CLASS(RhiDevice);
 	RhiDevice(RHI_DEVICE* handle = nullptr);
 	virtual ~RhiDevice() = default;
 	void create(const RHI_DEVICE_DESC& desc) override;
