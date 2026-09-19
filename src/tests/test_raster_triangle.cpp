@@ -73,7 +73,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_SHADER_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			cb_desc.shader_view_type = shader_view_type_constant_buffer;
 			cb_desc.shader_register_start = 0; // ie: b0 in hlsl
-			cb_desc.shader_register_max = 100;
+			cb_desc.shader_register_max = 5;
 			
 			// create shaders layouts
 			std::vector<RHI_INPUT_LAYOUT_DESC> input_layouts;
@@ -145,7 +145,12 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			camera_cb_view_desc.device = &device;
 			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
 			camera_cb_view_desc.type = shader_view_type_constant_buffer;
-			camera_descriptor_slot.reset(*memory_descriptor.next_descriptor_ptr());
+
+			RHI_MEMORY_DESCRIPTOR_SLOT* slot = nullptr;
+			memory_descriptor.next_descriptor_ptr(&slot);
+			ASSERT_PTR(slot);
+			camera_descriptor_slot.reset(slot);
+
 			camera_cb_view_desc.memory_descriptor = camera_descriptor_slot.get();
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
 			
@@ -163,7 +168,12 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			object_cb_view_desc.device = &device;
 			object_cb_view_desc.buffer = shared_object_constant_buffer.get();
 			object_cb_view_desc.type = shader_view_type_constant_buffer;
-			object_descriptor_slot.reset(*memory_descriptor.next_descriptor_ptr());
+
+			slot = nullptr;
+			memory_descriptor.next_descriptor_ptr(&slot);
+			ASSERT_PTR(slot);
+			object_descriptor_slot.reset(slot);
+
 			object_cb_view_desc.memory_descriptor = object_descriptor_slot.get();
 			object_constant_buffer_view.reset(rhi_buffers_create_view(&object_cb_view_desc));
 			
@@ -236,7 +246,12 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			db_view_desc.buffer = depth_buffer.get();
 			db_view_desc.type = shader_view_type_depth_stencil_target;
 			db_view_desc.format = db_desc.format;
-			depth_descriptor_slot.reset(*get_dsv_memory_table().next_descriptor_ptr());
+
+			slot = nullptr;
+			get_dsv_memory_table().next_descriptor_ptr(&slot);
+			ASSERT_PTR(slot);
+			depth_descriptor_slot.reset(slot);
+
 			db_view_desc.memory_descriptor = depth_descriptor_slot.get();
 			depth_buffer_view.reset(rhi_buffers_create_view(&db_view_desc));
 			
@@ -443,14 +458,14 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// views
 		depth_buffer_view = depth_buffer.new_view(device, shader_view_type_depth_stencil_target,
-			unit_test.dsv_memory_descriptors->next_descriptor_ptr());
+			get_dsv_memory_table().next_descriptor_ptr());
 
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
 		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, 
-			unit_test.buffers_memory_descriptors->next_descriptor_ptr());		// cb reg 0
+			get_buffers_memory_table().next_descriptor_ptr());		// cb reg 0
 		object_transform_view = object_transforms.new_view(device, shader_view_type_constant_buffer, 
-			unit_test.buffers_memory_descriptors->next_descriptor_ptr());	// cb reg 1
+			get_buffers_memory_table().next_descriptor_ptr());	// cb reg 1
 
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0,

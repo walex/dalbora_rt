@@ -137,7 +137,12 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             // create sampler
             RHI_SAMPLER_DESC sampler_desc;
             sampler_desc.device = &device;
-			sampler_memory_descriptor_slot.reset(*samplers_memory_descriptor.next_descriptor_ptr());
+
+            RHI_MEMORY_DESCRIPTOR_SLOT* slot = nullptr;
+            samplers_memory_descriptor.next_descriptor_ptr(&slot);
+            ASSERT_PTR(slot);
+			sampler_memory_descriptor_slot.reset(slot);
+
 			sampler_desc.memory_descriptor_slot = sampler_memory_descriptor_slot.get();
             sampler.reset(rhi_sampler_create(&sampler_desc));
             
@@ -162,7 +167,12 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             tex_view_desc.type = shader_view_type_read_only_texture_buffer;
             tex_view_desc.format = texture_desc.format;
             tex_view_desc.mip_maps_count = texture->mip_maps_count;
-            tview_memory_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr(1));
+
+            slot = nullptr;
+            resources_memory_descriptor.next_descriptor_ptr(&slot, 1);
+            ASSERT_PTR(slot);
+            tview_memory_descriptor_slot.reset(slot);
+
             tex_view_desc.memory_descriptor = tview_memory_descriptor_slot.get();
             texture_view.reset(rhi_buffers_create_view(&tex_view_desc));
 
@@ -207,7 +217,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             RHI_SHADER_DESCRIPTOR_DESC& s_desc = layout.descriptors[layout.descriptor_count++];
             s_desc.shader_view_type = shader_view_type_read_only_buffer;
             s_desc.shader_register_start = 0;
-            s_desc.shader_register_max = 100;
+            s_desc.shader_register_max = 5;
 
             RHI_SHADER_DESCRIPTOR_DESC& sm_desc = layout.descriptors[layout.descriptor_count++];
             sm_desc.shader_view_type = shader_view_type_sampler;
@@ -277,10 +287,10 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
         RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
-        unit_test.samplers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_sampler, 
-            SAMPLER_DESCRIPTORS_COUNT);
+        set_samplers_memory_table(std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_sampler,
+            SAMPLER_DESCRIPTORS_COUNT));
 
-        sampler.create(device, unit_test.samplers_memory_descriptors->next_descriptor_ptr());
+        sampler.create(device, get_samplers_memory_table().next_descriptor_ptr());
         texture.create(device,
             dxgi_to_resource(dds.GetFormat()),
             static_cast<size_t>(dds.GetWidth()),
@@ -289,7 +299,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
             static_cast<size_t>(dds.GetDepth()),
             static_cast<size_t>(dds.GetTextureDimension()) - 1,
             static_cast<size_t>(dds.GetMipCount()));
-        texture_view = texture.new_read_only_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(1));
+        texture_view = texture.new_read_only_view(device, get_buffers_memory_table().next_descriptor_ptr(1));
 
         // add layout descriptor for samplers
         pipeline_layout.set_shader_sampler_descriptor_offset(0, 1);
@@ -327,7 +337,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
         unit_test.vertices_stride = sizeof(vertices[0]);
 
-		command_buffer.set_sampler_memory_descriptor(*unit_test.samplers_memory_descriptors);
+		command_buffer.set_sampler_memory_descriptor(get_samplers_memory_table());
     });
 
     unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,

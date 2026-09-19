@@ -45,9 +45,7 @@ void RhiMemoryTable::create(const RhiDevice& device, const memory_descriptor_typ
 	this->set_handle(rhi_memory_resource_create(&desc));
 }
 
-
-RhiMemoryDescriptor* RhiMemoryTable::next_descriptor_ptr(const size_t group_index) {
-
+void RhiMemoryTable::next_descriptor_ptr(RHI_MEMORY_DESCRIPTOR_SLOT** slot, const size_t group_index) {
 	ASSERT_EXPR(group_index < m_descriptor_group_offsets.size(), "Invalid group index");
 	{
 		std::lock_guard<std::mutex> lock(m_descriptor_group_mutex);
@@ -55,8 +53,16 @@ RhiMemoryDescriptor* RhiMemoryTable::next_descriptor_ptr(const size_t group_inde
 		ASSERT_EXPR(group_queue.size() > 0, "No more descriptors available in the group");
 		size_t idx = group_queue.front();
 		group_queue.pop();
-		return new RhiMemoryDescriptor(rhi_memory_resource_get_descriptor(*this, idx), *this, group_index);
+		*slot = rhi_memory_resource_get_descriptor(*this, idx);
 	}
+}
+
+RhiMemoryDescriptor* RhiMemoryTable::next_descriptor_ptr(const size_t group_index) {
+
+	RHI_MEMORY_DESCRIPTOR_SLOT* slot = nullptr;
+	this->next_descriptor_ptr(&slot, group_index);
+	ASSERT_PTR(slot, "Failed to get next descriptor slot");
+	return new RhiMemoryDescriptor(slot, *this, group_index);
 }
 
 std::unique_ptr<RhiMemoryDescriptor> RhiMemoryTable::next_descriptor(const size_t group_index) {

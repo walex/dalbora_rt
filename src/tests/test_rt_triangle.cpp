@@ -105,14 +105,14 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			RHI_SHADER_DESCRIPTOR_DESC& s_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			s_desc.shader_view_type = shader_view_type_read_only_buffer;
 			s_desc.shader_register_start = 0;
-			s_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
+			s_desc.shader_register_max = 5; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 2 - GPU read write (Render Target)
 			RHI_SHADER_DESCRIPTOR_DESC& o_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
 			o_desc.shader_view_type = shader_view_type_rw_buffer;
 			o_desc.shader_register_start = 0;
-			o_desc.shader_register_max = 100; // max registers for this type, can be used for any resource of this type,
+			o_desc.shader_register_max = 5; // max registers for this type, can be used for any resource of this type,
 												// just need to specify the correct register in the shader
 
 			// 3 - Constant buffer (Camera)
@@ -264,7 +264,12 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			bvh_instances_view_desc.device = &dev;
 			bvh_instances_view_desc.buffer = bvh_instances.get();
 			bvh_instances_view_desc.type = shader_view_type_bvh_buffer;
-			bvh_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr());
+
+			RHI_MEMORY_DESCRIPTOR_SLOT* slot = nullptr;
+			resources_memory_descriptor.next_descriptor_ptr(&slot);
+			ASSERT_PTR(slot);
+			bvh_descriptor_slot.reset(slot);
+
 			bvh_instances_view_desc.memory_descriptor = bvh_descriptor_slot.get();
 			bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
 
@@ -274,7 +279,12 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			rt_instances_view_desc.device = &dev;
 			rt_instances_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(render_target.get());
 			rt_instances_view_desc.type = shader_view_type_rw_texture_buffer;
-			render_target_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr(1));
+
+			slot = nullptr;
+			resources_memory_descriptor.next_descriptor_ptr(&slot, 1);
+			ASSERT_PTR(slot);
+			render_target_descriptor_slot.reset(slot);
+
 			rt_instances_view_desc.memory_descriptor = render_target_descriptor_slot.get();
 			render_target_view.reset(rhi_buffers_create_view(&rt_instances_view_desc));
 
@@ -284,7 +294,12 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			cb_instances_view_desc.device = &dev;
 			cb_instances_view_desc.buffer = static_cast<RHI_BUFFER*>(shared_camera_constant_buffer.get());
 			cb_instances_view_desc.type = shader_view_type_constant_buffer;
-			camera_constant_buffer_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr(2));
+
+			slot = nullptr;
+			resources_memory_descriptor.next_descriptor_ptr(&slot, 2);
+			ASSERT_PTR(slot);
+			camera_constant_buffer_descriptor_slot.reset(slot);
+
 			cb_instances_view_desc.memory_descriptor = camera_constant_buffer_descriptor_slot.get();
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&cb_instances_view_desc));
 
@@ -504,17 +519,17 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// views	
 		// 
 		// view BVH (GPU read only)
-		geometry_instances_views = geometry_instances.new_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(1));
+		geometry_instances_views = geometry_instances.new_view(device, get_buffers_memory_table().next_descriptor_ptr(1));
 
 		// view render_target (GPU read write)
-		render_target_view = render_target.new_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(2));
+		render_target_view = render_target.new_view(device, get_buffers_memory_table().next_descriptor_ptr(2));
 
 		// create render pass
 		rt_render_pass.create(device);
 		
 		// add views for transform buffers for shader visibility
 		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, unit_test.buffers_memory_descriptors->next_descriptor_ptr());		// cb reg 0
+		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, get_buffers_memory_table().next_descriptor_ptr());		// cb reg 0
 		
 		// map constant buffers
 		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0, sizeof(CameraCBRT));

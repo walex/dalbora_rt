@@ -26,6 +26,7 @@ public:
 	RhiMemoryTable(const RhiDevice& device, const memory_descriptor_type type,
 		const size_t descriptors_count, const std::vector<size_t>& slot_group_group_offsets = {});
 	virtual ~RhiMemoryTable();
+	void next_descriptor_ptr(RHI_MEMORY_DESCRIPTOR_SLOT** slot, const size_t group_index = 0);
 	RhiMemoryDescriptor* next_descriptor_ptr(size_t group_index = 0);
 	std::unique_ptr<RhiMemoryDescriptor> next_descriptor(size_t group_index = 0);
 	void restore_descriptor_slot(const size_t slot_id, const size_t group_index);

@@ -55,10 +55,6 @@ struct RhiUnitTest {
 	RhiPipelineLayout pipeline_layout;
 	RhiRasterPipeline raster_pipeline;
 	RhiRayTracePipeline ray_trace_pipeline;
-	std::unique_ptr<RhiMemoryTable> buffers_memory_descriptors;
-	std::unique_ptr<RhiMemoryTable> rtv_memory_descriptors;
-	std::unique_ptr<RhiMemoryTable> dsv_memory_descriptors;
-	std::unique_ptr<RhiMemoryTable> samplers_memory_descriptors;
 	std::string vertex_shader_file;
 	std::string pixel_shader_file;
 	std::string ray_gen_shader_file;
@@ -85,6 +81,7 @@ RhiMemoryTable& get_buffers_memory_table();
 RhiMemoryTable& get_rtv_memory_table();
 RhiMemoryTable& get_dsv_memory_table();
 RhiMemoryTable& get_samplers_memory_table();
+void set_samplers_memory_table(std::unique_ptr<RhiMemoryTable> table);
 
 RHI_MEMORY_DESCRIPTOR_SLOT next_constant_buffer_descriptor();
 RHI_MEMORY_DESCRIPTOR_SLOT next_rw_buffer_descriptor();

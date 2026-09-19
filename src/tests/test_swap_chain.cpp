@@ -18,6 +18,10 @@ RhiMemoryTable& get_samplers_memory_table() {
 	return *samplers_memory_table;
 }
 
+void set_samplers_memory_table(std::unique_ptr<RhiMemoryTable> table) {
+	samplers_memory_table.reset(table.release());
+}
+
 void memory_table_init(RHI_DEVICE* device) {
 
 	RhiDevice device_obj(device);
@@ -194,7 +198,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 
 		device.create(device_desc);
 
-		unit_test.dsv_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
+		dsv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
 
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
@@ -208,21 +212,21 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 			if (resources_count > 0) {
 				std::vector<size_t> slot_group_start_indices = { unit_test.constant_shader_registers_count,
 				unit_test.read_only_shader_registers_count, unit_test.rw_shader_registers_count };
-				unit_test.buffers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_buffer,
+				buffers_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_buffer,
 					resources_count,
 					slot_group_start_indices);
-				command_buffer.set_buffers_memory_descriptor(*unit_test.buffers_memory_descriptors);
+				command_buffer.set_buffers_memory_descriptor(*buffers_memory_table);
 			}
 			else {
 				printf("Warning: No resources descriptors created, all shader registers counts are zero.\n");
 			}
-			unit_test.rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
-			swap_chain.create_views(device, unit_test.rtv_memory_descriptors.get());
+			rtv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
+			swap_chain.create_views(device, rtv_memory_table.get());
 		}
-		
+
 		if (callbacks)
 			callbacks->on_init(unit_test);
-	});
+		});
 
 	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
 
@@ -232,29 +236,31 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiRenderPass& render_pass = unit_test.raster_render_pass;
 
 		command_buffer.record([&] {
-			
+
 			RhiView render_target_view = swap_chain.get_next_render_target();
 			render_pass.set_view_port(vp);
 			render_pass.set_render_target(render_target_view);
 			render_pass.render(command_buffer, [&](RhiCommandBuffer& UNUSED_PARAM(command_buffer)) {
-				
+
 				if (callbacks)
 					callbacks->on_draw(unit_test);
+				});
 			});
-		});
 
 		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
-			
+
 			list.add_command_buffer(command_buffer);
-		});
+			});
 		swap_chain.present();
-	});
+		});
 
-	unit_test_callbacks.on_end = ([&](RhiUnitTest& UNUSED_PARAM(unit_test)) {
+	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
 
-	});
+		if (callbacks)
+			callbacks->on_end(unit_test);
+		});
 
-	
+
 	test_create_window_obj(&unit_test_callbacks);
 }
 #endif
