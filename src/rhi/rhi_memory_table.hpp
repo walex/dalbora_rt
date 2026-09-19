@@ -17,27 +17,40 @@
 #define SAMPLER_DESCRIPTORS_COUNT 128
 
 class RhiDevice;
-class RhiMemoryTable 
+class RhiMemoryDescriptor;
+class RhiMemoryTable
 	: public ICreateRhiObject<const RhiDevice&, const memory_descriptor_type,
 	const size_t>
 	, public RhiImpl<RHI_MEMORY_DESCRIPTOR> {
 public:
-	IMPLEMENT_MOVABLE_CLASS(RhiMemoryTable);
-	RhiMemoryTable(RHI_MEMORY_DESCRIPTOR* handle = nullptr) : RhiImpl<RHI_MEMORY_DESCRIPTOR>(handle) {}
 	RhiMemoryTable(const RhiDevice& device, const memory_descriptor_type type,
-		const size_t descriptors_count, std::vector<size_t> slot_group_group_offsets = {0}) : RhiImpl<RHI_MEMORY_DESCRIPTOR>(nullptr) { 
-		this->create(device, type, descriptors_count);
-		m_descriptor_group_offsets = slot_group_group_offsets;
-	}
-	virtual ~RhiMemoryTable() = default;
-	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> next_descriptor(size_t group_index = 0) const;
-	RHI_MEMORY_DESCRIPTOR_SLOT* next_descriptor_ptr(size_t group_index = 0) const;
+		const size_t descriptors_count, const std::vector<size_t>& slot_group_group_offsets = {});
+	virtual ~RhiMemoryTable();
+	RhiMemoryDescriptor* next_descriptor_ptr(size_t group_index = 0);
+	std::unique_ptr<RhiMemoryDescriptor> next_descriptor(size_t group_index = 0);
+	void restore_descriptor_slot(const size_t slot_id, const size_t group_index);
 private:
 
 	void create(const RhiDevice& device, const memory_descriptor_type type,
 		const size_t descriptors_count) override;
 
-	mutable std::vector<size_t> m_descriptor_group_offsets = { 0 };
+	std::vector<std::queue<size_t>> m_descriptor_group_offsets;
+	std::mutex m_descriptor_group_mutex;
+};
+
+class RhiMemoryDescriptor
+	: public RhiImpl<RHI_MEMORY_DESCRIPTOR_SLOT> {
+	
+public:
+	IMPLEMENT_MOVABLE_CLASS(RhiMemoryDescriptor);
+	RhiMemoryDescriptor(RHI_MEMORY_DESCRIPTOR_SLOT* handle, RhiMemoryTable& table, size_t group_index) 
+		: RhiImpl<RHI_MEMORY_DESCRIPTOR_SLOT>(handle, true), m_table(table), m_group_index(group_index) {}
+	virtual ~RhiMemoryDescriptor() {
+		m_table.restore_descriptor_slot(reinterpret_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(this)->slot_id, m_group_index);
+	}
+private:
+	RhiMemoryTable& m_table;
+	size_t m_group_index;
 };
 
 #endif

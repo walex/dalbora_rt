@@ -15,11 +15,11 @@ public:
     RhiRenderTarget(RHI_TEXTURE_2D* handle = nullptr);
 	virtual ~RhiRenderTarget() = default;
     void create(const RhiDevice& device, const resource_format format,
-        const size_t width, const size_t heigh);
-    RhiView new_view(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot);
+        const size_t width, const size_t height);
+    RhiView new_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
 private:
-    virtual RhiView new_read_only_view(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slot) override;
-    virtual RhiView new_rw_view(const RhiDevice& device, RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor_slotr) override  ;
+    virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) override;
+    virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) override  ;
 };
 
 #endif // __rhi_render_target_hpp__

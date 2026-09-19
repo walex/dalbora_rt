@@ -25,9 +25,6 @@ public:
 
 	void set_buffers_memory_descriptor(RhiMemoryTable& resources_memory);
 	void set_sampler_memory_descriptor(RhiMemoryTable& sampler_memory);
-
-	RhiMemoryTable get_resources_memory_descriptor();
-	RhiMemoryTable get_sampler_memory_descriptor();
 };
 
 #endif // __rhi_command_buffer_hpp__

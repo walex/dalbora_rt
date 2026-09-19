@@ -264,7 +264,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			bvh_instances_view_desc.device = &dev;
 			bvh_instances_view_desc.buffer = bvh_instances.get();
 			bvh_instances_view_desc.type = shader_view_type_bvh_buffer;
-			bvh_descriptor_slot = resources_memory_descriptor.next_descriptor();
+			bvh_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr());
 			bvh_instances_view_desc.memory_descriptor = bvh_descriptor_slot.get();
 			bvh_instances_view.reset(rhi_buffers_create_view(&bvh_instances_view_desc));
 
@@ -274,7 +274,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			rt_instances_view_desc.device = &dev;
 			rt_instances_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(render_target.get());
 			rt_instances_view_desc.type = shader_view_type_rw_texture_buffer;
-			render_target_descriptor_slot = resources_memory_descriptor.next_descriptor(1);
+			render_target_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr(1));
 			rt_instances_view_desc.memory_descriptor = render_target_descriptor_slot.get();
 			render_target_view.reset(rhi_buffers_create_view(&rt_instances_view_desc));
 
@@ -284,7 +284,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			cb_instances_view_desc.device = &dev;
 			cb_instances_view_desc.buffer = static_cast<RHI_BUFFER*>(shared_camera_constant_buffer.get());
 			cb_instances_view_desc.type = shader_view_type_constant_buffer;
-			camera_constant_buffer_descriptor_slot = resources_memory_descriptor.next_descriptor(2);
+			camera_constant_buffer_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr(2));
 			cb_instances_view_desc.memory_descriptor = camera_constant_buffer_descriptor_slot.get();
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&cb_instances_view_desc));
 
@@ -423,7 +423,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// add layout descriptors
 
-		pipeline_layout.add_resources_buffers_descriptors(0, unit_test.constant_shader_registers_count,
+		pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
 			0, unit_test.read_only_shader_registers_count,
 			0, unit_test.rw_shader_registers_count);
 

@@ -137,7 +137,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             // create sampler
             RHI_SAMPLER_DESC sampler_desc;
             sampler_desc.device = &device;
-			sampler_memory_descriptor_slot = samplers_memory_descriptor.next_descriptor();
+			sampler_memory_descriptor_slot.reset(*samplers_memory_descriptor.next_descriptor_ptr());
 			sampler_desc.memory_descriptor_slot = sampler_memory_descriptor_slot.get();
             sampler.reset(rhi_sampler_create(&sampler_desc));
             
@@ -162,7 +162,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             tex_view_desc.type = shader_view_type_read_only_texture_buffer;
             tex_view_desc.format = texture_desc.format;
             tex_view_desc.mip_maps_count = texture->mip_maps_count;
-            tview_memory_descriptor_slot = resources_memory_descriptor.next_descriptor(1);
+            tview_memory_descriptor_slot.reset(*resources_memory_descriptor.next_descriptor_ptr(1));
             tex_view_desc.memory_descriptor = tview_memory_descriptor_slot.get();
             texture_view.reset(rhi_buffers_create_view(&tex_view_desc));
 
@@ -277,7 +277,8 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
         RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
-        unit_test.samplers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_sampler, SAMPLER_DESCRIPTORS_COUNT);
+        unit_test.samplers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_sampler, 
+            SAMPLER_DESCRIPTORS_COUNT);
 
         sampler.create(device, unit_test.samplers_memory_descriptors->next_descriptor_ptr());
         texture.create(device,
@@ -291,7 +292,7 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         texture_view = texture.new_read_only_view(device, unit_test.buffers_memory_descriptors->next_descriptor_ptr(1));
 
         // add layout descriptor for samplers
-        pipeline_layout.add_sampler_buffer_descriptors(0, 1);
+        pipeline_layout.set_shader_sampler_descriptor_offset(0, 1);
 
         // add input descriptor
         pipeline.add_input_descriptor("TEXCOORD", 12, resource_format_float2);

@@ -25,7 +25,7 @@ public:
 	}
 
 protected:
-	RhiImpl(T* handle, bool ownership = false) {
+	RhiImpl(T* handle, const bool ownership = false) {
 		if (handle) {
 			m_handle.reset(handle);
 			m_owner = ownership;

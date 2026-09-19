@@ -145,7 +145,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			camera_cb_view_desc.device = &device;
 			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
 			camera_cb_view_desc.type = shader_view_type_constant_buffer;
-			camera_descriptor_slot = memory_descriptor.next_descriptor();
+			camera_descriptor_slot.reset(*memory_descriptor.next_descriptor_ptr());
 			camera_cb_view_desc.memory_descriptor = camera_descriptor_slot.get();
 			camera_constant_buffer_view.reset(rhi_buffers_create_view(&camera_cb_view_desc));
 			
@@ -163,7 +163,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			object_cb_view_desc.device = &device;
 			object_cb_view_desc.buffer = shared_object_constant_buffer.get();
 			object_cb_view_desc.type = shader_view_type_constant_buffer;
-			object_descriptor_slot = memory_descriptor.next_descriptor();
+			object_descriptor_slot.reset(*memory_descriptor.next_descriptor_ptr());
 			object_cb_view_desc.memory_descriptor = object_descriptor_slot.get();
 			object_constant_buffer_view.reset(rhi_buffers_create_view(&object_cb_view_desc));
 			
@@ -236,7 +236,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			db_view_desc.buffer = depth_buffer.get();
 			db_view_desc.type = shader_view_type_depth_stencil_target;
 			db_view_desc.format = db_desc.format;
-			depth_descriptor_slot = get_dsv_memory_table().next_descriptor();
+			depth_descriptor_slot.reset(*get_dsv_memory_table().next_descriptor_ptr());
 			db_view_desc.memory_descriptor = depth_descriptor_slot.get();
 			depth_buffer_view.reset(rhi_buffers_create_view(&db_view_desc));
 			
@@ -358,7 +358,7 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// setup pipeline layout
 		// add layout descriptors ( order mathers )
 	
-		pipeline_layout.add_resources_buffers_descriptors(0, unit_test.constant_shader_registers_count,
+		pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
 			0, unit_test.read_only_shader_registers_count,
 			0, unit_test.rw_shader_registers_count);
 

@@ -22,11 +22,15 @@ void memory_table_init(RHI_DEVICE* device) {
 
 	RhiDevice device_obj(device);
 
-	std::vector<size_t> slot_group_start_indices = {0, 100, 200};
-	buffers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_buffer, BUFFERS_DESCRIPTORS_COUNT, slot_group_start_indices);
-	samplers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_sampler, SAMPLER_DESCRIPTORS_COUNT);
-	rtv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
-	dsv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
+	std::vector<size_t> slot_group_start_indices = {5, 5, 5};
+	buffers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_buffer,
+		BUFFERS_DESCRIPTORS_COUNT, slot_group_start_indices);
+	samplers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_sampler, 
+		SAMPLER_DESCRIPTORS_COUNT);
+	rtv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_rtv,
+		RTV_HEAP_DESCRIPTORS_COUNT);
+	dsv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_dsv,
+		DSV_DESCRIPTORS_COUNT);
 }
 
 #ifdef TEST_SWAP_CHAIN
@@ -82,7 +86,7 @@ void test_swap_chain(fptr_test_on_init on_init
 
 		for (size_t i = 0; i < swap_chain_desc.buffer_count; i++) {
 
-			views_slots.emplace_back(get_rtv_memory_table().next_descriptor().release());
+			views_slots.emplace_back(*get_rtv_memory_table().next_descriptor_ptr());
 			RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device.get(), swap_chain.get(), views_slots.back().get(), swap_chain_desc.color_format, i);
 			views.push_back(std::unique_ptr<RHI_VIEW>(view_ptr));
 		}
@@ -202,8 +206,8 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 			size_t resources_count = unit_test.constant_shader_registers_count + unit_test.read_only_shader_registers_count + unit_test.rw_shader_registers_count;
 
 			if (resources_count > 0) {
-				std::vector<size_t> slot_group_start_indices = { 0, unit_test.constant_shader_registers_count,
-				unit_test.constant_shader_registers_count + unit_test.read_only_shader_registers_count };
+				std::vector<size_t> slot_group_start_indices = { unit_test.constant_shader_registers_count,
+				unit_test.read_only_shader_registers_count, unit_test.rw_shader_registers_count };
 				unit_test.buffers_memory_descriptors = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_buffer,
 					resources_count,
 					slot_group_start_indices);

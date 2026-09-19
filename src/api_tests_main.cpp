@@ -35,7 +35,7 @@ void test_objects() {
 
 	// test_create_swap_chain_obj();
 
-	// test_raster_triangle_obj();
+	//test_raster_triangle_obj();
 
 	// test_raster_textured_triangle_obj();
 

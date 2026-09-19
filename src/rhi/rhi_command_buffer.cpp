@@ -19,14 +19,6 @@ void RhiCommandBuffer::set_sampler_memory_descriptor(RhiMemoryTable& sampler_mem
 	static_cast<RHI_COMMAND_BUFFER*>(*this)->sampler_memory_descriptor = sampler_memory;
 }
 
-RhiMemoryTable RhiCommandBuffer::get_resources_memory_descriptor() {
-	return RhiMemoryTable(static_cast<RHI_COMMAND_BUFFER*>(*this)->buffer_memory_descriptor);
-}
-
-RhiMemoryTable RhiCommandBuffer::get_sampler_memory_descriptor() {
-	return RhiMemoryTable(static_cast<RHI_COMMAND_BUFFER*>(*this)->sampler_memory_descriptor);
-}
-
 void RhiCommandBuffer::record(RhiCommandBufferRecordCallback callback) {
 	
 	rhi_command_buffer_record(*this,
