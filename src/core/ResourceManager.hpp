@@ -7,6 +7,7 @@ class ResourceManager {
 
 public:
 	ResourceManager(RhiDevice& device);
+	virtual ~ResourceManager() = default;
 	void create_descriptor_tables(const size_t constants_buffers_size,
 		const size_t read_only_buffers_size, const size_t rw_buffers_size);
 	const RhiDevice& get_device() const { return m_device; }

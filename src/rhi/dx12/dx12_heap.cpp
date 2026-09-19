@@ -25,7 +25,7 @@ RHI_MEMORY_DESCRIPTOR_SLOT* dx12_memory_resource_get_descriptor(const RHI_MEMORY
 	
 	ASSERT_EXPR(index < heap->descriptor_count);
 	ASSERT_PTR(heap);
-	const DX_MEMORY_DESCRIPTOR_TABLE* dt = static_cast<const DX_MEMORY_DESCRIPTOR_TABLE*>(heap);
+	const DX_MEMORY_DESCRIPTOR* dt = static_cast<const DX_MEMORY_DESCRIPTOR*>(heap);
 
 	DX_MEMORY_DESCRIPTOR_SLOT* result = new DX_MEMORY_DESCRIPTOR_SLOT();
 	ASSERT_PTR(result);
@@ -77,7 +77,7 @@ RHI_MEMORY_DESCRIPTOR* dx12_heap_create_descriptor_table(const DX_DEVICE* const 
 	ID3D12Device* i_device = *device_impl;
 	ASSERT_PTR(i_device);
 
-	DX_MEMORY_DESCRIPTOR_TABLE* result = new DX_MEMORY_DESCRIPTOR_TABLE();
+	DX_MEMORY_DESCRIPTOR* result = new DX_MEMORY_DESCRIPTOR();
 	ASSERT_PTR(result);
 
 	D3D12_DESCRIPTOR_HEAP_TYPE type;

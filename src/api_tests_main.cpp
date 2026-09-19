@@ -13,7 +13,7 @@ void test_api()
 	// test_swap_chain();
 
 	// raster triangle
-	// test_raster_triangle();
+	test_raster_triangle();
 
 	// raster textured triangle
     //test_raster_textured_triangle();

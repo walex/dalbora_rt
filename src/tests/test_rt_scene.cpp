@@ -35,20 +35,22 @@ std::unique_ptr<BaseCamera> create_camera(ResourceManager& resource_manager, flo
 }
 
 void test_rt_scene() {
-
-	RhiWindow window;
-	RhiDevice device;
-	RhiSwapChain swap_chain;
-	RHI_VIEWPORT view_port;
-	std::unique_ptr<RayTracingRenderer> renderer;
-	std::unique_ptr<RayTraceScene> scene;
-	std::unique_ptr<ResourceManager> resources_manager;
-	std::unique_ptr<BaseCamera> camera;
-
+	
 	// bindless table for buffers
 	constexpr size_t read_only_shader_count = 800;
 	constexpr size_t rw_shader_count = 10;
 	constexpr size_t constant_shader_count = 1;
+
+	RHI_VIEWPORT view_port;
+
+	RhiWindow window;
+	RhiDevice device;
+	RhiSwapChain swap_chain;
+
+	std::unique_ptr<RayTracingRenderer> renderer;
+	std::unique_ptr<RayTraceScene> scene;
+	std::unique_ptr<BaseCamera> camera;
+	std::unique_ptr<ResourceManager> resources_manager;
 
 	// windows callbacks
 	RHI_WINDOW_CALLBACKS window_callbacks;
@@ -103,10 +105,10 @@ void test_rt_scene() {
 		float aspect = static_cast<float>(window.get_width()) / static_cast<float>(window.get_height());
 		camera = create_camera(*resources_manager, bb_min, bb_max, aspect);
 		scene->set_camera(camera.get());
-	});
+		});
 
 	window_callbacks.on_end = ([&](RHI_WINDOW* const wnd) {
-	});
+		});
 
 	window_callbacks.on_idle = ([&](RHI_WINDOW* const wnd) {
 
@@ -118,7 +120,7 @@ void test_rt_scene() {
 		// present swap chain
 		swap_chain.present();
 
-	});
+		});
 
 	window.create("Ray Tracing Scene Test", 800, 600, false, window_callbacks);
 	window.mainLoop();

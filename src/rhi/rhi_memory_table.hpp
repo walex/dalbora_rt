@@ -16,12 +16,9 @@
 #define SAMPLER_HEAP_ENABLE true
 #define SAMPLER_DESCRIPTORS_COUNT 128
 
-class RhiMemory {};
-
 class RhiDevice;
 class RhiMemoryTable 
-	: public RhiMemory
-	, public ICreateRhiObject<const RhiDevice&, const memory_descriptor_type,
+	: public ICreateRhiObject<const RhiDevice&, const memory_descriptor_type,
 	const size_t>
 	, public RhiImpl<RHI_MEMORY_DESCRIPTOR> {
 public:
@@ -32,6 +29,7 @@ public:
 		this->create(device, type, descriptors_count);
 		m_descriptor_group_offsets = slot_group_group_offsets;
 	}
+	virtual ~RhiMemoryTable() = default;
 	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> next_descriptor(size_t group_index = 0) const;
 	RHI_MEMORY_DESCRIPTOR_SLOT* next_descriptor_ptr(size_t group_index = 0) const;
 private:

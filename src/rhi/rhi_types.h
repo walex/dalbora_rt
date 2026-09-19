@@ -35,10 +35,11 @@ struct RHI_HANDLE {
 
 struct RHI_MEMORY_DESCRIPTOR {
 	size_t descriptor_count = 0;
+	virtual ~RHI_MEMORY_DESCRIPTOR() = default;
 };
 
 struct RHI_MEMORY_DESCRIPTOR_SLOT {
-	
+	virtual ~RHI_MEMORY_DESCRIPTOR_SLOT() = default;
 	size_t slot_id = 0;
 };
 
