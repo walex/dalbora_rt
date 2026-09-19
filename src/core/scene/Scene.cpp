@@ -136,9 +136,5 @@ void Scene::on_scene_loaded(RhiCommandBuffer& UNUSED_PARAM(command_buffer),
 
 void Scene::draw(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport) {
 
-	ASSERT_PTR(m_camera);
-
-	m_camera->update(0.0f);
-
 	// TODO: cull here
 }

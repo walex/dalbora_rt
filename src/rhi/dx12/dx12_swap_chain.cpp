@@ -9,7 +9,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	ASSERT_PTR(desc->command_queue);
 	ASSERT_PTR(desc->window);
 	ASSERT_PTR(desc->window->handle);
-
+	
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(desc->device);
 	ID3D12Device* i_device = *device_impl;
 	ASSERT_PTR(i_device);
@@ -30,12 +30,18 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 		?  dx12_resource_format_type[desc->color_format]
 		: DXGI_FORMAT_R8G8B8A8_UNORM;
 
+	bool enable_vsync = desc->enable_vsync;
 	BOOL allowTearing = FALSE;
-	// If tearing support requested/available, attempt to enable (best-effort)
-	BOOL tearSupported = FALSE;
-	if (SUCCEEDED(i_factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearSupported, sizeof(tearSupported)))
-		&& tearSupported) {
-		allowTearing = TRUE;
+	if (desc->is_full_screen == false && enable_vsync == false) {
+		// If tearing support requested/available, attempt to enable (best-effort)
+		BOOL tearSupported = FALSE;
+		if (SUCCEEDED(i_factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &tearSupported, sizeof(tearSupported)))
+			&& tearSupported) {
+			allowTearing = TRUE;
+		}
+		else {
+			enable_vsync = true; // fallback to vsync if tearing not supported
+		}
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 scDesc = {};
@@ -68,13 +74,12 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	IDXGISwapChain3* i_swap_chain_3 = nullptr;
 	ASSERT_SUCCESS(i_swap_chain_1->QueryInterface(IID_PPV_ARGS(&i_swap_chain_3)));
 	ASSERT_PTR(i_swap_chain_3);
-	//ID3D12DescriptorHeap* i_heap = *reinterpret_cast<DX_MEMORY_DESCRIPTOR*>(desc->memory_descriptor);
-	//ASSERT_PTR(i_heap);
 	DX_SWAP_CHAIN* swap_chain_impl = new DX_SWAP_CHAIN();
 	swap_chain_impl->set_handle(i_swap_chain_3);
 
 	swap_chain_impl->format = desc->color_format;
-	swap_chain_impl->disable_vsync = desc->disable_vsync && (allowTearing == TRUE);
+	swap_chain_impl->vsync = enable_vsync;
+	swap_chain_impl->is_full_screen = desc->is_full_screen;
 	swap_chain_impl->buffers_count = static_cast<size_t>(buffer_count);
 	return swap_chain_impl;
 }
@@ -165,7 +170,16 @@ void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 	const DX_SWAP_CHAIN* swap_chain_impl = static_cast<const DX_SWAP_CHAIN*>(swap_chain);
 	ASSERT_PTR(swap_chain_impl);
 	IDXGISwapChain3* i_swap_chain = *swap_chain_impl;
-	i_swap_chain->Present(0, !swap_chain_impl->disable_vsync ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+	UINT flags, interval;
+	if (swap_chain_impl->vsync) {
+		interval = 1;
+		flags = 0;
+	}
+	else {
+		interval = 0;
+		flags = swap_chain_impl->is_full_screen ? 0 : DXGI_PRESENT_ALLOW_TEARING;
+	}
+	i_swap_chain->Present(interval, flags);
 }
 
 uint32_t dx12_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_chain) {

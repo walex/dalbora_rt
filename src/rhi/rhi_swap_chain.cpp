@@ -5,15 +5,16 @@ RhiSwapChain::RhiSwapChain(RHI_SWAP_CHAIN* handle) : RhiImpl<RHI_SWAP_CHAIN>(han
 
 void RhiSwapChain::create(const RhiWindow& window, const RhiDevice& device, 
 	const RhiCommandQueue& command_queue, size_t buffers_count, 
-	resource_format format, bool enable_vertical_sync) {
+	resource_format format, bool enable_vertical_sync, bool full_screen) {
 
 	RHI_SWAP_CHAIN_DESC desc;
 	desc.device = device;
 	desc.command_queue = command_queue;
 	desc.window = window;
+	desc.enable_vsync = enable_vertical_sync;
+	desc.is_full_screen = full_screen;
 	desc.width = window.get_width();
 	desc.height = window.get_height();
-	desc.disable_vsync = !enable_vertical_sync;
 	desc.buffer_count = buffers_count;
 	desc.color_format = format;
 	this->set_handle(rhi_swap_chain_create(&desc));

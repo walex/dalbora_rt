@@ -82,9 +82,15 @@ void test_rt_scene() {
 			window.get_width(), window.get_height());
 
 		// create swap chain
+		bool enable_vertical_sync;
+#ifdef DEBUG
+		enable_vertical_sync = true;
+#else
+		enable_vertical_sync = false;
+#endif
 		constexpr size_t swap_chain_buffers_count = 3;
 		swap_chain = renderer->create_swap_chain(window, swap_chain_buffers_count,
-			surface_format);
+			surface_format, enable_vertical_sync);
 
 		// create swap chain views
 		swap_chain.create_views(device, resources_manager->get_rtv_memory_descriptor());
@@ -105,22 +111,31 @@ void test_rt_scene() {
 		float aspect = static_cast<float>(window.get_width()) / static_cast<float>(window.get_height());
 		camera = create_camera(*resources_manager, bb_min, bb_max, aspect);
 		scene->set_camera(camera.get());
-		});
+	});
 
 	window_callbacks.on_end = ([&](RHI_WINDOW* const wnd) {
-		});
+	});
 
 	window_callbacks.on_idle = ([&](RHI_WINDOW* const wnd) {
 
-		// get next render target view from swap chain
-		RhiView render_target_view = swap_chain.get_next_render_target();
+		// get elapsed time
+		float dt = get_delta_time();
 
-		scene->draw(*renderer, render_target_view, view_port);
+		// update camera
+		camera->update(dt);
+
+		// get next render target view from swap chain
+		RhiView render_surface = swap_chain.get_next_render_target();
+
+		scene->draw(*renderer, render_surface, view_port);
 
 		// present swap chain
 		swap_chain.present();
 
-		});
+		// log fps
+		print_fps();
+
+	});
 
 	window.create("Ray Tracing Scene Test", 800, 600, false, window_callbacks);
 	window.mainLoop();

@@ -11,11 +11,11 @@ void Renderer::create() {
 }
 
 RhiSwapChain Renderer::create_swap_chain(const RhiWindow& window, const uint32_t buffer_count,
-	resource_format surface_format) {
+	const resource_format surface_format, const bool enable_vertical_sync) {
 
 	const RhiDevice& device = m_resource_manager.get_device();
 	RhiSwapChain swap_chain;
-	swap_chain.create(window, device, m_command_queue, buffer_count, surface_format, true);
+	swap_chain.create(window, device, m_command_queue, buffer_count, surface_format, enable_vertical_sync);
 	swap_chain.create_views(device, m_resource_manager.get_rtv_memory_descriptor());
 	return swap_chain;
 }

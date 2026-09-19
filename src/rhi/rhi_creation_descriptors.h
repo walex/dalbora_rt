@@ -67,7 +67,8 @@ struct RHI_SWAP_CHAIN_DESC  {
 	size_t width = 0;
 	size_t height = 0;
 	resource_format color_format = resource_format_none;
-	bool disable_vsync = false;
+	bool enable_vsync = false;
+	bool is_full_screen = false;
 	size_t buffer_count = 0;
 };
 

@@ -90,7 +90,8 @@ struct RHI_VIEW {
 struct RHI_SWAP_CHAIN {
 	virtual ~RHI_SWAP_CHAIN() = default;
 	resource_format format;
-	bool disable_vsync = false;
+	bool vsync = false;
+	bool is_full_screen = false;
 	size_t buffers_count = 0;
 };
 
