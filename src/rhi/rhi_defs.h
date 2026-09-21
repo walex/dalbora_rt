@@ -9,7 +9,8 @@ enum rhi_api
 enum device_type
 {
 	device_type_none = 0,
-	device_type_dx12
+	device_type_dx12,
+	device_type_vk
 };
 
 enum resource_format

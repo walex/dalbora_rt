@@ -242,6 +242,7 @@ namespace cv
 #include <filesystem>
 #include <typeinfo>
 #include <stdarg.h>
+#include <set>
 #ifdef WINDOWS_PLATFORM
 #define _USE_MATH_DEFINES
 #include <math.h>

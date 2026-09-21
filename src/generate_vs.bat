@@ -13,4 +13,4 @@ for /f "usebackq delims=" %%i in (`
 
 call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat"
 
-python generate_vs.py
+python generate_vs.py --enable-vulkan

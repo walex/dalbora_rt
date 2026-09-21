@@ -23,6 +23,8 @@ struct RHI_WINDOW_CALLBACKS
 	fptr_window_on_end on_end = [](RHI_WINDOW* const) {};
 };
 
+typedef RHI_VOID_PTR RHI_APP_INSTANCE;
+
 struct RHI_HANDLE {
 	virtual ~RHI_HANDLE() = default;
 	virtual void set_handle(RHI_VOID_PTR handle) = 0;
@@ -34,8 +36,11 @@ struct RHI_HANDLE {
 };
 
 struct RHI_MEMORY_DESCRIPTOR {
-	size_t descriptor_count = 0;
 	virtual ~RHI_MEMORY_DESCRIPTOR() = default;
+	size_t descriptor_count = 0;
+	size_t descriptor_size = 0;
+	uint64_t cpu_handle = 0;
+	uint64_t gpu_handle = 0;
 };
 
 struct RHI_MEMORY_DESCRIPTOR_SLOT {

@@ -55,6 +55,12 @@ def main():
         )
         return
 
+    args = sys.argv[1:]
+    system_flags = ""
+    if "--enable-vulkan" in args:
+        system_flags += " -DENABLE_VULKAN=ON"
+        print("Vulkan support enabled")
+
     # save directories
     cur_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -67,8 +73,6 @@ def main():
         if ans.strip().lower() != "y":
             return
     
-    sdl_path=os.path.join(cur_dir, "thirdparty", "SDL3-3.4.0")
-    
     if os.path.isdir(build_dir) == True:
         shutil.rmtree(build_dir)
     os.makedirs(build_dir)
@@ -76,10 +80,10 @@ def main():
     os.chdir(build_dir)
 
     cxx_flags = ""
-    command = ('"%s" -G "%s" -A x64 -DCMAKE_PREFIX_PATH="%s" -DCMAKE_CXX_FLAGS="%s" "%s"') % (
+    command = ('"%s" -G "%s" -A x64 %s -DCMAKE_CXX_FLAGS="%s" "%s"') % (
         cmake_exe,
         cmake_title,
-        sdl_path,
+        system_flags,
         cxx_flags,
         cur_dir,
     )

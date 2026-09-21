@@ -23,6 +23,9 @@ struct RHI_DEVICE_DESC  {
 	int adapter_id = -1;
 	unsigned long long features = device_features_none;
 	hlsl_shader_model shader_model = hlsl_shader_model_6_8;
+	size_t graphics_queue_count = 1;
+	size_t compute_queue_count = 1;
+	RHI_APP_INSTANCE app_instance = nullptr;
 };
 
 struct RHI_BUFFER_DESC  {

@@ -2,7 +2,7 @@
 #include "dx12_factory.hpp"
 #include "dx12_heap.hpp"
 
-bool dx12_device_check_rt_support(ID3D12Device* device) {
+bool check_dx12_device_rt_support(ID3D12Device* device) {
 	D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureData = {};
 	HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureData, sizeof(featureData));
 	if (FAILED(hr)) {
@@ -11,13 +11,13 @@ bool dx12_device_check_rt_support(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
-void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
+void check_dx12_device_features(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
 
 	bool result = true;
 
 	auto feats = features;
 	if (feats & device_features_raytracing) {
-		result &= dx12_device_check_rt_support(i_device);
+		result &= check_dx12_device_rt_support(i_device);
 		feats ^= device_features_raytracing;
 	}
 	
@@ -32,7 +32,7 @@ void dx12_device_check_device_features(ID3D12Device* i_device, const __int64 fea
 	}
 }
 
-IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features, hlsl_shader_model shader_model) {
+IDXGIAdapter1* pick_best_dx12_device_adapter(__int64 features, hlsl_shader_model shader_model) {
 
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	for (UINT adapterIndex = 0;; ++adapterIndex) {
@@ -58,7 +58,7 @@ IDXGIAdapter1* dx12_device_pick_best_adapter(__int64 features, hlsl_shader_model
 		if (SUCCEEDED(hr)) {
 			bool use_it = true;
 			try {
-				dx12_device_check_device_features(testDevice, features, shader_model);
+				check_dx12_device_features(testDevice, features, shader_model);
 			}
 			catch (std::exception&) {
 				
@@ -89,7 +89,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 		ASSERT_PTR(chosenAdapter);
 	}
 	else {
-		chosenAdapter = dx12_device_pick_best_adapter(desc->features, desc->shader_model);
+		chosenAdapter = pick_best_dx12_device_adapter(desc->features, desc->shader_model);
 		check_features = false;
 	}
 
@@ -100,7 +100,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	if (check_features == true) {
 
 		try {
-			dx12_device_check_device_features(i_device, desc->features, desc->shader_model);
+			check_dx12_device_features(i_device, desc->features, desc->shader_model);
 		}
 		catch (std::exception& ex) {
 			throw ex;

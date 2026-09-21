@@ -7,6 +7,7 @@
 void rhi_init(device_type dt);
 void rhi_end();
 device_type rhi_get_device_type();
+RHI_APP_INSTANCE rhi_get_app_instance();
 
 // window api
 inline RHI_WINDOW* (*rhi_create_window)(const RHI_WINDOW_DESC* const desc);

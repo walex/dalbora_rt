@@ -60,6 +60,7 @@ void test_swap_chain(fptr_test_on_init on_init
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = -1;
 		device_desc.features = device_features_none;
+		device_desc.app_instance = rhi_get_app_instance();
 		if (on_configure_device)
 			on_configure_device(device_desc);
 
@@ -187,6 +188,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		RHI_DEVICE_DESC device_desc;
 		device_desc.adapter_id = -1;
 		device_desc.shader_model = hlsl_shader_model_6_8;
+		device_desc.app_instance = rhi_get_app_instance();
 
 		if (callbacks)
 			callbacks->on_device_config(device_desc);

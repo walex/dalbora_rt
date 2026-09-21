@@ -357,6 +357,12 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 				//	on_end(device);
 
 				rhi_buffers_map_close(shared_camera_constant_buffer.get(), 0, sizeof(CameraCBRT));
+			},
+		[&](RHI_DEVICE_DESC& device_desc) 
+			{
+				// on_configure_device
+				device_desc.features |= device_features_raytracing;
+				device_desc.shader_model = hlsl_shader_model_6_8;
 			}
 		);
 }
@@ -538,6 +544,9 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
 		
+		device_desc.features |= device_features_raytracing;
+		device_desc.shader_model = hlsl_shader_model_6_8;
+
 		//device_desc.shader_resources_desc.read_only_buffer_shader_registers_count = read_only_shader_registers_count;
 		//device_desc.shader_resources_desc.rw_buffer_shader_registers_count = rw_shader_registers_count;
 		//device_desc.shader_resources_desc.constant_buffer_shader_registers_count = constant_shader_registers_count;

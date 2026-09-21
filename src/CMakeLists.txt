@@ -8,12 +8,6 @@ set(rtrender_VERSION 1.0.0)
 # c++ 20 as standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if (MSVC)
-	enable_language(ASM_MASM)
-else(MSVC)
-	enable_language(ASM_NASM)
-endif(MSVC)
-enable_language(C)
 
 # settings for gnu and clang compilers (used on linux and android)
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
@@ -39,6 +33,8 @@ if (MSVC)
 	add_compile_options(/Zc:__cplusplus) # get C++ version
 endif (MSVC)
 
+set(SOURCE_GROUP_EXCLUDE_FILES ";")
+
 add_subdirectory(./core)
 add_subdirectory(./os)
 add_subdirectory(./rhi)
@@ -52,11 +48,8 @@ set(RT_RENDER_HEADERS ${CORE_HEADERS} ${OS_HEADERS} ${RHI_HEADERS})
 set(RT_RENDER_SOURCES ${CORE_SOURCES} ${OS_SOURCES} ${RHI_SOURCES})
 set(RT_RENDER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} ${API_INCLUDE_DIRS} ${CORE_INCLUDE_DIRS} ${OS_INCLUDE_DIRS} ${RHI_INCLUDE_DIRS} ${RT_HLSL_DIR})
 
-set(CG_LIBS "")
 # DX12 system libraries (Windows)
 if (MSVC AND WIN32)
-    # link against system DirectX 12 libraries (no .lib extension needed)
-    set(CG_LIBS ${CG_LIBS} d3d12 dxgi dxcompiler)
     
     # Find dxcompiler.dll in Windows SDK
     find_file(DXCOMPILER_DLL 
@@ -71,8 +64,9 @@ if (MSVC AND WIN32)
 else()
     
 endif()
+message(${RHI_LIBS})
 
-set(LINK_LIBS ${CG_LIBS})
+set(LINK_LIBS ${RHI_LIBS})
 
 # Find all HLSL files in tests directory
 file(GLOB HLSL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.hlsl")
@@ -130,4 +124,6 @@ add_custom_command(TARGET api_tests POST_BUILD
     "${CMAKE_CURRENT_SOURCE_DIR}/../test_3d_models" $<TARGET_FILE_DIR:api_tests>/test_3d_models
 )
 
+list(REMOVE_ITEM RT_RENDER_SOURCES ${SOURCE_GROUP_EXCLUDE_FILES})
+list(REMOVE_ITEM RT_RENDER_HEADERS ${SOURCE_GROUP_EXCLUDE_FILES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${TEST_SOURCES} ${API_HEADERS} ${RT_RENDER_SOURCES} ${RT_RENDER_HEADERS})

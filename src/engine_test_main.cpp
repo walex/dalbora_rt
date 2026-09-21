@@ -35,7 +35,8 @@ void test_rt() {
 	device_desc.adapter_id = -1;
 	device_desc.features = device_features_raytracing;
 	device_desc.shader_model = hlsl_shader_model_6_8;
-	
+	device_desc.app_instance = rhi_get_app_instance();
+
 	// init device
 	rhi_init(device_type_dx12);
 	device.create(device_desc);

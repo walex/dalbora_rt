@@ -2,24 +2,11 @@
 #define __dx12_rhi_hpp__
 
 #include "rhi.hpp"
-#include "dx12_api_params.hpp"
 #include "dx12_helpers.hpp"
 
-struct DX_DEVICE_HEAP_SIZES_DESC {
-	size_t resources_max_elements =  0;
-	size_t sampler_max_elements = 0;
-	size_t rtv_max_elements = 0;
-	size_t dsv_max_elements = 0;
-};
-
-struct DX_DEVICE_HEAP_ELEMENT_DESC {
-	bool enable = false;
-	size_t max_elements = 0;
-};
-
 template <typename T>
-struct DX_HANDLE : public RHI_HANDLE
-{
+struct DX_HANDLE 
+	: public RHI_HANDLE {
 	virtual ~DX_HANDLE() {
 #if DEBUG
 		//printf("Releasing handle of type %s\n", typeid(T).name());
@@ -28,46 +15,50 @@ struct DX_HANDLE : public RHI_HANDLE
 	void set_handle(RHI_VOID_PTR handle) override {
 
 		com_ptr.Attach(static_cast<T*>(handle));
-	}	
+	}
 
-	RHI_VOID_PTR get_handle() const override { 
+	RHI_VOID_PTR get_handle() const override {
 		return static_cast<RHI_VOID_PTR>(com_ptr.Get());
 	}
 	Microsoft::WRL::ComPtr<T> com_ptr;
 };
 
 typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
+
+struct DX_DEVICE 
+	: public RHI_DEVICE
+	, public DX_HANDLE<ID3D12Device> {
+};
+
 struct DX_MEMORY_DESCRIPTOR 
 	: public RHI_MEMORY_DESCRIPTOR
-	, public DX_HANDLE<ID3D12DescriptorHeap>
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
-	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
-	size_t descriptor_size = 0;
+	, public DX_HANDLE<ID3D12DescriptorHeap> {
+	
 };
 
-struct DX_MEMORY_DESCRIPTOR_SLOT : public RHI_MEMORY_DESCRIPTOR_SLOT, public RHI_MEMORY_DESCRIPTOR
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
-	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle;
-	size_t descriptor_size = 0;
+struct DX_MEMORY_DESCRIPTOR_SLOT 
+	: public RHI_MEMORY_DESCRIPTOR_SLOT
+	, public RHI_MEMORY_DESCRIPTOR {
 };
 
-struct DX_MEMORY_POOL : public DX_MEMORY_DESCRIPTOR, public DX_HANDLE<ID3D12Heap> {
+struct DX_MEMORY_POOL 
+	: public DX_MEMORY_DESCRIPTOR
+	, public DX_HANDLE<ID3D12Heap> {
 };
 
-struct DX_DEVICE : public RHI_DEVICE, public DX_HANDLE<ID3D12Device>
-{
-};
-
-struct DX_RESOURCE : public DX_HANDLE<ID3D12Resource> {
+struct DX_RESOURCE 
+	: public DX_HANDLE<ID3D12Resource> {
 	std::atomic<D3D12_RESOURCE_STATES> current_state = D3D12_RESOURCE_STATE_COMMON;
 };
 
-struct DX_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
+struct DX_BUFFER 
+	: public RHI_BUFFER
+	, public DX_RESOURCE {
 };
 
-struct DX_COMMAND_BUFFER : public RHI_COMMAND_BUFFER, public DX_HANDLE<ID3D12CommandList> {
+struct DX_COMMAND_BUFFER 
+	: public RHI_COMMAND_BUFFER
+	, public DX_HANDLE<ID3D12CommandList> {
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
 };
 
@@ -75,15 +66,15 @@ struct DX_COMPILED_SHADER_BUFFER :
 	public RHI_COMPILED_SHADER_BUFFER, 
 	public RHI_BUFFER,
 	public DX_HANDLE<IDxcBlob> {
-
 };
 
 struct DX_EVENT {
+
 	DX_EVENT() : handle(
 		CreateEvent(nullptr, FALSE, FALSE, nullptr)) {
-
 		ASSERT_PTR(handle);
 	}
+	
 	virtual ~DX_EVENT() {
 		if (handle)
 			CloseHandle(handle);
@@ -93,51 +84,74 @@ private:
 	HANDLE handle;
 };
 
-struct DX_COMMAND_QUEUE : public RHI_COMMAND_QUEUE, public DX_HANDLE<ID3D12CommandQueue> {
+struct DX_COMMAND_QUEUE 
+	: public RHI_COMMAND_QUEUE
+	, public DX_HANDLE<ID3D12CommandQueue> {
 	DX_EVENT event_handle;
 };
 
-struct DX_TEXTURE_2D : public RHI_TEXTURE_2D, public DX_BUFFER {
+struct DX_TEXTURE_2D 
+	: public RHI_TEXTURE_2D
+	, public DX_BUFFER {
 };
 
-struct DX_BVH_BUFFER : public RHI_BUFFER, public DX_RESOURCE {
+struct DX_BVH_BUFFER 
+	: public RHI_BUFFER,
+	public DX_RESOURCE {
 	DX_HANDLE<ID3D12Resource> scratch_handle;
 	DX_HANDLE<ID3D12Resource> inputs_buffer_handle;
 };
 
-struct DX_FENCE : public RHI_FENCE, public DX_HANDLE<ID3D12Fence> {
+struct DX_FENCE 
+	: public RHI_FENCE
+	, public DX_HANDLE<ID3D12Fence> {
 };
 
-struct DX_VIEW : public RHI_VIEW {
+struct DX_VIEW 
+	: public RHI_VIEW {
 
 };
 
-struct DX_RENDER_PASS : public RHI_RENDER_PASS {
+struct DX_RENDER_PASS 
+	: public RHI_RENDER_PASS {
 };
 
-struct DX_RT_BVH : public RHI_RT_BVH, public DX_RESOURCE {
+struct DX_RT_BVH 
+	: public RHI_RT_BVH
+	, public DX_RESOURCE {
 	DX_HANDLE<ID3D12Resource> scratch_handle;
 };
 
-struct DX_PIPELINE_LAYOUT : public RHI_PIPELINE_LAYOUT, public DX_HANDLE<ID3D12RootSignature> {
+struct DX_PIPELINE_LAYOUT 
+	: public RHI_PIPELINE_LAYOUT
+	, public DX_HANDLE<ID3D12RootSignature> {
 };
 
-struct DX_RASTER_PIPELINE : public RHI_RASTER_PIPELINE, public DX_HANDLE<ID3D12PipelineState> {
+struct DX_RASTER_PIPELINE 
+	: public RHI_RASTER_PIPELINE
+	, public DX_HANDLE<ID3D12PipelineState> {
 };
 
-struct DX_RT_PIPELINE : public RHI_RT_PIPELINE, public DX_HANDLE<ID3D12StateObject> {
+struct DX_RT_PIPELINE 
+	: public RHI_RT_PIPELINE
+	, public DX_HANDLE<ID3D12StateObject> {
 };
 
-struct DX_SAMPLER : public RHI_SAMPLER {
+struct DX_SAMPLER
+	: public RHI_SAMPLER {
 	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
 };
 
-struct DX_SBT_TABLE : public RHI_SBT_TABLE, public DX_BUFFER
+struct DX_SBT_TABLE
+	: public RHI_SBT_TABLE
+	, public DX_BUFFER
 {
 	virtual ~DX_SBT_TABLE() = default;
 };
 
-struct DX_SWAP_CHAIN : public RHI_SWAP_CHAIN, public DX_HANDLE<IDXGISwapChain3> {
+struct DX_SWAP_CHAIN 
+	: public RHI_SWAP_CHAIN
+	, public DX_HANDLE<IDXGISwapChain3> {
 };
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
@@ -208,6 +222,7 @@ constexpr D3D12_HEAP_TYPE dx12_heap_type[] = {
 
 void dx12_rhi_init();
 void dx12_rhi_end();
+RHI_APP_INSTANCE dx12_rhi_get_app_instance();
 
 #ifdef DEBUG
 	#define ASSERT_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)

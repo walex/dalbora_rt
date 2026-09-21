@@ -69,6 +69,7 @@ void test_rt_scene() {
 			RHI_DEVICE_DESC device_desc;
 			device_desc.features |= device_features_raytracing;
 			device_desc.shader_model = hlsl_shader_model_6_8;
+			device_desc.app_instance = rhi_get_app_instance();
 			device.create(device_desc);
 
 			// create resource manager

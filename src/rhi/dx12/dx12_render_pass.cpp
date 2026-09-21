@@ -26,7 +26,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	ASSERT_PTR(command_buffer->buffer_memory_descriptor);
 
 	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
-	
+
 	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
@@ -35,7 +35,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 
 	UINT heap_count = 1;
 	// configure heap
-	
+
 	ID3D12DescriptorHeap* resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor);
 	ASSERT_PTR(resource_heap);
 
@@ -50,9 +50,11 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 		sampler_heap
 	};
 
+	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle 
+		= {static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor)->gpu_handle};
 	i_command_buffer_5->SetDescriptorHeaps(heap_count, heaps);
 	i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
-	i_command_buffer_5->SetComputeRootDescriptorTable(0, static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor)->gpu_handle);
+	i_command_buffer_5->SetComputeRootDescriptorTable(0, gpu_handle);
 	i_command_buffer_5->SetPipelineState1(*static_cast<DX_RT_PIPELINE*>(pipeline_impl));
 	if (callback)
 		callback();
@@ -92,11 +94,13 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->buffer);
 	ASSERT_PTR(resource_impl);
 	
-	const D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle = nullptr;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
+	D3D12_CPU_DESCRIPTOR_HANDLE* dsv_handle_ptr = nullptr;
 	if (depth_buffer_view_impl) {
 
 		const DX_MEMORY_DESCRIPTOR_SLOT* dsv_slot = static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(depth_buffer_view_impl->memory_descriptor);
-		dsv_handle = &dsv_slot->cpu_handle;
+		dsv_handle = {dsv_slot->cpu_handle};
+		dsv_handle_ptr = &dsv_handle;
 	}
 
 	dx12_command_buffer_resource_barrier_transition(i_command_buffer,
@@ -125,19 +129,20 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 			static float clearColor[] = { 0.1f, 0.2f, 0.4f, 1.0f };
 
 			const DX_MEMORY_DESCRIPTOR_SLOT* rtv_slot = static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(render_target_view_impl->memory_descriptor);
+			const D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = { rtv_slot->cpu_handle };
 			i_command_buffer->RSSetViewports(1, &dx_vp);
 			i_command_buffer->RSSetScissorRects(1, &dx_scissor);
-			i_command_buffer->OMSetRenderTargets(1, &rtv_slot->cpu_handle, FALSE, dsv_handle);
+			i_command_buffer->OMSetRenderTargets(1, &rtv_handle, FALSE, dsv_handle_ptr);
 			i_command_buffer->ClearRenderTargetView(
-				rtv_slot->cpu_handle,
+				rtv_handle,
 				clearColor,
 				0,
 				nullptr
 			);
 
-			if (dsv_handle) {
+			if (dsv_handle_ptr != nullptr) {
 				i_command_buffer->ClearDepthStencilView(
-					*dsv_handle,                         // D3D12_CPU_DESCRIPTOR_HANDLE
+					*dsv_handle_ptr,                         // D3D12_CPU_DESCRIPTOR_HANDLE
 					D3D12_CLEAR_FLAG_DEPTH,            // qué limpiar
 					1.0f,                              // depth clear value
 					0,                                 // stencil clear value
@@ -148,15 +153,19 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 			
 			if (pipeline_impl) {				
 				
+				D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = 
+					{ static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor)->gpu_handle };
 				ID3D12PipelineState* i_pipeline = *pipeline_impl;
 				ASSERT_PTR(i_pipeline);
 				i_command_buffer->SetPipelineState(i_pipeline);
 				ID3D12RootSignature* i_signature = *static_cast<DX_PIPELINE_LAYOUT*>(pipeline_impl->layout);
 				ASSERT_PTR(i_signature);
 				i_command_buffer->SetGraphicsRootSignature(i_signature);
-				i_command_buffer->SetGraphicsRootDescriptorTable(0, static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor)->gpu_handle);
-				if (sampler_heap)
-					i_command_buffer->SetGraphicsRootDescriptorTable(1, static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->sampler_memory_descriptor)->gpu_handle);
+				i_command_buffer->SetGraphicsRootDescriptorTable(0, gpu_handle);
+				if (sampler_heap) {
+					gpu_handle = { static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->sampler_memory_descriptor)->gpu_handle };
+					i_command_buffer->SetGraphicsRootDescriptorTable(1, gpu_handle);
+				}
 			}
 
 			if (callback)

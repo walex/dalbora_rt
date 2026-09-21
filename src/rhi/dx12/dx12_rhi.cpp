@@ -1,9 +1,8 @@
 #include "dx12_rhi.hpp"
 #include "dx12_factory.hpp"
 #include "dx12_device.hpp"
-#include "dx12_command_queue.hpp"
 #include "dx12_swap_chain.hpp"
-#include "dx12_window.hpp"
+#include "dx12_command_queue.hpp"
 #include "dx12_command_buffer.hpp"
 #include "dx12_raster_pipeline.hpp"
 #include "dx12_texture_2d.hpp"
@@ -15,7 +14,6 @@
 #include "dx12_sampler.hpp"
 #include "dx12_rt_pipeline.hpp"
 #include "dx12_rt_bvh.hpp"
-#include "dx12_heap.hpp"
 
 void dx12_rhi_init()
 {
@@ -24,11 +22,13 @@ void dx12_rhi_init()
 	dx12_factory_create();
 
 	// set function pointers
-	rhi_create_window = &dx12_window_create;
-	rhi_window_main_loop = &dx12_window_main_loop;
 
 	// device
 	rhi_create_device = &dx12_device_create;
+
+	// heap
+	rhi_memory_resource_create = &dx12_memory_resource_create;
+	rhi_memory_resource_get_descriptor = &dx12_memory_resource_get_descriptor;
 
 	// swap chain api
 	rhi_swap_chain_create = &dx12_swap_chain_create;
@@ -99,11 +99,13 @@ void dx12_rhi_init()
 	rhi_rt_bvh_update_geometry_instances = &dx12_rt_bvh_update_geometry_instances;
 	rhi_rt_pipeline_create_sbt = &dx12_rt_pipeline_create_sbt;
 
-	// heap
-	rhi_memory_resource_create = &dx12_memory_resource_create;
-	rhi_memory_resource_get_descriptor = &dx12_memory_resource_get_descriptor;
+	
 }
 
 void dx12_rhi_end()
 {
+}
+
+RHI_APP_INSTANCE dx12_rhi_get_app_instance() {
+	return static_cast<RHI_APP_INSTANCE>(dx12_factory_get());
 }
