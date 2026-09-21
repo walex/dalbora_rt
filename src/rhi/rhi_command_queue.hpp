@@ -20,9 +20,8 @@ class RhiCommandQueue
 public:
 	IMPLEMENT_MOVABLE_CLASS(RhiCommandQueue);
 	virtual ~RhiCommandQueue() = default;
-	void exec(RhiCommandQueueExecuteCallback callback);
+	void exec(RhiCommandQueueExecuteCallback callback, bool waitable = false);
 	void sync_exec(RhiCommandQueueExecuteCallback callback);
-	void sync();
 protected:
 	RhiCommandQueue(RHI_COMMAND_QUEUE* handle);
 };

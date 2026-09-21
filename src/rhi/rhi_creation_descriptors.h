@@ -164,8 +164,8 @@ struct RHI_TEXTURE_2D_DESC : public RHI_BUFFER_2D_DESC {
 
 struct RHI_FENCE_DESC  {
 	RHI_DEVICE* device = nullptr;
-	fence_flags flags;
-	int initial_value;
+	fence_flags flags = fence_flags_none;
+	int initial_value = 0;
 };
 
 struct RHI_RT_BVH_DESC  {

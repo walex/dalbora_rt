@@ -13,9 +13,9 @@ void RhiCommandQueueBufferList::add_command_buffer(RhiCommandBuffer& command_buf
 
 RhiCommandQueue::RhiCommandQueue(RHI_COMMAND_QUEUE* handle) : RhiImpl<RHI_COMMAND_QUEUE>(handle) {}
 
-void RhiCommandQueue::exec(RhiCommandQueueExecuteCallback callback) {
+void RhiCommandQueue::exec(RhiCommandQueueExecuteCallback callback, bool waitable) {
 
-	rhi_command_queue_execute(*this, false, [&](
+	rhi_command_queue_execute(*this, waitable, [&](
 		RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
 		std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list) {
 
@@ -27,10 +27,5 @@ void RhiCommandQueue::exec(RhiCommandQueueExecuteCallback callback) {
 
 void RhiCommandQueue::sync_exec(RhiCommandQueueExecuteCallback callback) {
 
-	this->exec(callback);
-	this->sync();
-}
-
-void RhiCommandQueue::sync() {
-	rhi_command_queue_sync(*this);
+	this->exec(callback, true);
 }

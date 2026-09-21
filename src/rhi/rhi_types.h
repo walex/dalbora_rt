@@ -35,6 +35,11 @@ struct RHI_HANDLE {
 	virtual RHI_VOID_PTR get_handle() const = 0;
 };
 
+struct RHI_DEVICE {
+	virtual ~RHI_DEVICE() = default;
+
+};
+
 struct RHI_MEMORY_DESCRIPTOR {
 	virtual ~RHI_MEMORY_DESCRIPTOR() = default;
 	size_t descriptor_count = 0;
@@ -48,9 +53,33 @@ struct RHI_MEMORY_DESCRIPTOR_SLOT {
 	size_t slot_id = 0;
 };
 
-struct RHI_DEVICE {
-	virtual ~RHI_DEVICE() = default;
+struct RHI_MEMORY_POOL {
+	virtual ~RHI_MEMORY_POOL() = default;
+};
 
+struct RHI_FENCE {
+	virtual ~RHI_FENCE() = default;
+};
+
+struct RHI_COMMAND_QUEUE {
+	virtual ~RHI_COMMAND_QUEUE() = default;
+	std::unique_ptr<RHI_FENCE> fence;
+	uint64_t fence_counter = 0;
+};
+
+struct RHI_COMMAND_BUFFER {
+	virtual ~RHI_COMMAND_BUFFER() = default;
+	RHI_MEMORY_DESCRIPTOR* buffer_memory_descriptor = nullptr;
+	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr;
+};
+
+#define MAX_RENDER_TARGETS 8
+struct RHI_SWAP_CHAIN {
+	virtual ~RHI_SWAP_CHAIN() = default;
+	resource_format format;
+	bool vsync = false;
+	bool is_full_screen = false;
+	size_t buffers_count = 0;
 };
 
 struct RHI_TEXTURE_MIPS {
@@ -91,15 +120,6 @@ struct RHI_VIEW {
 	RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
 };
 
-#define MAX_RENDER_TARGETS 8
-struct RHI_SWAP_CHAIN {
-	virtual ~RHI_SWAP_CHAIN() = default;
-	resource_format format;
-	bool vsync = false;
-	bool is_full_screen = false;
-	size_t buffers_count = 0;
-};
-
 struct RHI_COMPILED_SHADER_BUFFER {
 	virtual ~RHI_COMPILED_SHADER_BUFFER() = default;
 };
@@ -109,16 +129,6 @@ struct RHI_PIPELINE_LAYOUT {
 	primitive_topology topology = primitive_topology_none;
 	resource_format	surface_format = resource_format_none;
 	resource_format depth_buffer_format = resource_format_none;
-};
-
-struct RHI_COMMAND_BUFFER {
-	virtual ~RHI_COMMAND_BUFFER() = default;
-	RHI_MEMORY_DESCRIPTOR* buffer_memory_descriptor = nullptr;
-	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr;
-};
-
-struct RHI_FENCE {
-	virtual ~RHI_FENCE() = default;
 };
 
 struct RHI_PIPELINE { 
@@ -142,12 +152,6 @@ struct RHI_RT_PIPELINE : RHI_PIPELINE {
 	virtual ~RHI_RT_PIPELINE() = default;
 	RHI_SHADER_TABLE_ENTRY shader_table[MAX_SHADER_TABLE_ENTRIES];
 	size_t shader_table_entries_count = 0;
-};
-
-struct RHI_COMMAND_QUEUE {
-	virtual ~RHI_COMMAND_QUEUE() = default;
-	std::unique_ptr<RHI_FENCE> fence;
-	uint64_t fence_counter = 0;
 };
 
 struct RHI_VIEWPORT {

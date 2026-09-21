@@ -23,8 +23,6 @@ struct DX_HANDLE
 	Microsoft::WRL::ComPtr<T> com_ptr;
 };
 
-typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
-
 struct DX_DEVICE 
 	: public RHI_DEVICE
 	, public DX_HANDLE<ID3D12Device> {
@@ -42,9 +40,48 @@ struct DX_MEMORY_DESCRIPTOR_SLOT
 };
 
 struct DX_MEMORY_POOL 
-	: public DX_MEMORY_DESCRIPTOR
+	: public RHI_MEMORY_POOL
 	, public DX_HANDLE<ID3D12Heap> {
 };
+
+struct DX_EVENT {
+
+	DX_EVENT() : handle(
+		CreateEvent(nullptr, FALSE, FALSE, nullptr)) {
+		ASSERT_PTR(handle);
+	}
+
+	virtual ~DX_EVENT() {
+		if (handle)
+			CloseHandle(handle);
+	}
+	operator HANDLE() const { return handle; }
+private:
+	HANDLE handle;
+};
+
+struct DX_COMMAND_QUEUE
+	: public RHI_COMMAND_QUEUE
+	, public DX_HANDLE<ID3D12CommandQueue> {
+	DX_EVENT event_handle;
+};
+
+struct DX_COMMAND_BUFFER
+	: public RHI_COMMAND_BUFFER
+	, public DX_HANDLE<ID3D12CommandList> {
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
+};
+
+struct DX_SWAP_CHAIN
+	: public RHI_SWAP_CHAIN
+	, public DX_HANDLE<IDXGISwapChain3> {
+};
+
+struct DX_FENCE
+	: public RHI_FENCE
+	, public DX_HANDLE<ID3D12Fence> {
+};
+
 
 struct DX_RESOURCE 
 	: public DX_HANDLE<ID3D12Resource> {
@@ -56,38 +93,10 @@ struct DX_BUFFER
 	, public DX_RESOURCE {
 };
 
-struct DX_COMMAND_BUFFER 
-	: public RHI_COMMAND_BUFFER
-	, public DX_HANDLE<ID3D12CommandList> {
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
-};
-
 struct DX_COMPILED_SHADER_BUFFER : 
 	public RHI_COMPILED_SHADER_BUFFER, 
 	public RHI_BUFFER,
 	public DX_HANDLE<IDxcBlob> {
-};
-
-struct DX_EVENT {
-
-	DX_EVENT() : handle(
-		CreateEvent(nullptr, FALSE, FALSE, nullptr)) {
-		ASSERT_PTR(handle);
-	}
-	
-	virtual ~DX_EVENT() {
-		if (handle)
-			CloseHandle(handle);
-	}
-	operator HANDLE() const { return handle; }
-private:
-	HANDLE handle;
-};
-
-struct DX_COMMAND_QUEUE 
-	: public RHI_COMMAND_QUEUE
-	, public DX_HANDLE<ID3D12CommandQueue> {
-	DX_EVENT event_handle;
 };
 
 struct DX_TEXTURE_2D 
@@ -102,10 +111,6 @@ struct DX_BVH_BUFFER
 	DX_HANDLE<ID3D12Resource> inputs_buffer_handle;
 };
 
-struct DX_FENCE 
-	: public RHI_FENCE
-	, public DX_HANDLE<ID3D12Fence> {
-};
 
 struct DX_VIEW 
 	: public RHI_VIEW {
@@ -149,10 +154,7 @@ struct DX_SBT_TABLE
 	virtual ~DX_SBT_TABLE() = default;
 };
 
-struct DX_SWAP_CHAIN 
-	: public RHI_SWAP_CHAIN
-	, public DX_HANDLE<IDXGISwapChain3> {
-};
+typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
 
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, // primitive_topology_none
