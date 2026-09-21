@@ -156,6 +156,23 @@ struct DX_SBT_TABLE
 
 typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
 
+constexpr DXGI_FORMAT dx12_resource_format_type[] = {
+	DXGI_FORMAT_UNKNOWN,			  // resource_format_none
+	DXGI_FORMAT_R8_UINT,			  // resource_format_uint18
+	DXGI_FORMAT_R16_UINT,			  // resource_format_uint16
+	DXGI_FORMAT_R32_UINT,			  // resource_format_uint32
+	DXGI_FORMAT_R8G8B8A8_UNORM,		  // resource_format_R8G8B8A8
+	DXGI_FORMAT_R32_FLOAT,			  // resource_format_float
+	DXGI_FORMAT_R32G32_FLOAT,		  // resource_format_float2
+	DXGI_FORMAT_R32G32B32_FLOAT,	  // resource_format_float3
+	DXGI_FORMAT_R32G32B32A32_FLOAT,	  // resource_format_float4
+	DXGI_FORMAT_D32_FLOAT_S8X24_UINT, // resource_format_d32_float_s8_uint
+	DXGI_FORMAT_D24_UNORM_S8_UINT,	  // resource_format_d24_norm_s8_uint
+	DXGI_FORMAT_D32_FLOAT,			  // resource_format_32_float
+	DXGI_FORMAT_D16_UNORM,			  // resource_format_d16_norm,
+	DXGI_FORMAT_BC1_UNORM			  // resource_format_bc1_norm
+};
+
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, // primitive_topology_none
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT,	 // primitive_topology_point
@@ -181,22 +198,7 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_depth_stencil
 };
 
-constexpr DXGI_FORMAT dx12_resource_format_type[] = {
-	DXGI_FORMAT_UNKNOWN,			  // resource_format_none
-	DXGI_FORMAT_R8_UINT,			  // resource_format_uint18
-	DXGI_FORMAT_R16_UINT,			  // resource_format_uint16
-	DXGI_FORMAT_R32_UINT,			  // resource_format_uint32
-	DXGI_FORMAT_R8G8B8A8_UNORM,		  // resource_format_R8G8B8A8
-	DXGI_FORMAT_R32_FLOAT,			  // resource_format_float
-	DXGI_FORMAT_R32G32_FLOAT,		  // resource_format_float2
-	DXGI_FORMAT_R32G32B32_FLOAT,	  // resource_format_float3
-	DXGI_FORMAT_R32G32B32A32_FLOAT,	  // resource_format_float4
-	DXGI_FORMAT_D32_FLOAT_S8X24_UINT, // resource_format_d32_float_s8_uint
-	DXGI_FORMAT_D24_UNORM_S8_UINT,	  // resource_format_d24_norm_s8_uint
-	DXGI_FORMAT_D32_FLOAT,			  // resource_format_32_float
-	DXGI_FORMAT_D16_UNORM,			  // resource_format_d16_norm,
-	DXGI_FORMAT_BC1_UNORM			  // resource_format_bc1_norm
-};
+
 
 constexpr D3D12_RESOURCE_STATES dx12_resource_state_type[] = {
 	D3D12_RESOURCE_STATE_COMMON,																 // resource_state_none

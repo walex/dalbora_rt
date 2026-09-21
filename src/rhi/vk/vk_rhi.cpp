@@ -2,6 +2,9 @@
 #include "vk_swap_chain.hpp"
 #include "vk_device.hpp"
 #include "vk_heap.hpp"
+#include "vk_command_queue.hpp"
+#include "vk_command_buffer.hpp"
+#include "vk_swap_chain.hpp"
 
 VkInstance create_vk_instance() {
 
@@ -17,7 +20,6 @@ VkInstance create_vk_instance() {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    // Aquí se añadirían las extensiones globales requeridas por la ventana
     createInfo.enabledExtensionCount = 0;
     createInfo.ppEnabledExtensionNames = nullptr;
 
@@ -46,6 +48,12 @@ void vk_rhi_init() {
     // heap
     rhi_memory_resource_create = &vk_memory_resource_create;
     rhi_memory_resource_get_descriptor = &vk_memory_resource_get_descriptor;
+
+    // command queue
+    rhi_command_queue_create_for_render = &vk_command_queue_create_for_render;
+    rhi_command_queue_create_for_compute = &vk_command_queue_create_for_compute;
+    rhi_command_queue_create_for_copy = &vk_command_queue_create_for_copy;
+    rhi_command_queue_execute = &vk_command_queue_execute;
 }
 
 void vk_rhi_end() {

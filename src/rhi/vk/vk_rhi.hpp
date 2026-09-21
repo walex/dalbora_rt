@@ -2,7 +2,32 @@
 #define __vk_rhi_hpp__
 
 #include "rhi.hpp"
-#include "volk.h"
+
+#ifdef WINDOWS_PLATFORM
+	#define VK_USE_PLATFORM_WIN32_KHR
+	#include "volk.h"
+	#define VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+#endif
+	
+#ifdef LINUX_PLATFORM
+	#define VK_USE_PLATFORM_WAYLAND_KHR
+	#include "volk.h"
+	#define VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
+	#include <wayland-client.h>
+	#error "Vulkan support not yet implemented for linux"
+#endif
+
+#ifdef ANDROID_PLATFORM
+	#define VK_USE_PLATFORM_ANDROID_KHR
+	#include "volk.h"
+	#define VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+	#error "Vulkan support not yet implemented for android"
+#endif
+
+#ifndef VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME
+	#error "Vulkan support not yet implemented for this platform"
+#endif
+
 
 struct VK_DEVICE;
 
@@ -118,7 +143,10 @@ struct VK_SWAP_CHAIN
 	~VK_SWAP_CHAIN() {
 		ASSERT_PTR(this->parent_device);
 		vkDestroySwapchainKHR(*this->parent_device, *this, nullptr);
+		ASSERT_PTR(this->native_surface);
+		vkDestroySurfaceKHR(*this->parent_device, this->native_surface, nullptr);
 	}
+	VkSurfaceKHR native_surface;
 };
 
 struct VK_FENCE
@@ -129,6 +157,23 @@ struct VK_FENCE
 		ASSERT_PTR(this->parent_device);
 		vkDestroyFence(*this->parent_device, *this, nullptr);
 	}
+};
+
+constexpr VkFormat vk_resource_format_type[] = {
+	VK_FORMAT_UNDEFINED,                // resource_format_none
+	VK_FORMAT_R8_UINT,                  // resource_format_uint18
+	VK_FORMAT_R16_UINT,                 // resource_format_uint16
+	VK_FORMAT_R32_UINT,                 // resource_format_uint32
+	VK_FORMAT_R8G8B8A8_UNORM,           // resource_format_R8G8B8A8
+	VK_FORMAT_R32_SFLOAT,               // resource_format_float
+	VK_FORMAT_R32G32_SFLOAT,            // resource_format_float2
+	VK_FORMAT_R32G32B32_SFLOAT,         // resource_format_float3
+	VK_FORMAT_R32G32B32A32_SFLOAT,      // resource_format_float4
+	VK_FORMAT_D32_SFLOAT_S8_UINT,       // resource_format_d32_float_s8_uint
+	VK_FORMAT_D24_UNORM_S8_UINT,        // resource_format_d24_norm_s8_uint
+	VK_FORMAT_D32_SFLOAT,               // resource_format_32_float
+	VK_FORMAT_D16_UNORM,                // resource_format_d16_norm
+	VK_FORMAT_BC1_RGBA_UNORM_BLOCK      // resource_format_bc1_norm
 };
 
 void vk_rhi_init();

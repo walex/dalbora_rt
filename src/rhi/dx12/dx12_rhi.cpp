@@ -1,15 +1,15 @@
 #include "dx12_rhi.hpp"
 #include "dx12_factory.hpp"
 #include "dx12_device.hpp"
-#include "dx12_swap_chain.hpp"
+#include "dx12_heap.hpp"
 #include "dx12_command_queue.hpp"
 #include "dx12_command_buffer.hpp"
+#include "dx12_swap_chain.hpp"
 #include "dx12_raster_pipeline.hpp"
 #include "dx12_texture_2d.hpp"
 #include "dx12_shaders_compiler.hpp"
 #include "dx12_render_pass.hpp"
 #include "dx12_pipeline_layout.hpp"
-#include "dx12_heap.hpp"
 #include "dx12_buffers.hpp"
 #include "dx12_sampler.hpp"
 #include "dx12_rt_pipeline.hpp"
@@ -30,17 +30,17 @@ void dx12_rhi_init()
 	rhi_memory_resource_create = &dx12_memory_resource_create;
 	rhi_memory_resource_get_descriptor = &dx12_memory_resource_get_descriptor;
 
-	// swap chain api
-	rhi_swap_chain_create = &dx12_swap_chain_create;
-	rhi_swap_chain_create_view = &dx12_swap_chain_create_view;
-	rhi_swap_chain_present = &dx12_swap_chain_present;
-	rhi_swap_chain_get_current_buffer_id = &dx12_swap_chain_get_current_buffer_id;
-
 	// command queue
 	rhi_command_queue_create_for_render = &dx12_command_queue_create_for_render;
 	rhi_command_queue_create_for_compute = &dx12_command_queue_create_for_compute;
 	rhi_command_queue_create_for_copy = &dx12_command_queue_create_for_copy;
 	rhi_command_queue_execute = &dx12_command_queue_execute;
+
+	// swap chain api
+	rhi_swap_chain_create = &dx12_swap_chain_create;
+	rhi_swap_chain_create_view = &dx12_swap_chain_create_view;
+	rhi_swap_chain_present = &dx12_swap_chain_present;
+	rhi_swap_chain_get_current_buffer_id = &dx12_swap_chain_get_current_buffer_id;
 
 	// command buffer
 	rhi_command_buffer_create_for_copy = &dx12_command_buffer_create_for_copy;
