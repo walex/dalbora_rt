@@ -8,7 +8,7 @@ void RhiCommandBuffer::create(const RhiDevice& device, const RhiCommandQueue& co
 	RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 	command_buffer_desc.device = device;
 	command_buffer_desc.command_queue = command_queue;
-	this->set_handle(rhi_command_buffer_create_for_render(&command_buffer_desc));
+	this->set_handle(rhi_command_buffer_create(&command_buffer_desc));
 }
 
 void RhiCommandBuffer::set_buffers_memory_descriptor(RhiMemoryTable& resources_memory) {

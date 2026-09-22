@@ -1,7 +1,7 @@
 #include "vk_command_queue.hpp"
 #include "vk_fence.hpp"
 
-RHI_COMMAND_QUEUE* command_queue_vk_create(const RHI_COMMAND_QUEUE_DESC* const desc, const queue_type type) {
+RHI_COMMAND_QUEUE* vk_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const desc) {
 	
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
@@ -11,7 +11,7 @@ RHI_COMMAND_QUEUE* command_queue_vk_create(const RHI_COMMAND_QUEUE_DESC* const d
 	VkDevice i_device = *vk_device;
 
 	uint32_t family_index;
-	switch (type) {
+	switch (desc->type) {
 	case queue_type_graphics:
 		family_index = vk_device->graphics_queue_family_index;
 		break;
@@ -116,18 +116,6 @@ void command_queue_vk_sync_end(RHI_COMMAND_QUEUE* const command_queue) {
 
 		vkWaitSemaphores(i_device, &waitInfo, UINT64_MAX);
 	}
-}
-
-RHI_COMMAND_QUEUE* vk_command_queue_create_for_render(const RHI_COMMAND_QUEUE_DESC* const desc) {
-	return command_queue_vk_create(desc, queue_type_graphics);
-}
-
-RHI_COMMAND_QUEUE* vk_command_queue_create_for_compute(const RHI_COMMAND_QUEUE_DESC* const desc) {
-	return command_queue_vk_create(desc, queue_type_compute);
-}
-
-RHI_COMMAND_QUEUE* vk_command_queue_create_for_copy(const RHI_COMMAND_QUEUE_DESC* const desc) {
-	return command_queue_vk_create(desc, queue_type_copy);
 }
 
 void vk_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue, 

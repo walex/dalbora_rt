@@ -6,5 +6,6 @@ RhiGraphicsCommandQueue::RhiGraphicsCommandQueue(RHI_COMMAND_QUEUE* handle) : Rh
 void RhiGraphicsCommandQueue::create(const RhiDevice& device) {
 	RHI_COMMAND_QUEUE_DESC desc;
 	desc.device = device;
-	this->set_handle(rhi_command_queue_create_for_render(&desc));
+	desc.type = queue_type_graphics;
+	this->set_handle(rhi_command_queue_create(&desc));
 }

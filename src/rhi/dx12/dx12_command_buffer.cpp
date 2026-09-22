@@ -1,13 +1,15 @@
 #include "dx12_command_buffer.hpp"
 
-RHI_COMMAND_BUFFER* dx12_command_buffer_create(
-	const RHI_COMMAND_BUFFER_DESC* const desc, 
-	D3D12_COMMAND_LIST_TYPE type) {
+RHI_COMMAND_BUFFER* dx12_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* const desc){
 
 	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(desc->command_queue);
 
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
 	ASSERT_PTR(i_device);
+
+	D3D12_COMMAND_LIST_TYPE type = dx12_queue_type[desc->command_queue->type];
 
 	// Create command allocator
 	ID3D12CommandAllocator* i_cmd_allocator = nullptr;
@@ -28,18 +30,6 @@ RHI_COMMAND_BUFFER* dx12_command_buffer_create(
 	return result;
 }
 
-RHI_COMMAND_BUFFER* dx12_command_buffer_create_for_copy(
-	const RHI_COMMAND_BUFFER_DESC* const desc) {
-	return dx12_command_buffer_create(desc, D3D12_COMMAND_LIST_TYPE_COPY);
-}
-RHI_COMMAND_BUFFER* dx12_command_buffer_create_for_compute(
-	const RHI_COMMAND_BUFFER_DESC* const desc) {
-	return dx12_command_buffer_create(desc, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-}
-RHI_COMMAND_BUFFER* dx12_command_buffer_create_for_render(
-	const RHI_COMMAND_BUFFER_DESC* const desc) {
-	return dx12_command_buffer_create(desc, D3D12_COMMAND_LIST_TYPE_DIRECT);
-}
 void dx12_command_buffer_record(
 	RHI_COMMAND_BUFFER* const command_buffer,
 	fptr_command_buffer_on_record callback) {

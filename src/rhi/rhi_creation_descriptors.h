@@ -61,6 +61,7 @@ struct RHI_WINDOW_DESC  {
 
 struct RHI_COMMAND_QUEUE_DESC  {
 	RHI_DEVICE* device = nullptr;
+	queue_type type = queue_type_undef;
 };
 
 struct RHI_SWAP_CHAIN_DESC  {

@@ -65,6 +65,7 @@ struct RHI_COMMAND_QUEUE {
 	virtual ~RHI_COMMAND_QUEUE() = default;
 	std::unique_ptr<RHI_FENCE> fence;
 	uint64_t fence_counter = 0;
+	queue_type type = queue_type_undef;
 };
 
 struct RHI_COMMAND_BUFFER {

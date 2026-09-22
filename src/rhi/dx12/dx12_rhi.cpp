@@ -31,9 +31,7 @@ void dx12_rhi_init()
 	rhi_memory_resource_get_descriptor = &dx12_memory_resource_get_descriptor;
 
 	// command queue
-	rhi_command_queue_create_for_render = &dx12_command_queue_create_for_render;
-	rhi_command_queue_create_for_compute = &dx12_command_queue_create_for_compute;
-	rhi_command_queue_create_for_copy = &dx12_command_queue_create_for_copy;
+	rhi_command_queue_create = &dx12_command_queue_create;
 	rhi_command_queue_execute = &dx12_command_queue_execute;
 
 	// swap chain api
@@ -43,9 +41,7 @@ void dx12_rhi_init()
 	rhi_swap_chain_get_current_buffer_id = &dx12_swap_chain_get_current_buffer_id;
 
 	// command buffer
-	rhi_command_buffer_create_for_copy = &dx12_command_buffer_create_for_copy;
-	rhi_command_buffer_create_for_compute = &dx12_command_buffer_create_for_compute;
-	rhi_command_buffer_create_for_render = &dx12_command_buffer_create_for_render;
+	rhi_command_buffer_create = &dx12_command_buffer_create;
 	rhi_command_buffer_record = &dx12_command_buffer_record;
 	rhi_command_buffer_ray_trace = &dx12_command_buffer_ray_trace;
 	rhi_command_buffer_copy_texture = &dx12_command_buffer_copy_texture;

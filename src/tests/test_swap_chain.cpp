@@ -70,12 +70,13 @@ void test_swap_chain(fptr_test_on_init on_init
 
 		RHI_COMMAND_QUEUE_DESC queue_desc;
 		queue_desc.device = device.get();
-		command_queue.reset(rhi_command_queue_create_for_render(&queue_desc));
+		queue_desc.type = queue_type_graphics;
+		command_queue.reset(rhi_command_queue_create(&queue_desc));
 
 		RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 		command_buffer_desc.device = device.get();
 		command_buffer_desc.command_queue = command_queue.get();
-		command_buffer.reset(rhi_command_buffer_create_for_render(&command_buffer_desc));
+		command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
 		RHI_SWAP_CHAIN_DESC swap_chain_desc;
 		swap_chain_desc.device = device.get();

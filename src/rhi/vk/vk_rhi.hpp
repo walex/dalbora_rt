@@ -52,6 +52,12 @@ struct VK_DEVICE
 	, public VK_HANDLE<VkDevice> {
 	
 	~VK_DEVICE() {
+		if (graphics_queue_command_pool != VK_NULL_HANDLE)
+			vkDestroyCommandPool(*this, graphics_queue_command_pool, nullptr);
+		if (compute_queue_command_pool != VK_NULL_HANDLE)
+			vkDestroyCommandPool(*this, compute_queue_command_pool, nullptr);
+		if (copy_queue_command_pool != VK_NULL_HANDLE)
+			vkDestroyCommandPool(*this, copy_queue_command_pool, nullptr);
 		vkDestroyDevice(*this, nullptr);
 	}
 	VkPhysicalDevice physical_device;

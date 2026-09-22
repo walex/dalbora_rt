@@ -1,7 +1,7 @@
 #include "dx12_command_queue.hpp"
 #include "dx12_fence.hpp"
 
-RHI_COMMAND_QUEUE* command_queue_dx12_create(const RHI_COMMAND_QUEUE_DESC* const desc, const queue_type type) {
+RHI_COMMAND_QUEUE* dx12_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const desc) {
 	
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
@@ -11,24 +11,25 @@ RHI_COMMAND_QUEUE* command_queue_dx12_create(const RHI_COMMAND_QUEUE_DESC* const
 	// Create a direct command queue
 	ID3D12CommandQueue* i_cmd_queue = nullptr;
 	D3D12_COMMAND_QUEUE_DESC qdesc = {};
-	qdesc.Type = dx12_queue_type[(int)type];
+	qdesc.Type = dx12_queue_type[(int)desc->type];
 	qdesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	qdesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	qdesc.NodeMask = 0;
 	ASSERT_SUCCESS(i_device->CreateCommandQueue(&qdesc, IID_PPV_ARGS(&i_cmd_queue)));
 	ASSERT_PTR(i_cmd_queue);
 
-	DX_COMMAND_QUEUE* result = new DX_COMMAND_QUEUE();
-	ASSERT_PTR(result);
-	result->set_handle(i_cmd_queue);
-
 	RHI_FENCE_DESC fence_desc;
 	fence_desc.device = desc->device;
 	fence_desc.flags = fence_flags_none;
 	fence_desc.initial_value = 0;
+	RHI_FENCE* fence = dx12_fence_create(&fence_desc);
+	ASSERT_PTR(fence);
 
-	result->fence.reset(dx12_fence_create(&fence_desc));
-	ASSERT_PTR(result->fence);
+	DX_COMMAND_QUEUE* result = new DX_COMMAND_QUEUE();
+	ASSERT_PTR(result);
+	result->set_handle(i_cmd_queue);
+	result->fence.reset(fence);
+	result->type = desc->type;
 
 	return result;
 }
@@ -51,19 +52,6 @@ void command_queue_dx12_sync(RHI_COMMAND_QUEUE* command_queue) {
 		i_fence->SetEventOnCompletion(fc, eventHandle);
 		;		WaitForSingleObjectEx(eventHandle, INFINITE, FALSE);
 	}
-}
-
-
-RHI_COMMAND_QUEUE* dx12_command_queue_create_for_render(const RHI_COMMAND_QUEUE_DESC* desc) {
-	return command_queue_dx12_create(desc, queue_type_graphics);
-}
-
-RHI_COMMAND_QUEUE* dx12_command_queue_create_for_compute(const RHI_COMMAND_QUEUE_DESC* desc) {
-	return command_queue_dx12_create(desc, queue_type_compute);
-}
-
-RHI_COMMAND_QUEUE* dx12_command_queue_create_for_copy(const RHI_COMMAND_QUEUE_DESC* desc) {
-	return command_queue_dx12_create(desc, queue_type_copy);
 }
 
 void dx12_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue, const bool wait_completion,

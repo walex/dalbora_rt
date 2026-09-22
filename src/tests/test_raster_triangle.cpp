@@ -185,12 +185,13 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			// create copy command queue and buffer
 			RHI_COMMAND_QUEUE_DESC queue_desc; 
 			queue_desc.device = &device;
-			copy_command_queue.reset(rhi_command_queue_create_for_copy(&queue_desc));
+			queue_desc.type = queue_type_copy;
+			copy_command_queue.reset(rhi_command_queue_create(&queue_desc));
 
 			RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 			command_buffer_desc.device = &device;
 			command_buffer_desc.command_queue = copy_command_queue.get();
-			copy_command_buffer.reset(rhi_command_buffer_create_for_copy(&command_buffer_desc));
+			copy_command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
 			// upload buffers
 			rhi_command_queue_execute(copy_command_queue.get(), true,

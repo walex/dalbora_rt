@@ -50,9 +50,7 @@ void vk_rhi_init() {
     rhi_memory_resource_get_descriptor = &vk_memory_resource_get_descriptor;
 
     // command queue
-    rhi_command_queue_create_for_render = &vk_command_queue_create_for_render;
-    rhi_command_queue_create_for_compute = &vk_command_queue_create_for_compute;
-    rhi_command_queue_create_for_copy = &vk_command_queue_create_for_copy;
+    rhi_command_queue_create = &vk_command_queue_create;
     rhi_command_queue_execute = &vk_command_queue_execute;
 }
 

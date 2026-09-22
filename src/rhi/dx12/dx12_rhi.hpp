@@ -182,6 +182,7 @@ constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
 };
 
 constexpr D3D12_COMMAND_LIST_TYPE dx12_queue_type[] = {
+	D3D12_COMMAND_LIST_TYPE_NONE,	 // queue_type_undef
 	D3D12_COMMAND_LIST_TYPE_DIRECT,	 // queue_type_graphics
 	D3D12_COMMAND_LIST_TYPE_COMPUTE, // queue_type_compute
 	D3D12_COMMAND_LIST_TYPE_COPY	 // queue_type_copy
@@ -197,8 +198,6 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[] = {
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_rt_bvh
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_depth_stencil
 };
-
-
 
 constexpr D3D12_RESOURCE_STATES dx12_resource_state_type[] = {
 	D3D12_RESOURCE_STATE_COMMON,																 // resource_state_none

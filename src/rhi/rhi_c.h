@@ -25,15 +25,11 @@ inline uint32_t (*rhi_swap_chain_get_current_buffer_id)(const RHI_SWAP_CHAIN* co
 inline void (*rhi_swap_chain_copy_direct)(RHI_SWAP_CHAIN& swap_chain, RHI_TEXTURE_2D& render_target);
 
 // command queue
-inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create_for_render)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
-inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create_for_compute)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
-inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create_for_copy)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
+inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
 inline void (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE* const command_queue, bool wait_completion, fptr_command_queue_on_execute callback);
 
 // command buffer
-inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_copy)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
-inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_compute)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
-inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create_for_render)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
+inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);
 inline void (*rhi_command_buffer_record)(RHI_COMMAND_BUFFER* const command_buffer,
 										 fptr_command_buffer_on_record callback);
 inline void (*rhi_command_buffer_draw_triangle_list)(RHI_COMMAND_BUFFER* const command_buffer, RHI_BUFFER* const vb,
