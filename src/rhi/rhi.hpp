@@ -1,7 +1,7 @@
 #ifndef __rhi_hpp__
 #define __rhi_hpp__
 
-#include "rhi_c.h"
+#include "rhi_api.hpp"
 
 #include "file_system.hpp"
 #include "strings.hpp"

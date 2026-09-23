@@ -4,7 +4,7 @@
 // ID3D12RootSignature -> VkPipelineLayout
 
 
-uint32_t heap_create_vk_find_memory_type(VkPhysicalDevice physical_device, uint32_t type_filter, 
+uint32_t memory_resource_vk_find_memory_type(VkPhysicalDevice physical_device, uint32_t type_filter, 
 	VkMemoryPropertyFlags properties) {
 
 	VkPhysicalDeviceMemoryProperties mem_properties;
@@ -18,7 +18,7 @@ uint32_t heap_create_vk_find_memory_type(VkPhysicalDevice physical_device, uint3
 	throw std::runtime_error("Memory type not found");
 }
 
-RHI_MEMORY_DESCRIPTOR* heap_create_vk_descriptor_table(const VK_DEVICE* const device_impl,
+RHI_MEMORY_DESCRIPTOR* memory_resource_vk_descriptor_table(const VK_DEVICE* const device_impl,
 	const memory_descriptor_type heap_type,
 	const size_t slots_size,
 	const bool shader_visible) {
@@ -43,7 +43,10 @@ RHI_MEMORY_DESCRIPTOR* heap_create_vk_descriptor_table(const VK_DEVICE* const de
 	VkPhysicalDeviceDescriptorHeapPropertiesEXT heap_props{};
 	heap_props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
 	vkGetPhysicalDeviceProperties2(device_impl->physical_device, reinterpret_cast<VkPhysicalDeviceProperties2*>(&heap_props));
-	size_t slots_stride = heap_props.bufferDescriptorSize;
+	
+	size_t max_size = std::max(heap_props.bufferDescriptorSize, heap_props.imageDescriptorSize);
+	size_t max_alignment = std::max(heap_props.bufferDescriptorAlignment, heap_props.imageDescriptorAlignment);
+	size_t slots_stride = (max_size + max_alignment - 1) & ~(max_alignment - 1);
 
 	VkBufferCreateInfo heapInfo{};
 	heapInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -64,7 +67,7 @@ RHI_MEMORY_DESCRIPTOR* heap_create_vk_descriptor_table(const VK_DEVICE* const de
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.pNext = &allocFlagsInfo; // Connect the flags
 	allocInfo.allocationSize = mem_requirements.size; // The size returned
-	allocInfo.memoryTypeIndex = heap_create_vk_find_memory_type(device_impl->physical_device, mem_requirements.memoryTypeBits,
+	allocInfo.memoryTypeIndex = memory_resource_vk_find_memory_type(device_impl->physical_device, mem_requirements.memoryTypeBits,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	// GPU handle
@@ -102,7 +105,7 @@ RHI_MEMORY_DESCRIPTOR* vk_memory_resource_create(const RHI_MEMORY_RESOURCE_DESC*
 
 	switch (desc->type) {
 	case memory_resource_type_descriptor_table:
-		return heap_create_vk_descriptor_table(static_cast<const VK_DEVICE*>(desc->device), desc->descriptor_desc.type,
+		return memory_resource_vk_descriptor_table(static_cast<const VK_DEVICE*>(desc->device), desc->descriptor_desc.type,
 			desc->descriptor_desc.count, desc->descriptor_desc.shader_visible);
 	case memory_resource_type_pool:
 		throw std::exception("memory resource type pool not implemented");
@@ -128,6 +131,40 @@ RHI_MEMORY_DESCRIPTOR_SLOT* vk_memory_resource_get_descriptor(const RHI_MEMORY_D
 	result->cpu_handle = reinterpret_cast<uint64_t>(result->memory_ptr);
 	result->gpu_handle = heap_impl->gpu_handle + (index * heap_impl->descriptor_size);
 	return result;
+}
+
+void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot, 
+	const VkImageViewCreateInfo* const image_view_info) {
+	
+	ASSERT_PTR(device_impl);
+	ASSERT_PTR(slot);
+	ASSERT_PTR(image_view_info);
+
+	VkImageDescriptorInfoEXT image_heap_info{};
+	image_heap_info.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT;
+	image_heap_info.pNext = nullptr;
+	image_heap_info.pView = image_view_info;
+	image_heap_info.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	VkResourceDescriptorInfoEXT resource_info{};
+	resource_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
+	resource_info.pNext = nullptr;
+	resource_info.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	resource_info.data.pImage = &image_heap_info;
+
+	VkHostAddressRangeEXT target_address{};
+	target_address.address = reinterpret_cast<void*>(slot->cpu_handle);
+	target_address.size = slot->descriptor_size;
+
+	if (vkWriteResourceDescriptorsEXT(
+		*device_impl,
+		1,                // resourceCount
+		&resource_info,   // pResources
+		&target_address   // pDescriptors
+	) != VK_SUCCESS) {
+		throw std::runtime_error("Error writing resource descriptors");
+	}
+
 }
 
 /*

@@ -1,7 +1,7 @@
 #ifndef __rhi_impl_hpp__
 #define __rhi_impl_hpp__
 
-#include "rhi_c.h"
+#include "rhi_api.hpp"
 #include "rhi_object.hpp"
 
 template<typename T>

@@ -5,6 +5,7 @@
 
 #ifdef WINDOWS_PLATFORM
 	#define VK_USE_PLATFORM_WIN32_KHR
+	#define VK_KHR_swapchain
 	#include "volk.h"
 	#define VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #endif
@@ -106,8 +107,7 @@ struct VK_MEMORY_DESCRIPTOR
 };
 
 struct VK_MEMORY_DESCRIPTOR_SLOT
-	: public RHI_MEMORY_DESCRIPTOR_SLOT
-	, public RHI_MEMORY_DESCRIPTOR {
+	: public RHI_MEMORY_DESCRIPTOR_SLOT {
 
 	RHI_VOID_PTR memory_ptr = nullptr;
 };
@@ -164,6 +164,39 @@ struct VK_FENCE
 		vkDestroyFence(*this->parent_device, *this, nullptr);
 	}
 };
+
+struct VK_IMAGE_VIEW
+	: public RHI_VIEW
+	, public VK_NON_DISPATCHABLE_HANDLE<VkImageView> {
+
+	~VK_IMAGE_VIEW() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyImageView(*this->parent_device, *this, nullptr);
+	}
+};
+
+struct VK_VIEW
+	: public RHI_VIEW
+	, public VK_NON_DISPATCHABLE_HANDLE<VkBufferView> {
+
+	~VK_VIEW() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyImageView(*this->parent_device, *this, nullptr);
+	}
+};
+
+struct VK_TEXTURE_2D
+	: public VK_NON_DISPATCHABLE_HANDLE<VkImage>
+	, public RHI_TEXTURE_2D
+	, public RHI_BUFFER {
+
+	~VK_TEXTURE_2D() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyImage(*this->parent_device, *this, nullptr);
+	}
+};
+
+// VK_BVH -> VkAccelerationStructureKHR  ??
 
 constexpr VkFormat vk_resource_format_type[] = {
 	VK_FORMAT_UNDEFINED,                // resource_format_none

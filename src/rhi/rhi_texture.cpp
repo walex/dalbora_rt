@@ -32,7 +32,7 @@ RhiView RhiTexture::new_read_only_view(const RhiDevice& device, const RhiMemoryD
     RhiBuffer buffer(dynamic_cast<RHI_BUFFER*>(static_cast<RHI_TEXTURE_2D*>(*this)));
     view.create(device, buffer, memory_descriptor_slot,
         shader_view_type_read_only_texture_buffer, static_cast<RHI_TEXTURE_2D*>(*this)->hw_format,
-        static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps_count);
+        static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps.size());
     return view;
 }
 
@@ -41,7 +41,7 @@ RhiView RhiTexture::new_rw_view(const RhiDevice& device, const RhiMemoryDescript
     RhiBuffer buffer(dynamic_cast<RHI_BUFFER*>(static_cast<RHI_TEXTURE_2D*>(*this)));
     view.create(device, buffer, memory_descriptor_slot,
         shader_view_type_rw_texture_buffer, static_cast<RHI_TEXTURE_2D*>(*this)->hw_format,
-        static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps_count);
+        static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps.size());
     return view;
 }
 
@@ -49,10 +49,9 @@ size_t RhiTexture::get_hw_length() {
     return static_cast<RHI_TEXTURE_2D*>(*this)->hw_length;
 }
 
-const RHI_TEXTURE_MIPS* const RhiTexture::get_mips(size_t &mip_count) {
+const std::vector<RHI_TEXTURE_MIPS>& RhiTexture::get_mips() const {
 
-    mip_count = static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps_count;
-    return &static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps[0];
+    return static_cast<RHI_TEXTURE_2D*>(*this)->mip_maps; ;
 }
 
 void RhiTexture::upload(RhiCommandBuffer& command_buffer, RhiSharedBuffer& buffer) {

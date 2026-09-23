@@ -321,4 +321,33 @@ std::string get_executable_folder(const std::string& concat_path = "");
 
 #define DEGREE_TO_RADIAN(x) ((x) * 3.14159265358979323846 / 180.0)
 
+template<typename T>
+struct observer_ptr_deleter {
+	using fn_t = void(*)(T*);
+	fn_t fn;
+	observer_ptr_deleter(fn_t f = nullptr) {
+		fn = !f ? &empty_deleter : f;
+	}
+	void operator()(T* p) const { fn(p); }
+	static void empty_deleter(T* p) {}
+	static void release_deleter(T* p) { printf("Deleting pointer: %p\n", p); delete p; }
+};
+
+template<typename T, typename D = observer_ptr_deleter<T>>
+struct observer_ptr : std::unique_ptr<T, D> {
+	observer_ptr(T* p = nullptr, observer_ptr_deleter<T> f = nullptr) : std::unique_ptr<T, D>(p, D(f)) {}
+	operator T* () const { return this->get(); }
+	observer_ptr& operator=(T* p) { this->reset(p); return *this; }
+};
+
+template <typename T, typename U>
+auto make_releseable_observer_ptr(U* ptr) {
+	return observer_ptr<T>(ptr, &observer_ptr_deleter<T>::release_deleter);
+}
+
+template <typename T, typename U>
+auto make_observer_ptr(U* ptr) {
+	return observer_ptr<T>(ptr, nullptr);
+}
+
 #endif

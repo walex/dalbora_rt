@@ -2,7 +2,7 @@
 #define __dx12_helpers_hpp__
 
 #include "platform.hpp"
-#include "rhi_c.h"
+#include "rhi_api.hpp"
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <dxcapi.h>

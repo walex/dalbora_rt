@@ -74,14 +74,18 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	IDXGISwapChain3* i_swap_chain_3 = nullptr;
 	ASSERT_SUCCESS(i_swap_chain_1->QueryInterface(IID_PPV_ARGS(&i_swap_chain_3)));
 	ASSERT_PTR(i_swap_chain_3);
-	DX_SWAP_CHAIN* swap_chain_impl = new DX_SWAP_CHAIN();
-	swap_chain_impl->set_handle(i_swap_chain_3);
 
-	swap_chain_impl->format = desc->color_format;
-	swap_chain_impl->vsync = enable_vsync;
-	swap_chain_impl->is_full_screen = desc->is_full_screen;
-	swap_chain_impl->buffers_count = static_cast<size_t>(buffer_count);
-	return swap_chain_impl;
+	DX_SWAP_CHAIN* result = new DX_SWAP_CHAIN();
+	ASSERT_PTR(result);
+	result->set_handle(i_swap_chain_3);
+	result->format = desc->color_format;
+	result->buffer_width = width;
+	result->buffer_height = height;
+	result->buffer_mip_count = 1;
+	result->vsync = enable_vsync;
+	result->is_full_screen = desc->is_full_screen;
+	result->buffers_count = static_cast<size_t>(buffer_count);
+	return result;
 }
 
 RHI_VIEW* dx12_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SWAP_CHAIN* const swap_chain, 
@@ -136,17 +140,6 @@ RHI_VIEW* dx12_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_
 		tm.format = dx12_helpers_resource_format_from_dxgi_format(fp.Footprint.Format);
 	}
 
-	RHI_VIEW_DESC view_desc;
-	view_desc.type = shader_view_type_render_target;
-	view_desc.device = const_cast<RHI_DEVICE*>(device);
-	view_desc.format = format;
-	view_desc.memory_descriptor = memory_descriptor;
-	std::unique_ptr<DX_BUFFER> buffer_wrapper
-		= std::make_unique<DX_BUFFER>();
-	buffer_wrapper->com_ptr.Attach(i_buffer);
-	view_desc.buffer = buffer_wrapper.get();
-	RHI_VIEW* view = dx12_buffers_create_view(&view_desc);
-	buffer_wrapper->com_ptr.Detach();
 	DX_TEXTURE_2D* texture = new DX_TEXTURE_2D();
 	ASSERT_PTR(texture);
 	i_buffer->AddRef();
@@ -155,10 +148,16 @@ RHI_VIEW* dx12_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_
 	texture->width = desc.BufferDesc.Width;
 	texture->height = desc.BufferDesc.Height;
 	texture->hw_length = static_cast<size_t>(totalUploadSize);
-	texture->mip_maps_count = mip_count;
-	memcpy(texture->mip_maps, mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
-	view->buffer = texture;
-	view->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(memory_descriptor);
+	texture->mip_maps = std::move(mips);
+
+	RHI_VIEW_DESC view_desc;
+	view_desc.type = shader_view_type_render_target;
+	view_desc.device = const_cast<RHI_DEVICE*>(device);
+	view_desc.format = format;
+	view_desc.memory_descriptor = memory_descriptor;
+	view_desc.buffer = texture;
+	RHI_VIEW* view = dx12_buffers_create_view(&view_desc);
+	view->buffer = make_releseable_observer_ptr<RHI_BUFFER>(texture);
 	return view;
 }
 

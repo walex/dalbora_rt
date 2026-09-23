@@ -2,7 +2,6 @@
 
 RHI_COMMAND_BUFFER* vk_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* const desc) {
 
-    
     ASSERT_PTR(desc);
     ASSERT_PTR(desc->device);
     ASSERT_PTR(desc->command_queue);

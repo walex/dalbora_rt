@@ -1,0 +1,195 @@
+#ifndef __rhi_types_hpp__
+#define __rhi_types_hpp__
+
+#include "platform.hpp"
+#include "rhi_defs.h"
+
+struct RHI_WINDOW;
+struct RHI_COMMAND_BUFFER;
+typedef void* RHI_VOID_PTR;
+using fptr_window_main_loop_callback = std::function<void(RHI_WINDOW* const window)>;
+using fptr_window_on_init = std::function<void(RHI_WINDOW* const window)>;
+using fptr_window_on_end = std::function<void(RHI_WINDOW* const window)>;
+using fptr_command_queue_on_execute = std::function<void(RHI_VOID_PTR native_command_queue_impl,
+	std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list)>;
+using fptr_command_buffer_on_record = std::function<void(RHI_VOID_PTR native_command_buffer_impl)>;
+using fptr_render_pass_on_execute = std::function<void()>;
+struct RHI_WINDOW_CALLBACKS
+{
+	fptr_window_on_init on_init = [](RHI_WINDOW* const) {};
+	fptr_window_main_loop_callback on_idle = [](RHI_WINDOW* const) {};
+	fptr_window_on_end on_end = [](RHI_WINDOW* const) {};
+};
+
+typedef RHI_VOID_PTR RHI_APP_INSTANCE;
+
+struct RHI_HANDLE {
+	virtual ~RHI_HANDLE() = default;
+	virtual void set_handle(RHI_VOID_PTR handle) = 0;
+	template<typename T>
+	operator T* () const { 
+		return static_cast<T*>(this->get_handle());
+	}
+	virtual RHI_VOID_PTR get_handle() const = 0;
+};
+
+struct RHI_DEVICE {
+	virtual ~RHI_DEVICE() = default;
+};
+
+struct RHI_MEMORY_DESCRIPTOR {
+	virtual ~RHI_MEMORY_DESCRIPTOR() = default;
+	size_t descriptor_count = 0;
+	size_t descriptor_size = 0;
+	uint64_t cpu_handle = 0;
+	uint64_t gpu_handle = 0;
+};
+
+struct RHI_MEMORY_DESCRIPTOR_SLOT: public RHI_MEMORY_DESCRIPTOR {
+	virtual ~RHI_MEMORY_DESCRIPTOR_SLOT() = default;
+	size_t slot_id = 0;
+};
+
+struct RHI_MEMORY_POOL {
+	virtual ~RHI_MEMORY_POOL() = default;
+};
+
+struct RHI_FENCE {
+	virtual ~RHI_FENCE() = default;
+};
+
+struct RHI_COMMAND_QUEUE {
+	virtual ~RHI_COMMAND_QUEUE() = default;
+	std::unique_ptr<RHI_FENCE> fence;
+	uint64_t fence_counter = 0;
+	queue_type type = queue_type_undef;
+};
+
+struct RHI_COMMAND_BUFFER {
+	virtual ~RHI_COMMAND_BUFFER() = default;
+	RHI_MEMORY_DESCRIPTOR* buffer_memory_descriptor = nullptr;
+	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr;
+};
+
+#define MAX_RENDER_TARGETS 8
+struct RHI_SWAP_CHAIN {
+	virtual ~RHI_SWAP_CHAIN() = default;
+	resource_format format;
+	bool vsync = false;
+	bool is_full_screen = false;
+	size_t buffers_count = 0;
+	size_t buffer_width = 0;
+	size_t buffer_height = 0;
+	size_t buffer_mip_count = 0;
+};
+
+struct RHI_TEXTURE_MIPS {
+	size_t width = 0;
+	size_t height = 0;
+	uint64_t offset = 0;
+	size_t num_rows = 0;
+	size_t pitch = 0;
+	size_t depth = 0;
+	resource_format format = resource_format_none;
+};
+
+struct RHI_BUFFER {
+	virtual ~RHI_BUFFER() = default;
+	size_t length = 0;
+	size_t stride = 0;
+	resource_format format = resource_format_none;
+	buffer_type type = buffer_type_undef;
+};
+
+#define MAX_TEXTURE_MIP_LEVELS 16
+struct RHI_TEXTURE_2D {
+	virtual ~RHI_TEXTURE_2D() = default;
+	size_t width = 0;
+	size_t height = 0;
+	size_t hw_length = 0;
+	resource_format hw_format = resource_format_none;
+	std::vector<RHI_TEXTURE_MIPS> mip_maps;
+};
+
+struct RHI_VIEW {
+	virtual ~RHI_VIEW()  {};
+	observer_ptr<RHI_BUFFER> buffer = nullptr;
+	shader_view_type type = shader_view_type_none;
+	resource_format format = resource_format_none;
+	size_t mip_map_count = 0;
+	const RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
+};
+
+struct RHI_COMPILED_SHADER_BUFFER {
+	virtual ~RHI_COMPILED_SHADER_BUFFER() = default;
+};
+
+struct RHI_PIPELINE_LAYOUT {
+	virtual ~RHI_PIPELINE_LAYOUT() = default;
+	primitive_topology topology = primitive_topology_none;
+	resource_format	surface_format = resource_format_none;
+	resource_format depth_buffer_format = resource_format_none;
+};
+
+struct RHI_PIPELINE { 
+	virtual ~RHI_PIPELINE() = default;
+	RHI_PIPELINE_LAYOUT* layout = nullptr;
+};
+
+struct RHI_RASTER_PIPELINE : public RHI_PIPELINE {
+	virtual ~RHI_RASTER_PIPELINE() = default;
+};
+
+struct RHI_SHADER_TABLE_ENTRY {
+	virtual ~RHI_SHADER_TABLE_ENTRY() = default;
+	std::string name;
+	RHI_VOID_PTR shader_id = nullptr;
+};
+
+struct RHI_RT_PIPELINE : RHI_PIPELINE {
+	virtual ~RHI_RT_PIPELINE() = default;
+	std::vector<RHI_SHADER_TABLE_ENTRY> shader_table;
+};
+
+struct RHI_VIEWPORT {
+	virtual ~RHI_VIEWPORT() = default;
+	float x = 0;
+	float y = 0;
+	float width = 0;
+	float height = 0;
+	float min_z = 0;
+	float max_z = 0;
+};
+
+struct RHI_RENDER_PASS {
+	virtual ~RHI_RENDER_PASS() = default;
+	observer_ptr<RHI_DEVICE> device = nullptr;
+	observer_ptr<RHI_VIEW> render_target_view = nullptr;
+	observer_ptr<RHI_VIEW> depth_buffer_view = nullptr;
+	observer_ptr<RHI_PIPELINE> pipeline = nullptr;
+	RHI_VIEWPORT view_port = {};
+};
+
+struct RHI_WINDOW {
+	virtual ~RHI_WINDOW() = default;
+	RHI_VOID_PTR handle = nullptr;
+	RHI_WINDOW_CALLBACKS* callbacks = nullptr;
+	size_t width = 0;
+	size_t height = 0;
+};
+
+struct RHI_RT_BVH {
+	virtual ~RHI_RT_BVH() = default;
+};
+
+struct RHI_SAMPLER {
+	virtual ~RHI_SAMPLER() = default;
+};
+
+struct RHI_SBT_TABLE {
+	virtual ~RHI_SBT_TABLE() = default;
+	size_t ray_gen_offset = 0, miss_offset = 0, hit_group_offset = 0;
+	size_t ray_gen_size = 0, miss_size = 0, hit_group_size = 0;
+	size_t record_size = 0;
+};
+#endif

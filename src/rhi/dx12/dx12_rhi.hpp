@@ -35,8 +35,7 @@ struct DX_MEMORY_DESCRIPTOR
 };
 
 struct DX_MEMORY_DESCRIPTOR_SLOT 
-	: public RHI_MEMORY_DESCRIPTOR_SLOT
-	, public RHI_MEMORY_DESCRIPTOR {
+	: public RHI_MEMORY_DESCRIPTOR_SLOT {
 };
 
 struct DX_MEMORY_POOL 
@@ -82,6 +81,10 @@ struct DX_FENCE
 	, public DX_HANDLE<ID3D12Fence> {
 };
 
+struct DX_VIEW
+	: public RHI_VIEW {
+
+};
 
 struct DX_RESOURCE 
 	: public DX_HANDLE<ID3D12Resource> {
@@ -112,10 +115,7 @@ struct DX_BVH_BUFFER
 };
 
 
-struct DX_VIEW 
-	: public RHI_VIEW {
 
-};
 
 struct DX_RENDER_PASS 
 	: public RHI_RENDER_PASS {

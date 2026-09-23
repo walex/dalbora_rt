@@ -30,5 +30,5 @@ void RhiView::create(const RhiDevice& device, const RhiBuffer& buffer,
 
 void RhiView::blit(RhiCommandBuffer& command_buffer, RhiTexture& image) {
 
-	rhi_command_buffer_copy_texture(command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(static_cast<const RHI_VIEW*>(*this)->buffer), image);
+	rhi_command_buffer_copy_texture(command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(static_cast<const RHI_VIEW*>(*this)->buffer.get()), image);
 }

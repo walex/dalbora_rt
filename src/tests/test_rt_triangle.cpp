@@ -344,7 +344,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 					render_target.get(),
 					sbt.get());
 			});
-			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(render_pass.render_target_view->buffer), render_target.get());
+			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(render_pass.render_target_view->buffer.get()), render_target.get());
 		}
 		, [&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer)) {
 

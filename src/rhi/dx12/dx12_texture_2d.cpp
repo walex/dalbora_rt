@@ -75,8 +75,7 @@ RHI_TEXTURE_2D* dx12_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc)
 	result->length = static_cast<size_t>(totalUploadSize);
 	result->hw_length = result->length;
 	result->hw_format = result->format;
-	memcpy(&result->mip_maps[0], mips.data(), sizeof(RHI_TEXTURE_MIPS) * mip_count);
-	result->mip_maps_count = mip_count;
+	result->mip_maps = std::move(mips);
 	return result;
 }
 
@@ -98,7 +97,7 @@ void dx12_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
 		{ D3D12_RESOURCE_STATE_COPY_DEST },
 		[&]() {
 
-			for (UINT i = 0; i < static_cast<UINT>(dest_buffer->mip_maps_count); ++i)
+			for (UINT i = 0; i < static_cast<UINT>(dest_buffer->mip_maps.size()); ++i)
 			{
 				auto& mip = dest_buffer->mip_maps[i];
 

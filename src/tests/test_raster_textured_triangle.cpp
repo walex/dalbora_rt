@@ -53,8 +53,8 @@ void copy_bc1_image_data_with_mips(tinyddsloader::DDSFile & dds, const RHI_TEXTU
 
 void copy_bc1_image_data(tinyddsloader::DDSFile& dds, RHI_TEXTURE_2D& texture, RHI_VOID_PTR buff_ptr) {
 
-    copy_bc1_image_data_with_mips(dds, texture.mip_maps,
-        texture.mip_maps_count, buff_ptr);
+    copy_bc1_image_data_with_mips(dds, texture.mip_maps.data(),
+        texture.mip_maps.size(), buff_ptr);
 }
 
 resource_format dxgi_to_resource(tinyddsloader::DDSFile::DXGIFormat fmt)
@@ -166,7 +166,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             tex_view_desc.buffer = dynamic_cast<RHI_BUFFER*>(texture.get());
             tex_view_desc.type = shader_view_type_read_only_texture_buffer;
             tex_view_desc.format = texture_desc.format;
-            tex_view_desc.mip_maps_count = texture->mip_maps_count;
+            tex_view_desc.mip_maps_count = texture->mip_maps.size();
 
             slot = nullptr;
             resources_memory_descriptor.next_descriptor_ptr(&slot, 1);
@@ -191,7 +191,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
                             shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
                             shared_buffer_desc.type = buffer_type_raw;
                             shared_buffer_desc.format = texture->hw_format;
-                            shared_buffer_desc.mips = texture->mip_maps_count;
+                            shared_buffer_desc.mips = texture->mip_maps.size();
                             shared_texture_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
                             RHI_VOID_PTR buff_ptr = rhi_buffers_map_open(shared_texture_buffer.get(), 0, texture->hw_length);
                             
@@ -311,8 +311,8 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         texture_buffer.create(device, texture.get_hw_length());
         {
             auto map_info = texture_buffer.map(0, texture.get_hw_length());
-            size_t mip_count;
-            const RHI_TEXTURE_MIPS* const mips = texture.get_mips(mip_count);
+            size_t mip_count = texture.get_mips().size();
+            const RHI_TEXTURE_MIPS* const mips = texture.get_mips().data();
             copy_bc1_image_data_with_mips(dds, mips, mip_count, map_info.get_data());
         }
         // upload texture buffer

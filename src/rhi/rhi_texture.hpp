@@ -26,7 +26,7 @@ public:
     virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
     virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
     size_t get_hw_length();
-    const RHI_TEXTURE_MIPS* const get_mips(size_t& mip_count);
+    const std::vector<RHI_TEXTURE_MIPS>& get_mips() const;
     void upload(RhiCommandBuffer& command_buffer, RhiSharedBuffer& buffer);
 };
 

@@ -221,7 +221,7 @@ RHI_VIEW* dx12_buffers_create_dsv(const RHI_VIEW_DESC* const desc) {
 	result->type = desc->type;
 	result->format = desc->format;
 	result->mip_map_count = 1;
-	result->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor);
+	result->memory_descriptor = desc->memory_descriptor;
 	return result;
 }
 
@@ -258,6 +258,7 @@ RHI_VIEW* dx12_buffers_create_rtv(const RHI_VIEW_DESC* const desc) {
 	result->type = desc->type;
 	result->format = desc->format;
 	result->mip_map_count = 1;
+	result->memory_descriptor = desc->memory_descriptor;
 	return result;
 }
 
@@ -365,7 +366,7 @@ RHI_VIEW* dx12_buffers_create_cbv_srv_uav(const RHI_VIEW_DESC* const desc) {
 	result->type = desc->type;
 	result->format = desc->format;
 	result->mip_map_count = desc->mip_maps_count;
-	result->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor);
+	result->memory_descriptor = desc->memory_descriptor;
 	return result;
 }
 

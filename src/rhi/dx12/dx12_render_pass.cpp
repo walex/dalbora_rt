@@ -25,9 +25,9 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	ASSERT_PTR(command_buffer);
 	ASSERT_PTR(command_buffer->buffer_memory_descriptor);
 
-	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
+	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device.get());
 
-	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline);
+	DX_RT_PIPELINE* pipeline_impl = static_cast<DX_RT_PIPELINE*>(render_pass->pipeline.get());
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
 	ASSERT_SUCCESS(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
@@ -67,15 +67,15 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	ASSERT_PTR(command_buffer);
 	ASSERT_PTR(render_pass);
 	ASSERT_PTR(render_pass->device);
-	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device);
+	DX_DEVICE* device_impl = static_cast<DX_DEVICE*>(render_pass->device.get());
 	ID3D12Device* i_device = *device_impl;
 	ASSERT_PTR(i_device);
 	ID3D12GraphicsCommandList* i_command_buffer = *static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	ASSERT_PTR(i_command_buffer);
 
-	DX_RASTER_PIPELINE* pipeline_impl = static_cast<DX_RASTER_PIPELINE*>(render_pass->pipeline);
-	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view);
-	DX_VIEW* depth_buffer_view_impl = static_cast<DX_VIEW*>(render_pass->depth_buffer_view);
+	DX_RASTER_PIPELINE* pipeline_impl = static_cast<DX_RASTER_PIPELINE*>(render_pass->pipeline.get());
+	DX_VIEW* render_target_view_impl = static_cast<DX_VIEW*>(render_pass->render_target_view.get());
+	DX_VIEW* depth_buffer_view_impl = static_cast<DX_VIEW*>(render_pass->depth_buffer_view.get());
 		
 	const RHI_VIEWPORT& vp = render_pass->view_port;
 	D3D12_VIEWPORT dx_vp;
@@ -91,7 +91,7 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 	dx_scissor.right = (LONG)vp.width;
 	dx_scissor.bottom = (LONG)vp.height;
 
-	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->buffer);
+	DX_RESOURCE* resource_impl = static_cast<DX_BUFFER*>(render_target_view_impl->buffer.get());
 	ASSERT_PTR(resource_impl);
 	
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
