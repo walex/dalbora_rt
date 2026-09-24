@@ -41,6 +41,7 @@ void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryTable* memory_
 RhiView RhiSwapChain::get_next_render_target() {
 
 	size_t id = rhi_swap_chain_get_current_buffer_id(*this);
+	static_cast<RHI_SWAP_CHAIN*>(*this)->current_image_index = static_cast<uint32_t>(id);
 	return RhiView(static_cast<RHI_VIEW*>(m_views[id]));
 }
 
@@ -51,6 +52,7 @@ resource_format RhiSwapChain::get_format() {
 void RhiSwapChain::blit(RhiCommandBuffer& command_buffer, RhiTexture& image) {
 	
 	size_t id = rhi_swap_chain_get_current_buffer_id(*this);
+	static_cast<RHI_SWAP_CHAIN*>(*this)->current_image_index = static_cast<uint32_t>(id);
 	m_views[id].blit(command_buffer, image);
 }
 

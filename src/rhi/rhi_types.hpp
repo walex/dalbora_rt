@@ -78,9 +78,11 @@ struct RHI_SWAP_CHAIN {
 	bool vsync = false;
 	bool is_full_screen = false;
 	size_t buffers_count = 0;
+	uint32_t current_image_index = 0;
 	size_t buffer_width = 0;
 	size_t buffer_height = 0;
 	size_t buffer_mip_count = 0;
+	RHI_COMMAND_QUEUE* command_queue = nullptr;
 };
 
 struct RHI_TEXTURE_MIPS {

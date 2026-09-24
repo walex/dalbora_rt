@@ -227,18 +227,49 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	result->buffer_width = width;
 	result->buffer_height = height;
     result->buffer_mip_count = 1;
+	result->command_queue = desc->command_queue;
     return result;
 }
 
 void vk_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 
+	VK_SWAP_CHAIN* swap_chain_impl = static_cast<VK_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
+	ASSERT_PTR(swap_chain_impl);
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext = nullptr;
+
+    VkSwapchainKHR swapChains[] = { *swap_chain_impl };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &swap_chain_impl->current_image_index; // El índice explícito obtenido con vkAcquireNextImageKHR
+
+    presentInfo.pResults = nullptr;
+
+    VkResult result = vkQueuePresentKHR(*static_cast<VK_COMMAND_QUEUE*>(swap_chain_impl->command_queue), &presentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        // AQUÍ DEBES LLAMAR A TU FUNCIÓN PARA RECREAR LA SWAPCHAIN.
+        // recreateSwapChain();
+    }
+    else if (result != VK_SUCCESS) {
+        throw std::runtime_error("Error presenting image to swap chain.");
+    }
 }
 
 uint32_t vk_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_chain) {
 
-    
+	VK_SWAP_CHAIN* swap_chain_impl = static_cast<VK_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
+    ASSERT_PTR(swap_chain_impl);
 
-    return 0;
+    const VK_DEVICE* device_impl = static_cast<const VK_DEVICE*>(swap_chain_impl->parent_device);
+    ASSERT_PTR(device_impl);
+
+    uint32_t image_index;
+	vkAcquireNextImageKHR(*device_impl, *swap_chain_impl,
+		UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &image_index);
+    return image_index;
 }
 
 RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SWAP_CHAIN* const swap_chain, 

@@ -23,6 +23,11 @@ struct DX_HANDLE
 	Microsoft::WRL::ComPtr<T> com_ptr;
 };
 
+struct DX_RESOURCE
+	: public DX_HANDLE<ID3D12Resource> {
+	std::atomic<D3D12_RESOURCE_STATES> current_state = D3D12_RESOURCE_STATE_COMMON;
+};
+
 struct DX_DEVICE 
 	: public RHI_DEVICE
 	, public DX_HANDLE<ID3D12Device> {
@@ -86,14 +91,18 @@ struct DX_VIEW
 
 };
 
-struct DX_RESOURCE 
-	: public DX_HANDLE<ID3D12Resource> {
-	std::atomic<D3D12_RESOURCE_STATES> current_state = D3D12_RESOURCE_STATE_COMMON;
-};
-
-struct DX_BUFFER 
+struct DX_BUFFER
 	: public RHI_BUFFER
 	, public DX_RESOURCE {
+};
+
+struct DX_TEXTURE_2D
+	: public RHI_TEXTURE_2D
+	, public DX_BUFFER {
+};
+
+struct DX_RENDER_PASS
+	: public RHI_RENDER_PASS {
 };
 
 struct DX_COMPILED_SHADER_BUFFER : 
@@ -102,23 +111,11 @@ struct DX_COMPILED_SHADER_BUFFER :
 	public DX_HANDLE<IDxcBlob> {
 };
 
-struct DX_TEXTURE_2D 
-	: public RHI_TEXTURE_2D
-	, public DX_BUFFER {
-};
-
 struct DX_BVH_BUFFER 
 	: public RHI_BUFFER,
 	public DX_RESOURCE {
 	DX_HANDLE<ID3D12Resource> scratch_handle;
 	DX_HANDLE<ID3D12Resource> inputs_buffer_handle;
-};
-
-
-
-
-struct DX_RENDER_PASS 
-	: public RHI_RENDER_PASS {
 };
 
 struct DX_RT_BVH 

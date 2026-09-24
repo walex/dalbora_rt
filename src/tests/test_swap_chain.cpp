@@ -119,8 +119,8 @@ void test_swap_chain(fptr_test_on_init on_init
 
 	callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
 
-		size_t i = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
-		render_pass->render_target_view = views[i].get();
+		swap_chain->current_image_index = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
+		render_pass->render_target_view = views[swap_chain->current_image_index].get();
 		
 		if (on_before_draw)
 			on_before_draw(*render_pass);

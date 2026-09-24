@@ -85,6 +85,8 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	result->vsync = enable_vsync;
 	result->is_full_screen = desc->is_full_screen;
 	result->buffers_count = static_cast<size_t>(buffer_count);
+	result->command_queue = desc->command_queue;
+	result->current_image_index = 0;
 	return result;
 }
 

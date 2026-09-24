@@ -167,6 +167,7 @@ struct VK_FENCE
 	}
 };
 
+
 struct VK_IMAGE_VIEW
 	: public RHI_VIEW
 	, public VK_NON_DISPATCHABLE_HANDLE<VkImageView> {
@@ -196,6 +197,10 @@ struct VK_TEXTURE_2D
 		ASSERT_PTR(this->parent_device);
 		vkDestroyImage(*this->parent_device, *this, nullptr);
 	}
+};
+
+struct VK_RENDER_PASS
+	: public RHI_RENDER_PASS {
 };
 
 // VK_BVH -> VkAccelerationStructureKHR  ??
