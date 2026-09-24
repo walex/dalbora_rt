@@ -38,6 +38,7 @@ RHI_COMMAND_BUFFER* vk_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* cons
 	VK_COMMAND_BUFFER* result = new VK_COMMAND_BUFFER();
 	result->set_handle(commandBuffer);
 	result->command_pool = commnad_pool;
+    result->parent_device = device_impl;
 	return result;
 }
 

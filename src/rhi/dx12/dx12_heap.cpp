@@ -40,11 +40,11 @@ RHI_MEMORY_DESCRIPTOR* heap_create_dx12_descriptor_table(const DX_DEVICE* const 
 	case memory_descriptor_type_sampler:
 		type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		break;
-	case memory_descriptor_type_dx_rtv:
+	case memory_descriptor_type_rtv:
 		type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		const_cast<bool&>(shader_visible) = false; // RTV heap cannot be shader visible
 		break;
-	case memory_descriptor_type_dx_dsv:
+	case memory_descriptor_type_dsv:
 		type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		const_cast<bool&>(shader_visible) = false; // DSV heap cannot be shader visible
 		break;

@@ -8,25 +8,41 @@
 
 VkInstance create_vk_instance() {
 
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_4;
+    VkApplicationInfo app_info{};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pApplicationName = "";
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pEngineName = "";
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.apiVersion = VK_API_VERSION_1_4;
 
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
+    // instance extensions
+    const char* extensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,        // "VK_KHR_surface"
+        VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME   // "VK_KHR_win32_surface"
+    };
 
-    createInfo.enabledExtensionCount = 0;
-    createInfo.ppEnabledExtensionNames = nullptr;
+    VkInstanceCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    create_info.enabledExtensionCount = 2;
+    create_info.ppEnabledExtensionNames = extensions;
+    create_info.pApplicationInfo = &app_info;
+
+#if defined(DEBUG)
+    const std::vector<const char*> validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
+    create_info.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    create_info.ppEnabledLayerNames = validationLayers.data();
+#endif // DEBUG
 
     VkInstance instance;
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&create_info, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("¡Error al crear la instancia de Vulkan!");
     }
+
+    volkLoadInstance(instance);
+
     return instance;
 }
 
@@ -40,8 +56,6 @@ void vk_rhi_init() {
 
     app_instance = create_vk_instance();
 
-    volkLoadInstance(app_instance);
-
     // device
     rhi_create_device = &vk_device_create;
 
@@ -52,6 +66,15 @@ void vk_rhi_init() {
     // command queue
     rhi_command_queue_create = &vk_command_queue_create;
     rhi_command_queue_execute = &vk_command_queue_execute;
+
+    // swap chain api
+    rhi_swap_chain_create = &vk_swap_chain_create;
+    rhi_swap_chain_create_view = &vk_swap_chain_create_view;
+    rhi_swap_chain_present = &vk_swap_chain_present;
+    rhi_swap_chain_get_current_buffer_id = &vk_swap_chain_get_current_buffer_id;
+
+    // command buffer
+    rhi_command_buffer_create = &vk_command_buffer_create;
 }
 
 void vk_rhi_end() {

@@ -70,18 +70,42 @@ VkSurfaceKHR create_surface_win32(const RHI_WINDOW* const window, const RHI_VOID
 
     VkInstance instance = static_cast<VkInstance>(rhi_get_app_instance());
 
+    // Ensure window pointer and handle are valid
+    if (!window || !window->handle) {
+        printf("Invalid window or window->handle is NULL");
+        return VK_NULL_HANDLE;
+    }
+    HWND hwnd = static_cast<HWND>(window->handle);
+    if (hwnd == reinterpret_cast<HWND>(-1) || hwnd == nullptr) {
+        printf("window->handle is invalid (NULL or -1)");
+        return VK_NULL_HANDLE;
+    }
+    if (!IsWindow(hwnd)) {
+        printf("HWND is not a valid window (IsWindow returned FALSE)");
+        return VK_NULL_HANDLE;
+    }
+    HMODULE hinst = GetModuleHandle(NULL);
+    if (!hinst) {
+        printf("GetModuleHandle(NULL) returned NULL");
+        return VK_NULL_HANDLE;
+    }
+
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    createInfo.pNext = nullptr;
     createInfo.flags = 0;
-    createInfo.hinstance = GetModuleHandle(NULL);
-    createInfo.hwnd = static_cast<HWND>(window->handle);           // Manejador de tu ventana Win32
+    createInfo.hinstance = hinst;
+    createInfo.hwnd = hwnd;    
+
+	// FIXMe: use vkCreateWin32SurfaceKHR directly
+    // for some reason Volker returns an incorrect pointer
+    static PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(
+        vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR")
+        );
 
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkResult result = vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface);
 
     if (result != VK_SUCCESS) {
-        // Manejar el error de creación
         return VK_NULL_HANDLE;
     }
 
@@ -157,6 +181,15 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
     VkSurfaceKHR surface = create_surface_ptr(desc->window, nullptr);
     ASSERT_PTR(surface);
 
+    uint32_t width, height;
+
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        (static_cast<VK_DEVICE*>(desc->device)->physical_device, surface, &surfaceCapabilities); 
+
+	width = surfaceCapabilities.currentExtent.width;
+	height = surfaceCapabilities.currentExtent.height;
+
 	VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = surface;
@@ -166,9 +199,9 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
         ? vk_resource_format_type[desc->color_format]
         : VK_FORMAT_B8G8R8A8_SRGB;;
     createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    createInfo.imageExtent = VkExtent2D{ static_cast<uint32_t>(desc->width), static_cast<uint32_t>(desc->height)};
+    createInfo.imageExtent = VkExtent2D{ width, height};
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_2_STORAGE_BIT_KHR;
 
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -191,8 +224,8 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
     result->set_handle(swap_chain);
     result->parent_device = static_cast<VK_DEVICE*>(desc->device);
 	result->native_surface = surface;
-	result->buffer_width = desc->width;
-	result->buffer_height = desc->height;
+	result->buffer_width = width;
+	result->buffer_height = height;
     result->buffer_mip_count = 1;
     return result;
 }
@@ -216,7 +249,7 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
     VK_SWAP_CHAIN* swap_chain_impl = static_cast<VK_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
 
     ASSERT_PTR(swap_chain_impl->parent_device);
-    VK_DEVICE* device_impl = swap_chain_impl->parent_device;
+    const VK_DEVICE* device_impl = swap_chain_impl->parent_device;
 
     uint32_t image_count = 0;
     vkGetSwapchainImagesKHR(*device_impl, *swap_chain_impl, &image_count, nullptr);
@@ -287,7 +320,8 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
     view_desc.format = format;
     view_desc.memory_descriptor = memory_descriptor;
     view_desc.buffer = texture;
-    RHI_VIEW* result;// = vk_buffers_create_view(&view_desc);
+    VK_IMAGE_VIEW* result = new VK_IMAGE_VIEW();
+    result->set_handle(image_view);
     result->buffer = make_releseable_observer_ptr<RHI_BUFFER>(texture);
     result->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(memory_descriptor);
     return result;

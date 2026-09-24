@@ -39,8 +39,7 @@ bool device_vk_check_device_features(const VkPhysicalDevice physical_device, con
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_SHADER_UNTYPED_POINTERS_EXTENSION_NAME,
         VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
-        VK_KHR_SURFACE_EXTENSION_NAME,
-        VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME
+        VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME
     };
 
     auto feats = features;
@@ -102,15 +101,15 @@ void device_vk_get_command_queue_family_indices(const VkPhysicalDevice physical_
 
     for (uint32_t i = 0; i < queueFamilyCount; i++) {
 
-        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if (graphics_family_index == -1 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             graphics_family_index = i;
         }
        
-        if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+        if (compute_family_index == -1 && queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
             compute_family_index = i;
         }
 
-        if ((queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+        if (copy_family_index == -1 && (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
             !(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
             !(queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
             copy_family_index   = i;
@@ -129,7 +128,7 @@ void device_vk_get_command_queue_family_indices(const VkPhysicalDevice physical_
 }
 
 VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32_t graphics_queue_count,
-    const uint32_t compute_queue_count, const unsigned long long device_features, 
+    const uint32_t compute_queue_count, const uint32_t copy_queue_count, const unsigned long long device_features, 
     VkPhysicalDevice* physical_device_out = nullptr, uint32_t* graphics_queue_family_index_out = nullptr, 
     uint32_t* compute_queue_family_index_out = nullptr, uint32_t* copy_queue_family_index_out = nullptr) {
 
@@ -170,19 +169,38 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
         throw std::runtime_error("compatible copy queue family not found.");
     }
 
-	std::vector<VkDeviceQueueCreateInfo> v_queue_create_info(3);
-    float queuePriority = 1.0f;
-    VkDeviceQueueCreateInfo& queue_create_info = v_queue_create_info[0];
-    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex = graphics_queue_family_index;
-    queue_create_info.queueCount = graphics_queue_count;
-    queue_create_info.pQueuePriorities = &queuePriority;
+    std::vector<VkDeviceQueueCreateInfo> v_queue_create_info;
 
-    queue_create_info = v_queue_create_info[1];
-    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex = compute_queue_family_index;
-    queue_create_info.queueCount = compute_queue_count;
-    queue_create_info.pQueuePriorities = &queuePriority;
+    // 1. Identificar las familias únicas usando un set
+    std::set<uint32_t> unique_families;
+    if (graphics_queue_family_index != -1) unique_families.insert(graphics_queue_family_index);
+    if (compute_queue_family_index != -1) unique_families.insert(compute_queue_family_index);
+    if (copy_family_index != -1)          unique_families.insert(copy_family_index);
+
+    // 2. Crear un pool de prioridades lo suficientemente grande para las colas solicitadas
+    // Todas las colas creadas de esta forma compartirán la misma prioridad (1.0f)
+    std::vector<float> queuePriorities(16, 1.0f); // Inicializa con espacio de sobra (ej. 16 elementos)
+
+    // 3. Iterar sobre las familias únicas configurando el conteo real
+    for (uint32_t family_index : unique_families) {
+
+        uint32_t total_queue_count = 0;
+
+        if (family_index == graphics_queue_family_index) total_queue_count += graphics_queue_count;
+        if (family_index == compute_queue_family_index)  total_queue_count += compute_queue_count;
+        if (family_index == copy_family_index)           total_queue_count += copy_queue_count;
+
+        // [OPCIONAL] securiry validation
+        //'total_queue_count' <=  // vkGetPhysicalDeviceQueueFamilyProperties 
+
+        VkDeviceQueueCreateInfo queue_create_info{};
+        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_info.queueFamilyIndex = family_index;
+        queue_create_info.queueCount = total_queue_count;
+        queue_create_info.pQueuePriorities = queuePriorities.data();
+
+        v_queue_create_info.push_back(queue_create_info);
+    }
 
     VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures{};
     bdaFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
@@ -229,10 +247,11 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
 	VkPhysicalDevice physical_device = VK_NULL_HANDLE;
 	uint32_t graphics_queue_family_index = -1;
 	uint32_t compute_queue_family_index = -1;
+    uint32_t copy_queue_family_index = -1;
     VkDevice device = device_vk_create_logical_device(static_cast<VkInstance>(desc->app_instance), desc->graphics_queue_count,
-        desc->compute_queue_count, desc->features, 
+        desc->compute_queue_count, desc->copy_queue_count, desc->features, 
         &physical_device, &graphics_queue_family_index,
-        &compute_queue_family_index);
+        &compute_queue_family_index, &copy_queue_family_index);
     ASSERT_PTR(device);
 
     VkCommandPoolCreateInfo poolInfo{};

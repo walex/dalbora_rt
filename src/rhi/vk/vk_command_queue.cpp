@@ -40,7 +40,8 @@ RHI_COMMAND_QUEUE* vk_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const d
 	vk_command_queue->set_handle(queue);
 	vk_command_queue->parent_device = vk_device;
 	vk_command_queue->timeline_semaphore = semaphore;
-	 
+	vk_command_queue->type = desc->type;
+
 	RHI_FENCE_DESC fence_desc;
 	fence_desc.device = desc->device;
 	fence_desc.flags = fence_flags_none;
@@ -76,7 +77,7 @@ bool command_queue_vk_execute(const VkQueue i_cmd_queue, const VkFence fence,
 void command_queue_vk_sync_init(RHI_COMMAND_QUEUE* const command_queue, VkSubmitInfo& submit_info
 	, VkFence fence) {
 
-	VkDevice i_device = *static_cast<VK_DEVICE*>(static_cast<VK_COMMAND_QUEUE*>(command_queue)->parent_device);
+	const VkDevice i_device = *static_cast<const VK_DEVICE*>(static_cast<VK_COMMAND_QUEUE*>(command_queue)->parent_device);
 	ASSERT_PTR(i_device);
 
 	VkTimelineSemaphoreSubmitInfo time_line_submit_info{};
@@ -98,7 +99,7 @@ void command_queue_vk_sync_init(RHI_COMMAND_QUEUE* const command_queue, VkSubmit
 
 void command_queue_vk_sync_end(RHI_COMMAND_QUEUE* const command_queue) {
 
-	VkDevice i_device = *static_cast<VK_DEVICE*>(static_cast<VK_COMMAND_QUEUE*>(command_queue)->parent_device);
+	const VkDevice i_device = *static_cast<const VK_DEVICE*>(static_cast<VK_COMMAND_QUEUE*>(command_queue)->parent_device);
 	ASSERT_PTR(i_device);
 
 	VkSemaphore i_timeline_semaphore = *static_cast<const VK_FENCE*>(command_queue->fence.get());

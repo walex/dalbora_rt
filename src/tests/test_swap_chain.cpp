@@ -31,9 +31,9 @@ void memory_table_init(RHI_DEVICE* device) {
 		BUFFERS_DESCRIPTORS_COUNT, slot_group_start_indices);
 	samplers_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_sampler, 
 		SAMPLER_DESCRIPTORS_COUNT);
-	rtv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_rtv,
+	rtv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_rtv,
 		RTV_HEAP_DESCRIPTORS_COUNT);
-	dsv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dx_dsv,
+	dsv_memory_table = std::make_unique<RhiMemoryTable>(device_obj, memory_descriptor_type_dsv,
 		DSV_DESCRIPTORS_COUNT);
 }
 
@@ -61,6 +61,9 @@ void test_swap_chain(fptr_test_on_init on_init
 		device_desc.adapter_id = -1;
 		device_desc.features = device_features_none;
 		device_desc.app_instance = rhi_get_app_instance();
+		device_desc.graphics_queue_count = 1;
+		device_desc.compute_queue_count = 1;
+		device_desc.copy_queue_count = 1;
 		if (on_configure_device)
 			on_configure_device(device_desc);
 
@@ -72,11 +75,6 @@ void test_swap_chain(fptr_test_on_init on_init
 		queue_desc.device = device.get();
 		queue_desc.type = queue_type_graphics;
 		command_queue.reset(rhi_command_queue_create(&queue_desc));
-
-		RHI_COMMAND_BUFFER_DESC command_buffer_desc;
-		command_buffer_desc.device = device.get();
-		command_buffer_desc.command_queue = command_queue.get();
-		command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
 		RHI_SWAP_CHAIN_DESC swap_chain_desc;
 		swap_chain_desc.device = device.get();
@@ -96,6 +94,11 @@ void test_swap_chain(fptr_test_on_init on_init
 			RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device.get(), swap_chain.get(), views_slots.back().get(), swap_chain_desc.color_format, i);
 			views.push_back(std::unique_ptr<RHI_VIEW>(view_ptr));
 		}
+
+		RHI_COMMAND_BUFFER_DESC command_buffer_desc;
+		command_buffer_desc.device = device.get();
+		command_buffer_desc.command_queue = command_queue.get();
+		command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
 		RHI_VIEWPORT vp;
 		vp.x = 0;
@@ -190,6 +193,9 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 		device_desc.adapter_id = -1;
 		device_desc.shader_model = hlsl_shader_model_6_8;
 		device_desc.app_instance = rhi_get_app_instance();
+		device_desc.graphics_queue_count = 1;
+		device_desc.compute_queue_count = 1;
+		device_desc.copy_queue_count = 1;
 
 		if (callbacks)
 			callbacks->on_device_config(device_desc);
@@ -201,7 +207,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 
 		device.create(device_desc);
 
-		dsv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_dsv, DSV_DESCRIPTORS_COUNT);
+		dsv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dsv, DSV_DESCRIPTORS_COUNT);
 
 		command_queue.create(device);
 		command_buffer.create(device, command_queue);
@@ -223,7 +229,7 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 			else {
 				printf("Warning: No resources descriptors created, all shader registers counts are zero.\n");
 			}
-			rtv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dx_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
+			rtv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
 			swap_chain.create_views(device, rtv_memory_table.get());
 		}
 

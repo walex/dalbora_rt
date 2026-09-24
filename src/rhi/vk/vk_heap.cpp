@@ -33,16 +33,23 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_vk_descriptor_table(const VK_DEVICE* cons
 	case memory_descriptor_type_sampler:
 		usage_flags |= VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
 		break;
-	case memory_descriptor_type_dx_rtv:
-	case memory_descriptor_type_dx_dsv:
-		return nullptr; // RTV and DSV are not supported in Vulkan
+	case memory_descriptor_type_rtv:
+		usage_flags |= VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+		break;
+	case memory_descriptor_type_dsv:
+		return nullptr; // DSV not supported in Vulkan
 	default:
 		throw std::exception("heap type not supported");
 	}
 	
+	
 	VkPhysicalDeviceDescriptorHeapPropertiesEXT heap_props{};
+	VkPhysicalDeviceProperties2 device_props_2 = {};
+	device_props_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 	heap_props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
-	vkGetPhysicalDeviceProperties2(device_impl->physical_device, reinterpret_cast<VkPhysicalDeviceProperties2*>(&heap_props));
+	device_props_2.pNext = &heap_props;
+
+	vkGetPhysicalDeviceProperties2(device_impl->physical_device, &device_props_2);
 	
 	size_t max_size = std::max(heap_props.bufferDescriptorSize, heap_props.imageDescriptorSize);
 	size_t max_alignment = std::max(heap_props.bufferDescriptorAlignment, heap_props.imageDescriptorAlignment);
@@ -91,7 +98,7 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_vk_descriptor_table(const VK_DEVICE* cons
 	result->memory_device = heap_memory_device;
 	result->descriptor_count = slots_size;
 	result->descriptor_size = slots_stride;
-	result->parent_device = *device_impl;
+	result->parent_device = device_impl;
 	result->map();
 	result->cpu_handle = reinterpret_cast<uint64_t>(result->mapped_memory);
 	result->gpu_handle = base_gpu_address;
@@ -149,7 +156,7 @@ void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_imp
 	VkResourceDescriptorInfoEXT resource_info{};
 	resource_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
 	resource_info.pNext = nullptr;
-	resource_info.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	resource_info.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	resource_info.data.pImage = &image_heap_info;
 
 	VkHostAddressRangeEXT target_address{};

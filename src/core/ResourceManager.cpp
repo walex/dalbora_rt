@@ -22,7 +22,7 @@ void ResourceManager::create_descriptor_tables(const size_t constants_buffers_si
 
 	if (rhi_get_device_type() == device_type_dx12) {
 		// create rtv memory descriptors (dx12 only)
-		m_rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(m_device, memory_descriptor_type_dx_rtv,
+		m_rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(m_device, memory_descriptor_type_rtv,
 			RTV_HEAP_DESCRIPTORS_COUNT);
 	}
 }

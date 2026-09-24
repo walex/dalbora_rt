@@ -3,9 +3,11 @@
 
 #include "rhi.hpp"
 
+#define VK_KHR_swapchain
 #ifdef WINDOWS_PLATFORM
+	//#define VOLK_IMPLEMENTATION
 	#define VK_USE_PLATFORM_WIN32_KHR
-	#define VK_KHR_swapchain
+	//#define VK_KHR_win32_surface
 	#include "volk.h"
 	#define VK_PLATFORM_KHR_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #endif
@@ -74,7 +76,7 @@ template <typename T>
 struct VK_NON_DISPATCHABLE_HANDLE
 	: public VK_HANDLE<T> {
 	virtual ~VK_NON_DISPATCHABLE_HANDLE() = default;
-	VK_DEVICE* parent_device = nullptr;
+	const VK_DEVICE* parent_device = nullptr;
 };
 
 struct VK_MEMORY_DESCRIPTOR

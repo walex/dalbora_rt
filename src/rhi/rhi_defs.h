@@ -132,8 +132,8 @@ enum memory_descriptor_type
 {
 	memory_descriptor_type_buffer, // VkDescriptorPool + VkDescriptor UNIFORM_BUFFER(CBV), SAMPLED_IMAGE / STORAGE_TEXEL_BUFFER(SRV) y STORAGE_IMAGE / STORAGE_BUFFER(UAV)
 	memory_descriptor_type_sampler,
-	memory_descriptor_type_dx_rtv,
-	memory_descriptor_type_dx_dsv,
+	memory_descriptor_type_rtv,
+	memory_descriptor_type_dsv,
 	memory_descriptor_type_count
 };
 

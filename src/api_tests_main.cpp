@@ -52,8 +52,8 @@ void test_objects() {
 int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 {
 
-	//test_api();
-	 test_objects();
+	test_api();
+	// test_objects();
 
 	return 0;
 }
