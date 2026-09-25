@@ -5,15 +5,14 @@ RHI_COMMAND_BUFFER* dx12_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* co
 	ASSERT_PTR(desc);
 	ASSERT_PTR(desc->device);
 	ASSERT_PTR(desc->command_queue);
+	ASSERT_PTR(desc->command_allocator);
 
 	ID3D12Device* i_device = *static_cast<DX_DEVICE*>(desc->device);
 	ASSERT_PTR(i_device);
 
 	D3D12_COMMAND_LIST_TYPE type = dx12_queue_type[desc->command_queue->type];
 
-	// Create command allocator
-	ID3D12CommandAllocator* i_cmd_allocator = nullptr;
-	ASSERT_SUCCESS(i_device->CreateCommandAllocator(type, IID_PPV_ARGS(&i_cmd_allocator)));
+	ID3D12CommandAllocator* i_cmd_allocator = *static_cast<DX_COMMAND_ALLOCATOR*>(desc->command_allocator);
 	ASSERT_PTR(i_cmd_allocator);
 
 	// Create command list
@@ -26,7 +25,7 @@ RHI_COMMAND_BUFFER* dx12_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* co
 	DX_COMMAND_BUFFER* result = new DX_COMMAND_BUFFER();
 	ASSERT_PTR(result);
 	result->set_handle(i_cmd_list);
-	result->allocator = i_cmd_allocator;
+	result->command_allocator = desc->command_allocator;
 	return result;
 }
 
@@ -37,12 +36,12 @@ void dx12_command_buffer_record(
 	ASSERT_PTR(command_buffer);
 
 	DX_COMMAND_BUFFER* cmd_buffer_impl = static_cast<DX_COMMAND_BUFFER*>(command_buffer);
-	ASSERT_PTR(cmd_buffer_impl->allocator);
+	ASSERT_PTR(cmd_buffer_impl->command_allocator);
 
 	ID3D12GraphicsCommandList* i_cmd_list = *cmd_buffer_impl;
 	ASSERT_PTR(i_cmd_list);
 
-	ID3D12CommandAllocator* i_cmd_alloc = cmd_buffer_impl->allocator.Get();
+	ID3D12CommandAllocator* i_cmd_alloc = *static_cast<DX_COMMAND_ALLOCATOR*>(cmd_buffer_impl->command_allocator);
 	ASSERT_PTR(i_cmd_alloc);
 
 	i_cmd_alloc->Reset();

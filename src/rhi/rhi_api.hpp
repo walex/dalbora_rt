@@ -26,6 +26,9 @@ inline void (*rhi_swap_chain_present)(const RHI_SWAP_CHAIN* const);
 inline uint32_t (*rhi_swap_chain_get_current_buffer_id)(const RHI_SWAP_CHAIN* const swap_chain);
 inline void (*rhi_swap_chain_copy_direct)(RHI_SWAP_CHAIN& swap_chain, RHI_TEXTURE_2D& render_target);
 
+// command allocator
+inline RHI_COMMAND_ALLOCATOR* (*rhi_command_allocator_create)(const RHI_DEVICE* const device, const queue_type type);
+
 // command queue
 inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
 inline void (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE* const command_queue, bool wait_completion, fptr_command_queue_on_execute callback);

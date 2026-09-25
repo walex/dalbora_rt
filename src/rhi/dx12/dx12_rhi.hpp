@@ -73,7 +73,6 @@ struct DX_COMMAND_QUEUE
 struct DX_COMMAND_BUFFER
 	: public RHI_COMMAND_BUFFER
 	, public DX_HANDLE<ID3D12CommandList> {
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
 };
 
 struct DX_SWAP_CHAIN
@@ -151,6 +150,11 @@ struct DX_SBT_TABLE
 	virtual ~DX_SBT_TABLE() = default;
 };
 
+struct DX_COMMAND_ALLOCATOR
+	: public RHI_COMMAND_ALLOCATOR
+	, public DX_HANDLE<ID3D12CommandAllocator> {
+};
+
 typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
 
 constexpr DXGI_FORMAT dx12_resource_format_type[] = {
@@ -179,7 +183,6 @@ constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[] = {
 };
 
 constexpr D3D12_COMMAND_LIST_TYPE dx12_queue_type[] = {
-	D3D12_COMMAND_LIST_TYPE_NONE,	 // queue_type_undef
 	D3D12_COMMAND_LIST_TYPE_DIRECT,	 // queue_type_graphics
 	D3D12_COMMAND_LIST_TYPE_COMPUTE, // queue_type_compute
 	D3D12_COMMAND_LIST_TYPE_COPY	 // queue_type_copy

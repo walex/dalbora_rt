@@ -22,6 +22,7 @@ public:
 	virtual ~RhiCommandQueue() = default;
 	void exec(RhiCommandQueueExecuteCallback callback, bool waitable = false);
 	void sync_exec(RhiCommandQueueExecuteCallback callback);
+	queue_type get_type() const { return static_cast<RHI_COMMAND_QUEUE*>(*this)->type; }
 protected:
 	RhiCommandQueue(RHI_COMMAND_QUEUE* handle);
 };

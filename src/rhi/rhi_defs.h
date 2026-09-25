@@ -70,10 +70,10 @@ enum buffer_memory_type
 
 enum queue_type
 {
-	queue_type_undef = 0,
-	queue_type_graphics,
+	queue_type_graphics = 0,
 	queue_type_compute,
-	queue_type_copy
+	queue_type_copy,
+	queue_type_count
 };
 
 enum primitive_topology

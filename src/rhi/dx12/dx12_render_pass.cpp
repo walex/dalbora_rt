@@ -107,13 +107,16 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 		{ resource_impl },
 		{ D3D12_RESOURCE_STATE_RENDER_TARGET },
 		[&]() {
-		
-			// configure heap
-			ASSERT_PTR(command_buffer->buffer_memory_descriptor);
-			ID3D12DescriptorHeap* resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor);
-			ASSERT_PTR(resource_heap);
 
-			UINT heap_count = 1;
+			UINT heap_count = 0;
+			ID3D12DescriptorHeap* resource_heap = nullptr;
+			// configure heap
+			if (command_buffer->buffer_memory_descriptor) {
+				resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->buffer_memory_descriptor);
+				ASSERT_PTR(resource_heap);
+				heap_count++;
+			}
+			
 			ID3D12DescriptorHeap* sampler_heap = nullptr;
 			if (command_buffer->sampler_memory_descriptor) {
 				sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer->sampler_memory_descriptor);

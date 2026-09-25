@@ -62,7 +62,7 @@ struct RHI_WINDOW_DESC  {
 
 struct RHI_COMMAND_QUEUE_DESC  {
 	RHI_DEVICE* device = nullptr;
-	queue_type type = queue_type_undef;
+	queue_type type = queue_type_graphics;
 };
 
 struct RHI_SWAP_CHAIN_DESC  {
@@ -80,6 +80,7 @@ struct RHI_SWAP_CHAIN_DESC  {
 struct RHI_COMMAND_BUFFER_DESC  {
 	RHI_DEVICE* device = nullptr;
 	RHI_COMMAND_QUEUE* command_queue = nullptr;
+	RHI_COMMAND_ALLOCATOR* command_allocator = nullptr;
 };
 
 #define MAX_INPUT_NAME_LENGTH 64

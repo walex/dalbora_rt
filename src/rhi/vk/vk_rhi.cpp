@@ -1,10 +1,10 @@
 #include "vk_rhi.hpp"
-#include "vk_swap_chain.hpp"
 #include "vk_device.hpp"
 #include "vk_heap.hpp"
 #include "vk_command_queue.hpp"
 #include "vk_command_buffer.hpp"
 #include "vk_swap_chain.hpp"
+#include "vk_render_pass.hpp"
 
 VkInstance create_vk_instance() {
 
@@ -75,6 +75,10 @@ void vk_rhi_init() {
 
     // command buffer
     rhi_command_buffer_create = &vk_command_buffer_create;
+
+    // render pass
+    rhi_render_pass_create = &vk_render_pass_create;
+    rhi_render_pass_execute_raster_mode = &vk_render_pass_execute_raster_mode;
 }
 
 void vk_rhi_end() {

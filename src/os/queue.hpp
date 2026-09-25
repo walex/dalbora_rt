@@ -29,7 +29,7 @@ namespace stdext {
 		bool pop(T& t, uint64_t tout = 10000000000) {
 
 			constexpr uint64_t one_second_ms = 500;
-			while (tout > 0) {
+			while (tout >= 0) {
 
 				const uint64_t sleep_time_delta_ms = std::min(tout, one_second_ms);
 				if (sem.try_acquire_for(std::chrono::milliseconds(sleep_time_delta_ms))) {

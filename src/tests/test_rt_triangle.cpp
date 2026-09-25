@@ -68,11 +68,10 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 	camera.aspect = image_aspect;
 
 	test_swap_chain([&](RHI_DEVICE& dev, RHI_COMMAND_QUEUE& command_queue,
-		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain)
+		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain, 
+		RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count])
 		{
 			RhiMemoryTable& resources_memory_descriptor = get_buffers_memory_table();
-
-			command_buffer.buffer_memory_descriptor = resources_memory_descriptor;
 
 			swap_chain_ptr = &swap_chain;
 

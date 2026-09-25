@@ -1,5 +1,7 @@
 #include "test_api.hpp"
 
+#define MAX_COMMAND_ALLOCATORS 8
+
 std::unique_ptr<RhiMemoryTable> buffers_memory_table;
 std::unique_ptr<RhiMemoryTable> rtv_memory_table;
 std::unique_ptr<RhiMemoryTable> dsv_memory_table;
@@ -52,6 +54,7 @@ void test_swap_chain(fptr_test_on_init on_init
 	std::unique_ptr<RHI_RENDER_PASS> render_pass;
 	std::vector<std::unique_ptr<RHI_VIEW>> views;
 	std::vector<std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT>> views_slots;
+	RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count];
 
 	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
 
@@ -69,7 +72,12 @@ void test_swap_chain(fptr_test_on_init on_init
 
 		device.reset(rhi_create_device(&device_desc));
 
+		
 		memory_table_init(device.get());
+
+		command_allocator_pool[queue_type_graphics] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_graphics);
+		command_allocator_pool[queue_type_compute] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_compute);
+		command_allocator_pool[queue_type_copy] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_copy);
 
 		RHI_COMMAND_QUEUE_DESC queue_desc;
 		queue_desc.device = device.get();
@@ -98,6 +106,7 @@ void test_swap_chain(fptr_test_on_init on_init
 		RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 		command_buffer_desc.device = device.get();
 		command_buffer_desc.command_queue = command_queue.get();
+		command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[queue_type_graphics]);
 		command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
 		RHI_VIEWPORT vp;
@@ -114,7 +123,7 @@ void test_swap_chain(fptr_test_on_init on_init
 		render_pass->view_port = vp;
 
 		if (on_init)
-			on_init(*device, *command_queue, *command_buffer, *swap_chain);
+			on_init(*device, *command_queue, *command_buffer, *swap_chain, command_allocator_pool);
 		});
 
 	callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
@@ -156,10 +165,16 @@ void test_swap_chain(fptr_test_on_init on_init
 
 		// release objects in order
 		swap_chain.reset();
+		RHI_COMMAND_ALLOCATOR* command_allocator = command_buffer->command_allocator;
 		command_buffer.reset();
 		command_queue.reset();
 		render_pass.reset();
 		swap_chain.reset();
+		rhi_command_allocator_pool_release(command_allocator_pool[queue_type_graphics], command_allocator);
+		rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_graphics]);
+		delete command_allocator_pool[queue_type_graphics];
+		delete command_allocator_pool[queue_type_compute];
+		delete command_allocator_pool[queue_type_copy];
 		device.reset();
 	}
 	return;
@@ -207,6 +222,10 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 
 		device.create(device_desc);
 
+		RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_graphics);
+		RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_compute);
+		RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_copy);
+
 		dsv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_dsv, DSV_DESCRIPTORS_COUNT);
 
 		command_queue.create(device);
@@ -229,9 +248,10 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 			else {
 				printf("Warning: No resources descriptors created, all shader registers counts are zero.\n");
 			}
-			rtv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
-			swap_chain.create_views(device, rtv_memory_table.get());
 		}
+
+		rtv_memory_table = std::make_unique<RhiMemoryTable>(device, memory_descriptor_type_rtv, RTV_HEAP_DESCRIPTORS_COUNT);
+		swap_chain.create_views(device, rtv_memory_table.get());
 
 		if (callbacks)
 			callbacks->on_init(unit_test);

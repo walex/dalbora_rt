@@ -1,5 +1,10 @@
 #include "rhi_command_buffer.hpp"
-#include "rhi.hpp"
+#include "rhi_device.hpp"
+#include "rhi_command_queue.hpp"
+#include "rhi_command_allocator_pool.hpp"
+#include "rhi_gpu_buffer.hpp"
+#include "rhi_render_target.hpp"
+#include "rhi_shader_binding_table.hpp"
 
 RhiCommandBuffer::RhiCommandBuffer(RHI_COMMAND_BUFFER* handle) : RhiImpl<RHI_COMMAND_BUFFER>(handle) {
 }
@@ -8,6 +13,7 @@ void RhiCommandBuffer::create(const RhiDevice& device, const RhiCommandQueue& co
 	RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 	command_buffer_desc.device = device;
 	command_buffer_desc.command_queue = command_queue;
+	command_buffer_desc.command_allocator = RhiCommandAllocatorPool::get(command_queue.get_type()).aquire();
 	this->set_handle(rhi_command_buffer_create(&command_buffer_desc));
 }
 

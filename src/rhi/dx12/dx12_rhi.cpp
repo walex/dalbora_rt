@@ -3,6 +3,7 @@
 #include "dx12_device.hpp"
 #include "dx12_heap.hpp"
 #include "dx12_command_queue.hpp"
+#include "dx12_command_allocator.hpp"
 #include "dx12_command_buffer.hpp"
 #include "dx12_swap_chain.hpp"
 #include "dx12_raster_pipeline.hpp"
@@ -29,6 +30,9 @@ void dx12_rhi_init()
 	// heap
 	rhi_memory_resource_create = &dx12_memory_resource_create;
 	rhi_memory_resource_get_descriptor = &dx12_memory_resource_get_descriptor;
+
+	// command allocator
+	rhi_command_allocator_create = &dx12_command_allocator_create;
 
 	// command queue
 	rhi_command_queue_create = &dx12_command_queue_create;

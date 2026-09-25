@@ -7,7 +7,7 @@
 constexpr rhi_api render_api = rhi_api_dx12;
 
 using fptr_test_on_init = std::function<void(RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
-	RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)>;
+	RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count])>;
 using fptr_test_on_before_draw = std::function<void(RHI_RENDER_PASS &render_pass)>;
 using fptr_test_on_draw = std::function<void(RHI_DEVICE& device, RHI_RENDER_PASS &render_pass, RHI_COMMAND_BUFFER &command_buffer)>;
 using fptr_test_on_before_present = std::function<void(RHI_RENDER_PASS &render_pass, RHI_SWAP_CHAIN& swap_chain, RHI_COMMAND_BUFFER& command_buffer)>;
@@ -55,6 +55,7 @@ struct RhiUnitTest {
 	RhiPipelineLayout pipeline_layout;
 	RhiRasterPipeline raster_pipeline;
 	RhiRayTracePipeline ray_trace_pipeline;
+
 	std::string vertex_shader_file;
 	std::string pixel_shader_file;
 	std::string ray_gen_shader_file;

@@ -2,6 +2,7 @@
 #define __rhi_types_hpp__
 
 #include "platform.hpp"
+#include "queue.hpp"
 #include "rhi_defs.h"
 
 struct RHI_WINDOW;
@@ -58,17 +59,22 @@ struct RHI_FENCE {
 	virtual ~RHI_FENCE() = default;
 };
 
+struct RHI_COMMAND_ALLOCATOR {
+	virtual ~RHI_COMMAND_ALLOCATOR() = default;
+};
+
 struct RHI_COMMAND_QUEUE {
 	virtual ~RHI_COMMAND_QUEUE() = default;
 	std::unique_ptr<RHI_FENCE> fence;
 	uint64_t fence_counter = 0;
-	queue_type type = queue_type_undef;
+	queue_type type = queue_type_graphics;
 };
 
 struct RHI_COMMAND_BUFFER {
 	virtual ~RHI_COMMAND_BUFFER() = default;
 	RHI_MEMORY_DESCRIPTOR* buffer_memory_descriptor = nullptr;
 	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr;
+	RHI_COMMAND_ALLOCATOR* command_allocator = nullptr;
 };
 
 #define MAX_RENDER_TARGETS 8
@@ -194,4 +200,10 @@ struct RHI_SBT_TABLE {
 	size_t ray_gen_size = 0, miss_size = 0, hit_group_size = 0;
 	size_t record_size = 0;
 };
+
+struct RHI_COMMAND_ALLOCATOR_POOL {
+	virtual ~RHI_COMMAND_ALLOCATOR_POOL() = default;
+	stdext::Queue<RHI_COMMAND_ALLOCATOR*> allocators;
+};
+
 #endif

@@ -52,9 +52,14 @@ RHI_COMMAND_QUEUE* vk_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const d
 	return vk_command_queue;
 }
 
-bool command_queue_vk_execute(const VkQueue i_cmd_queue, const VkFence fence, 
-	const bool wait_completion, VkSubmitInfo& submit_info, 
-	fptr_command_queue_on_execute callback) {
+bool command_queue_vk_execute(VK_COMMAND_QUEUE* command_queue, const bool wait_completion,
+	VkSubmitInfo& submit_info, fptr_command_queue_on_execute callback) {
+	
+	VkQueue i_cmd_queue = *static_cast<const VK_COMMAND_QUEUE*>(command_queue);
+	ASSERT_PTR(i_cmd_queue);
+
+	VkFence fence = *static_cast<VK_FENCE*>(command_queue->fence.get());
+	ASSERT_PTR(fence);
 	
 	std::vector<RHI_COMMAND_BUFFER*> command_buffer_list;
 	callback(static_cast<RHI_VOID_PTR>(i_cmd_queue), &command_buffer_list);
@@ -74,10 +79,9 @@ bool command_queue_vk_execute(const VkQueue i_cmd_queue, const VkFence fence,
 	return list_size > 0;
 }
 
-void command_queue_vk_sync_init(RHI_COMMAND_QUEUE* const command_queue, VkSubmitInfo& submit_info
-	, VkFence fence) {
+void command_queue_vk_sync_init(VK_COMMAND_QUEUE* const command_queue, VkSubmitInfo& submit_info) {
 
-	const VkDevice i_device = *static_cast<const VK_DEVICE*>(static_cast<VK_COMMAND_QUEUE*>(command_queue)->parent_device);
+	const VkDevice i_device = *static_cast<const VK_DEVICE*>(command_queue->parent_device);
 	ASSERT_PTR(i_device);
 
 	VkTimelineSemaphoreSubmitInfo time_line_submit_info{};
@@ -85,9 +89,7 @@ void command_queue_vk_sync_init(RHI_COMMAND_QUEUE* const command_queue, VkSubmit
 	VkSemaphore i_timeline_semaphore = *static_cast<const VK_FENCE*>(command_queue->fence.get());
 	ASSERT_PTR(i_timeline_semaphore);
 
-	vkWaitForFences(i_device, 1, &fence, VK_TRUE, UINT64_MAX);
-	vkResetFences(i_device, 1, &fence);
-
+	command_queue->fence_counter++;
 	time_line_submit_info.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
 	time_line_submit_info.signalSemaphoreValueCount = 1;
 	time_line_submit_info.pSignalSemaphoreValues = &command_queue->fence_counter;
@@ -97,9 +99,9 @@ void command_queue_vk_sync_init(RHI_COMMAND_QUEUE* const command_queue, VkSubmit
 	submit_info.pSignalSemaphores = &i_timeline_semaphore;
 }
 
-void command_queue_vk_sync_end(RHI_COMMAND_QUEUE* const command_queue) {
+void command_queue_vk_sync_end(VK_COMMAND_QUEUE* const command_queue) {
 
-	const VkDevice i_device = *static_cast<const VK_DEVICE*>(static_cast<VK_COMMAND_QUEUE*>(command_queue)->parent_device);
+	const VkDevice i_device = *static_cast<const VK_DEVICE*>(command_queue->parent_device);
 	ASSERT_PTR(i_device);
 
 	VkSemaphore i_timeline_semaphore = *static_cast<const VK_FENCE*>(command_queue->fence.get());
@@ -124,20 +126,19 @@ void vk_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue,
 	
 	ASSERT_PTR(command_queue);
 
-	VkQueue i_cmd_queue = *static_cast<VK_COMMAND_QUEUE*>(command_queue);
-	ASSERT_PTR(i_cmd_queue);
+	VK_COMMAND_QUEUE* cmd_queue_impl = static_cast<VK_COMMAND_QUEUE*>(command_queue);
+	ASSERT_PTR(cmd_queue_impl);
 	
 	VkSubmitInfo submit_info{};
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	if (wait_completion == true) {
-		VkFence fence = *static_cast<VK_FENCE*>(command_queue->fence.get());
-		command_queue_vk_sync_init(command_queue, submit_info, fence);
-		if (command_queue_vk_execute(i_cmd_queue, fence, wait_completion, submit_info, callback) == true) {
-			command_queue_vk_sync_end(command_queue);
+		command_queue_vk_sync_init(cmd_queue_impl, submit_info);
+		if (command_queue_vk_execute(cmd_queue_impl, wait_completion, submit_info, callback) == true) {
+			command_queue_vk_sync_end(cmd_queue_impl);
 		}
 	}
 	else {
-		command_queue_vk_execute(i_cmd_queue, VK_NULL_HANDLE, wait_completion, submit_info, callback);
+		command_queue_vk_execute(cmd_queue_impl, wait_completion, submit_info, callback);
 	}
 }
 

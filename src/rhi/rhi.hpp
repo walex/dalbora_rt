@@ -28,4 +28,6 @@
 #include "rhi_shared_buffer.hpp"
 #include "rhi_shared_buffer_map.hpp"
 #include "rhi_memory_table.hpp"
+#include "rhi_command_allocator_pool.hpp"
+
 #endif

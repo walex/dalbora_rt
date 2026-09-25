@@ -54,11 +54,11 @@ void test_raster_triangle(fptr_test_on_init on_init,
 	const std::filesystem::path shaders_folder = get_executable_folder("shaders");
 
 	test_swap_chain([&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
-						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain)
+						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain, 
+						RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count])
 					{
 			
 			RhiMemoryTable& memory_descriptor = get_buffers_memory_table();
-			command_buffer.buffer_memory_descriptor = memory_descriptor;
 
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
@@ -191,6 +191,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			RHI_COMMAND_BUFFER_DESC command_buffer_desc;
 			command_buffer_desc.device = &device;
 			command_buffer_desc.command_queue = copy_command_queue.get();
+			command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[copy_command_queue->type]);
 			copy_command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
 			// upload buffers
@@ -271,7 +272,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			
 			// on init
 			if (on_init)
-				on_init(device, command_queue, command_buffer, swap_chain);
+				on_init(device, command_queue, command_buffer, swap_chain, command_allocator_pool);
 			},
 
 			[&](RHI_RENDER_PASS &render_pass)
