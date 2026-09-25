@@ -13,13 +13,13 @@ RHI_COMMAND_BUFFER* vk_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* cons
     switch (desc->command_queue->type)
     {
 	case queue_type_graphics:
-		commnad_pool = device_impl->graphics_queue_command_pool;
+		commnad_pool = device_impl->queue_command_pool[queue_type_graphics];
 		break;
 	case queue_type_compute:
-		commnad_pool = device_impl->compute_queue_command_pool;
+		commnad_pool = device_impl->queue_command_pool[queue_type_compute];
 		break;
 	case queue_type_copy:
-		commnad_pool = device_impl->copy_queue_command_pool;
+		commnad_pool = device_impl->queue_command_pool[queue_type_copy];
 		break;
     default:
 		throw std::runtime_error("Invalid queue type.");

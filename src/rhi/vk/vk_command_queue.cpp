@@ -13,13 +13,13 @@ RHI_COMMAND_QUEUE* vk_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const d
 	uint32_t family_index;
 	switch (desc->type) {
 	case queue_type_graphics:
-		family_index = vk_device->graphics_queue_family_index;
+		family_index = vk_device->queue_family_index[queue_type_graphics];
 		break;
 	case queue_type_compute:
-		family_index = vk_device->compute_queue_family_index;
+		family_index = vk_device->queue_family_index[queue_type_compute];
 		break;
 	case queue_type_copy:
-		family_index = vk_device->copy_queue_family_index;
+		family_index = vk_device->queue_family_index[queue_type_copy];
 		break;
 	default:
 		throw std::exception("Invalid queue type");

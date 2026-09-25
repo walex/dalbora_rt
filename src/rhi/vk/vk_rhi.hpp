@@ -55,21 +55,17 @@ struct VK_DEVICE
 	, public VK_HANDLE<VkDevice> {
 	
 	~VK_DEVICE() {
-		if (graphics_queue_command_pool != VK_NULL_HANDLE)
-			vkDestroyCommandPool(*this, graphics_queue_command_pool, nullptr);
-		if (compute_queue_command_pool != VK_NULL_HANDLE)
-			vkDestroyCommandPool(*this, compute_queue_command_pool, nullptr);
-		if (copy_queue_command_pool != VK_NULL_HANDLE)
-			vkDestroyCommandPool(*this, copy_queue_command_pool, nullptr);
+		for (int i = 0; i < queue_type_count; ++i) {
+			if (queue_command_pool[i] != VK_NULL_HANDLE) {
+				vkDestroyCommandPool(*this, queue_command_pool[i], nullptr);
+				queue_family_index[i] = -1;
+			}
+		}
 		vkDestroyDevice(*this, nullptr);
 	}
 	VkPhysicalDevice physical_device;
-	VkCommandPool graphics_queue_command_pool = VK_NULL_HANDLE;
-	VkCommandPool compute_queue_command_pool = VK_NULL_HANDLE;
-	VkCommandPool copy_queue_command_pool = VK_NULL_HANDLE;
-	uint32_t graphics_queue_family_index = -1;
-	uint32_t compute_queue_family_index = -1;
-	uint32_t copy_queue_family_index = -1;
+	VkCommandPool queue_command_pool[queue_type_count] = { VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE };
+	int32_t queue_family_index[queue_type_count] = { -1, -1, -1 };
 };
 
 template <typename T>
@@ -201,6 +197,16 @@ struct VK_TEXTURE_2D
 
 struct VK_RENDER_PASS
 	: public RHI_RENDER_PASS {
+};
+
+struct VK_COMMAND_ALLOCATOR
+	: public VK_NON_DISPATCHABLE_HANDLE<VkCommandPool>
+	, public RHI_COMMAND_ALLOCATOR {
+
+	~VK_COMMAND_ALLOCATOR() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyCommandPool(*this->parent_device, *this, nullptr);
+	}
 };
 
 // VK_BVH -> VkAccelerationStructureKHR  ??

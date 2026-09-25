@@ -2,6 +2,7 @@
 #include "vk_device.hpp"
 #include "vk_heap.hpp"
 #include "vk_command_queue.hpp"
+#include "vk_command_allocator.hpp"
 #include "vk_command_buffer.hpp"
 #include "vk_swap_chain.hpp"
 #include "vk_render_pass.hpp"
@@ -62,6 +63,9 @@ void vk_rhi_init() {
     // heap
     rhi_memory_resource_create = &vk_memory_resource_create;
     rhi_memory_resource_get_descriptor = &vk_memory_resource_get_descriptor;
+
+    // command allocator
+    rhi_command_allocator_create = &vk_command_allocator_create;
 
     // command queue
     rhi_command_queue_create = &vk_command_queue_create;

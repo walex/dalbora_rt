@@ -159,13 +159,13 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
     device_vk_get_command_queue_family_indices(physical_device, graphics_queue_family_index,
         compute_queue_family_index, copy_family_index);
 
-    if (graphics_queue_family_index_out != nullptr && graphics_queue_family_index == -1) {
+    if (graphics_queue_count > 0 && graphics_queue_family_index_out != nullptr && graphics_queue_family_index == -1) {
         throw std::runtime_error("compatible graphics queue family not found.");
     }
-    if (compute_queue_family_index_out != nullptr && compute_queue_family_index == -1) {
+    if (compute_queue_count > 0 && compute_queue_family_index_out != nullptr && compute_queue_family_index == -1) {
         throw std::runtime_error("compatible compute queue family not found.");
     }
-    if (copy_queue_family_index_out != nullptr && copy_family_index == -1) {
+    if (copy_queue_count > 0 && copy_queue_family_index_out != nullptr && copy_family_index == -1) {
         throw std::runtime_error("compatible copy queue family not found.");
     }
 
@@ -248,6 +248,7 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
 	uint32_t graphics_queue_family_index = -1;
 	uint32_t compute_queue_family_index = -1;
     uint32_t copy_queue_family_index = -1;
+
     VkDevice device = device_vk_create_logical_device(static_cast<VkInstance>(desc->app_instance), desc->graphics_queue_count,
         desc->compute_queue_count, desc->copy_queue_count, desc->features, 
         &physical_device, &graphics_queue_family_index,
@@ -276,12 +277,23 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
         ASSERT_PTR(compute_queue_command_pool);
     }
 
+    poolInfo.queueFamilyIndex = copy_queue_family_index;
+    VkCommandPool copy_queue_command_pool = VK_NULL_HANDLE;
+    if (copy_queue_family_index >= 0) {
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &copy_queue_command_pool) != VK_SUCCESS) {
+            throw std::runtime_error("Error creating copy command pool");
+        }
+        ASSERT_PTR(copy_queue_command_pool);
+    }
+
 	VK_DEVICE* vk_device = new VK_DEVICE();
 	vk_device->set_handle(device);
 	vk_device->physical_device = physical_device;
-    vk_device->graphics_queue_command_pool = graphics_queue_command_pool;
-	vk_device->graphics_queue_family_index = graphics_queue_family_index;
-    vk_device->compute_queue_command_pool = compute_queue_command_pool;
-	vk_device->compute_queue_family_index = compute_queue_family_index;
+    vk_device->queue_command_pool[queue_type_graphics] = graphics_queue_command_pool;
+	vk_device->queue_family_index[queue_type_graphics] = graphics_queue_family_index;
+    vk_device->queue_command_pool[queue_type_compute] = compute_queue_command_pool;
+	vk_device->queue_family_index[queue_type_compute] = compute_queue_family_index;
+    vk_device->queue_command_pool[queue_type_copy] = copy_queue_command_pool;
+	vk_device->queue_family_index[queue_type_copy] = copy_queue_family_index;
     return vk_device;
 }

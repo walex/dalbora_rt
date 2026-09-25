@@ -104,6 +104,11 @@ struct DX_RENDER_PASS
 	: public RHI_RENDER_PASS {
 };
 
+struct DX_COMMAND_ALLOCATOR
+	: public RHI_COMMAND_ALLOCATOR
+	, public DX_HANDLE<ID3D12CommandAllocator> {
+};
+
 struct DX_COMPILED_SHADER_BUFFER : 
 	public RHI_COMPILED_SHADER_BUFFER, 
 	public RHI_BUFFER,
@@ -148,11 +153,6 @@ struct DX_SBT_TABLE
 	, public DX_BUFFER
 {
 	virtual ~DX_SBT_TABLE() = default;
-};
-
-struct DX_COMMAND_ALLOCATOR
-	: public RHI_COMMAND_ALLOCATOR
-	, public DX_HANDLE<ID3D12CommandAllocator> {
 };
 
 typedef DX_HANDLE<IDXGIFactory5> DX_FACTORY;
