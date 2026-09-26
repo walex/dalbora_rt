@@ -73,6 +73,8 @@ struct DX_COMMAND_QUEUE
 struct DX_COMMAND_BUFFER
 	: public RHI_COMMAND_BUFFER
 	, public DX_HANDLE<ID3D12CommandList> {
+
+	ID3D12DescriptorHeap* heaps[2];
 };
 
 struct DX_SWAP_CHAIN

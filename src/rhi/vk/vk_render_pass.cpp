@@ -31,7 +31,7 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 	colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.clearValue = { {{0.0f, 0.2f, 0.4f, 1.0f}} };
+	colorAttachment.clearValue = { {{0.1f, 0.2f, 0.4f, 1.0f}} };
 
 	const RHI_VIEWPORT& vp = render_pass->view_port;
 

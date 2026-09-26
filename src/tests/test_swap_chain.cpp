@@ -108,6 +108,7 @@ void test_swap_chain(fptr_test_on_init on_init
 		command_buffer_desc.command_queue = command_queue.get();
 		command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[queue_type_graphics]);
 		command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
+		command_buffer->buffer_memory_descriptor = get_buffers_memory_table();
 
 		RHI_VIEWPORT vp;
 		vp.x = 0;

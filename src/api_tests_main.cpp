@@ -13,7 +13,7 @@ void test_api()
 	test_swap_chain();
 
 	// raster triangle
-	// test_raster_triangle();
+	test_raster_triangle();
 
 	// raster textured triangle
      test_raster_textured_triangle();
@@ -52,8 +52,8 @@ void test_objects() {
 int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 {
 
-	//test_api();
-	test_objects();
+	test_api();
+	//test_objects();
 
 	return 0;
 }
