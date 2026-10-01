@@ -286,8 +286,6 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			{
 				// on draw
 
-				
-
 				float dt = get_delta_time();
 				triangle_transforms.world = rotate_triangle(dt);
 

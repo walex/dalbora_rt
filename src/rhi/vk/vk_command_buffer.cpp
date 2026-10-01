@@ -5,26 +5,11 @@ RHI_COMMAND_BUFFER* vk_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* cons
     ASSERT_PTR(desc);
     ASSERT_PTR(desc->device);
     ASSERT_PTR(desc->command_queue);
-
+    ASSERT_PTR(desc->command_allocator);
+    
 	VK_DEVICE* device_impl = static_cast<VK_DEVICE*>(desc->device);
-    VkCommandPool commnad_pool;
+    VkCommandPool commnad_pool = *static_cast<VK_COMMAND_ALLOCATOR*>(desc->command_allocator);
     VkCommandBuffer commandBuffer;
-
-    switch (desc->command_queue->type)
-    {
-	case queue_type_graphics:
-		commnad_pool = device_impl->queue_command_pool[queue_type_graphics];
-		break;
-	case queue_type_compute:
-		commnad_pool = device_impl->queue_command_pool[queue_type_compute];
-		break;
-	case queue_type_copy:
-		commnad_pool = device_impl->queue_command_pool[queue_type_copy];
-		break;
-    default:
-		throw std::runtime_error("Invalid queue type.");
-        break;
-    }
 
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -39,6 +24,7 @@ RHI_COMMAND_BUFFER* vk_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* cons
 	result->set_handle(commandBuffer);
 	result->command_pool = commnad_pool;
     result->parent_device = device_impl;
+	result->command_allocator = desc->command_allocator;
 	return result;
 }
 

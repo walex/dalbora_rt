@@ -79,6 +79,7 @@ void vk_rhi_init() {
 
     // command buffer
     rhi_command_buffer_create = &vk_command_buffer_create;
+    rhi_command_buffer_record = &vk_command_buffer_record;
 
     // render pass
     rhi_render_pass_create = &vk_render_pass_create;

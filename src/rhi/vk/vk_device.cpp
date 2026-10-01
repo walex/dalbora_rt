@@ -128,29 +128,29 @@ void device_vk_get_command_queue_family_indices(const VkPhysicalDevice physical_
 }
 
 VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32_t graphics_queue_count,
-    const uint32_t compute_queue_count, const uint32_t copy_queue_count, const unsigned long long device_features, 
-    VkPhysicalDevice* physical_device_out = nullptr, uint32_t* graphics_queue_family_index_out = nullptr, 
+    const uint32_t compute_queue_count, const uint32_t copy_queue_count, const unsigned long long device_features,
+    VkPhysicalDevice* physical_device_out = nullptr, uint32_t* graphics_queue_family_index_out = nullptr,
     uint32_t* compute_queue_family_index_out = nullptr, uint32_t* copy_queue_family_index_out = nullptr) {
 
     uint32_t device_count = 0;
     vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
     std::vector<VkPhysicalDevice> devices(device_count);
     vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
-    
+
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
     std::vector<const char*> device_extensions;
     uint32_t graphics_queue_family_index = -1;
-    uint32_t compute_queue_family_index = -1;  
-	uint32_t copy_family_index = -1;
-	for (const auto& pdev : devices) {
+    uint32_t compute_queue_family_index = -1;
+    uint32_t copy_family_index = -1;
+    for (const auto& pdev : devices) {
 
         device_extensions.clear();
         if (device_vk_check_device_features(pdev, device_features, device_extensions) == true) {
-            
+
             physical_device = pdev;
             break;
         }
-	}
+    }
 
     if (physical_device == VK_NULL_HANDLE) {
         throw std::runtime_error("compatible physical device not found");
@@ -171,17 +171,13 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
 
     std::vector<VkDeviceQueueCreateInfo> v_queue_create_info;
 
-    // 1. Identificar las familias únicas usando un set
     std::set<uint32_t> unique_families;
     if (graphics_queue_family_index != -1) unique_families.insert(graphics_queue_family_index);
     if (compute_queue_family_index != -1) unique_families.insert(compute_queue_family_index);
     if (copy_family_index != -1)          unique_families.insert(copy_family_index);
 
-    // 2. Crear un pool de prioridades lo suficientemente grande para las colas solicitadas
-    // Todas las colas creadas de esta forma compartirán la misma prioridad (1.0f)
-    std::vector<float> queuePriorities(16, 1.0f); // Inicializa con espacio de sobra (ej. 16 elementos)
+    std::vector<float> queuePriorities(16, 1.0f);
 
-    // 3. Iterar sobre las familias únicas configurando el conteo real
     for (uint32_t family_index : unique_families) {
 
         uint32_t total_queue_count = 0;
@@ -189,9 +185,6 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
         if (family_index == graphics_queue_family_index) total_queue_count += graphics_queue_count;
         if (family_index == compute_queue_family_index)  total_queue_count += compute_queue_count;
         if (family_index == copy_family_index)           total_queue_count += copy_queue_count;
-
-        // [OPCIONAL] securiry validation
-        //'total_queue_count' <=  // vkGetPhysicalDeviceQueueFamilyProperties 
 
         VkDeviceQueueCreateInfo queue_create_info{};
         queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -202,19 +195,40 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
         v_queue_create_info.push_back(queue_create_info);
     }
 
-    VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures{};
-    bdaFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
-    bdaFeatures.bufferDeviceAddress = VK_TRUE;
+    // --- ENLACE CORRECTO DE LA CADENA PNEXT ---
 
+   // Base de la cadena: Punteros No Tipados (Untyped Pointers)
     VkPhysicalDeviceShaderUntypedPointersFeaturesKHR untypedPointersFeatures{};
     untypedPointersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR;
-    untypedPointersFeatures.pNext = &bdaFeatures;
+    untypedPointersFeatures.pNext = nullptr; // <--- Ahora este es el fin seguro de la cadena
     untypedPointersFeatures.shaderUntypedPointers = VK_TRUE;
 
+    // Descriptores en Heap -> apunta a Untyped Pointers
     VkPhysicalDeviceDescriptorHeapFeaturesEXT heapFeatures{};
     heapFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
     heapFeatures.pNext = &untypedPointersFeatures;
     heapFeatures.descriptorHeap = VK_TRUE;
+
+    // Características Consolidadas de Vulkan 1.3 -> apunta a Descriptor Heaps
+    VkPhysicalDeviceVulkan13Features features13{};
+    features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    features13.pNext = &heapFeatures;
+    features13.synchronization2 = VK_TRUE;      // Sincronización moderna (vkQueueSubmit2)
+    features13.dynamicRendering = VK_TRUE;      // Renderizado dinámico sin RenderPasses extensos
+
+    // Características Consolidadas de Vulkan 1.2 -> apunta a Vulkan 1.3
+    VkPhysicalDeviceVulkan12Features features12{};
+    features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    features12.pNext = &features13;
+    features12.timelineSemaphore = VK_TRUE;     // Sincronización por Timeline Semaphores nativa
+    features12.bufferDeviceAddress = VK_TRUE;   // <--- ¡AQUÍ SE ACTIVA BDA AHORA SEGURO!
+
+    // Estructura Contenedora Principal -> apunta al inicio de las versiones consolidadas (Vulkan 1.2)
+    VkPhysicalDeviceFeatures2 deviceFeatures2{};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.pNext = &features12;
+
+    // --- FIN DE LA CADENA ---
 
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -222,20 +236,21 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
     create_info.queueCreateInfoCount = static_cast<uint32_t>(v_queue_create_info.size());
     create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
     create_info.ppEnabledExtensionNames = device_extensions.data();
-    create_info.pNext = &heapFeatures;
+    create_info.pNext = &deviceFeatures2; // Pasamos el contenedor inicial
 
-	VkDevice device;
+    VkDevice device;
     if (vkCreateDevice(physical_device, &create_info, nullptr, &device) != VK_SUCCESS) {
         throw std::runtime_error("Error creating logical device!");
     }
-	if (physical_device_out != nullptr)
+
+    if (physical_device_out != nullptr)
         *physical_device_out = physical_device;
     if (graphics_queue_family_index_out != nullptr)
         *graphics_queue_family_index_out = graphics_queue_family_index;
     if (compute_queue_family_index_out != nullptr)
         *compute_queue_family_index_out = compute_queue_family_index;
-	if (copy_queue_family_index_out != nullptr)
-		*copy_queue_family_index_out = copy_family_index;
+    if (copy_queue_family_index_out != nullptr)
+        *copy_queue_family_index_out = copy_family_index;
     return device;
 }
 
@@ -255,45 +270,11 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
         &compute_queue_family_index, &copy_queue_family_index);
     ASSERT_PTR(device);
 
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = graphics_queue_family_index;
-
-    VkCommandPool graphics_queue_command_pool = VK_NULL_HANDLE;
-    if (graphics_queue_family_index >= 0) {
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, &graphics_queue_command_pool) != VK_SUCCESS) {
-            throw std::runtime_error("Error creating graphics command pool");
-        }
-        ASSERT_PTR(graphics_queue_command_pool);
-    }
-
-    poolInfo.queueFamilyIndex = compute_queue_family_index;
-    VkCommandPool compute_queue_command_pool = VK_NULL_HANDLE;
-    if (compute_queue_family_index >= 0) {
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, &compute_queue_command_pool) != VK_SUCCESS) {
-            throw std::runtime_error("Error creating compute command pool");
-        }
-        ASSERT_PTR(compute_queue_command_pool);
-    }
-
-    poolInfo.queueFamilyIndex = copy_queue_family_index;
-    VkCommandPool copy_queue_command_pool = VK_NULL_HANDLE;
-    if (copy_queue_family_index >= 0) {
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, &copy_queue_command_pool) != VK_SUCCESS) {
-            throw std::runtime_error("Error creating copy command pool");
-        }
-        ASSERT_PTR(copy_queue_command_pool);
-    }
-
 	VK_DEVICE* vk_device = new VK_DEVICE();
 	vk_device->set_handle(device);
 	vk_device->physical_device = physical_device;
-    vk_device->queue_command_pool[queue_type_graphics] = graphics_queue_command_pool;
 	vk_device->queue_family_index[queue_type_graphics] = graphics_queue_family_index;
-    vk_device->queue_command_pool[queue_type_compute] = compute_queue_command_pool;
 	vk_device->queue_family_index[queue_type_compute] = compute_queue_family_index;
-    vk_device->queue_command_pool[queue_type_copy] = copy_queue_command_pool;
 	vk_device->queue_family_index[queue_type_copy] = copy_queue_family_index;
     return vk_device;
 }

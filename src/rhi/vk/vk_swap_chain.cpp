@@ -178,6 +178,13 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
      static create_surface_func_ptr create_surface_ptr = create_surface_android;
 #endif
 
+    VkDevice i_device = *static_cast<VK_DEVICE*>(desc->device);
+    ASSERT_PTR(i_device);
+
+    ASSERT_EXPR(desc->buffer_count > 0);
+    ASSERT_EXPR(desc->width > 0);
+    ASSERT_EXPR(desc->height > 0);
+
     VkSurfaceKHR surface = create_surface_ptr(desc->window, nullptr);
     ASSERT_PTR(surface);
 
@@ -190,30 +197,48 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	width = surfaceCapabilities.currentExtent.width;
 	height = surfaceCapabilities.currentExtent.height;
 
-	VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
+    VkSemaphoreCreateInfo semaphore_info{};
+    semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    semaphore_info.pNext = nullptr; // Estrictamente nullptr (sin tipo timeline) [2]
+    semaphore_info.flags = 0;
 
-    createInfo.minImageCount = desc->buffer_count;
-    createInfo.imageFormat = (desc->color_format != resource_format_none)
+	std::vector<VkSemaphore> next_image_sync(desc->buffer_count, VK_NULL_HANDLE);
+    std::vector<VkSemaphore> render_complete_sync(desc->buffer_count, VK_NULL_HANDLE);
+    for (size_t i = 0; i < desc->buffer_count; ++i) {
+        if (vkCreateSemaphore(i_device, &semaphore_info, nullptr, &next_image_sync[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Error creating next_image_sync semaphore");
+        }
+        ASSERT_PTR(next_image_sync[i]);
+        if (vkCreateSemaphore(i_device, &semaphore_info, nullptr, &render_complete_sync[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Error creating render_complete_sync semaphore");
+        }
+        ASSERT_PTR(render_complete_sync[i]);
+    }
+
+	VkSwapchainCreateInfoKHR create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_info.surface = surface;
+
+    create_info.minImageCount = desc->buffer_count;
+    create_info.imageFormat = (desc->color_format != resource_format_none)
         ? vk_resource_format_type[desc->color_format]
         : VK_FORMAT_B8G8R8A8_SRGB;;
-    createInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    createInfo.imageExtent = VkExtent2D{ width, height};
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_2_STORAGE_BIT_KHR;
+    create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    create_info.imageExtent = VkExtent2D{ width, height};
+    create_info.imageArrayLayers = 1;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_2_STORAGE_BIT_KHR;
 
-    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = desc->enable_vsync 
+    create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_info.presentMode = desc->enable_vsync 
         ? VK_PRESENT_MODE_FIFO_KHR 
         : VK_PRESENT_MODE_IMMEDIATE_KHR;
-    createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    create_info.clipped = VK_TRUE;
+    create_info.oldSwapchain = VK_NULL_HANDLE;
 
     VkSwapchainKHR swap_chain;
-    if (vkCreateSwapchainKHR(*static_cast<VK_DEVICE*>(desc->device), &createInfo, 
+    if (vkCreateSwapchainKHR(*static_cast<VK_DEVICE*>(desc->device), &create_info, 
         nullptr, &swap_chain) != VK_SUCCESS) {
         throw std::runtime_error("¡Error al crear la Swap Chain!");
     }
@@ -228,6 +253,13 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	result->buffer_height = height;
     result->buffer_mip_count = 1;
 	result->command_queue = desc->command_queue;
+	result->buffers_count = desc->buffer_count;
+    result->next_image_sync = new VkSemaphore[desc->buffer_count];
+    result->render_complete_sync = new VkSemaphore[desc->buffer_count];
+	memcpy(result->next_image_sync, next_image_sync.data(), desc->buffer_count * sizeof(VkSemaphore));
+    memcpy(result->render_complete_sync, render_complete_sync.data(), desc->buffer_count * sizeof(VkSemaphore));
+    result->current_image_index = 0;
+
     return result;
 }
 
@@ -236,19 +268,18 @@ void vk_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 	VK_SWAP_CHAIN* swap_chain_impl = static_cast<VK_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
 	ASSERT_PTR(swap_chain_impl);
 
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.pNext = nullptr;
+    uint32_t sem_index = swap_chain->frames_count % swap_chain->buffers_count;
 
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.pNext = nullptr;
     VkSwapchainKHR swapChains[] = { *swap_chain_impl };
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &swap_chain_impl->current_image_index; // El índice explícito obtenido con vkAcquireNextImageKHR
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swapChains;
+    present_info.pImageIndices = &swap_chain_impl->current_image_index; // El índice explícito obtenido con vkAcquireNextImageKHR
+    present_info.pResults = nullptr;
 
-    presentInfo.pResults = nullptr;
-
-    VkResult result = vkQueuePresentKHR(*static_cast<VK_COMMAND_QUEUE*>(swap_chain_impl->command_queue), &presentInfo);
-
+    VkResult result = vkQueuePresentKHR(*static_cast<VK_COMMAND_QUEUE*>(swap_chain_impl->command_queue), &present_info);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         // AQUÍ DEBES LLAMAR A TU FUNCIÓN PARA RECREAR LA SWAPCHAIN.
         // recreateSwapChain();
@@ -256,9 +287,12 @@ void vk_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("Error presenting image to swap chain.");
     }
+    swap_chain_impl->frames_count++;
 }
 
 uint32_t vk_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_chain) {
+
+    uint32_t sem_index = swap_chain->frames_count % swap_chain->buffers_count;
 
 	VK_SWAP_CHAIN* swap_chain_impl = static_cast<VK_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
     ASSERT_PTR(swap_chain_impl);
@@ -266,9 +300,19 @@ uint32_t vk_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_ch
     const VK_DEVICE* device_impl = static_cast<const VK_DEVICE*>(swap_chain_impl->parent_device);
     ASSERT_PTR(device_impl);
 
+    ASSERT_PTR(swap_chain->command_queue);
+	VK_COMMAND_QUEUE* command_queue_impl = static_cast<VK_COMMAND_QUEUE*>(swap_chain->command_queue);
+    ASSERT_PTR(command_queue_impl);
+
     uint32_t image_index;
 	vkAcquireNextImageKHR(*device_impl, *swap_chain_impl,
-		UINT64_MAX, VK_NULL_HANDLE, VK_NULL_HANDLE, &image_index);
+		UINT64_MAX, swap_chain_impl->next_image_sync[sem_index], VK_NULL_HANDLE, &image_index);
+
+    ASSERT_EXPR(command_queue_impl->sync_objects_count < MAX_SYNC_OBJECTS);
+	command_queue_impl->sync_objects[command_queue_impl->sync_objects_count].semaphore = swap_chain_impl->next_image_sync[sem_index];
+	command_queue_impl->sync_objects[command_queue_impl->sync_objects_count].stage = pipeline_stage_all_graphics;
+	command_queue_impl->sync_objects_count++;
+
     return image_index;
 }
 
@@ -336,7 +380,7 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
 
     size_t totalUploadSize = offset;
 
-    VK_TEXTURE_2D* texture = new VK_TEXTURE_2D();
+    VK_SWAP_CHAIN_TEXTURE_2D* texture = new VK_SWAP_CHAIN_TEXTURE_2D();
     ASSERT_PTR(texture);
     texture->set_handle(image);
     texture->hw_format = format;
@@ -344,6 +388,7 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
     texture->height = swap_chain->buffer_height;
     texture->hw_length = totalUploadSize;
     texture->mip_maps = std::move(mips);
+	texture->parent_device = device_impl;
 
     RHI_VIEW_DESC view_desc;
     view_desc.type = shader_view_type_render_target;
@@ -355,5 +400,6 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
     result->set_handle(image_view);
     result->buffer = make_releseable_observer_ptr<RHI_BUFFER>(texture);
     result->memory_descriptor = const_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(memory_descriptor);
+	result->parent_device = device_impl;
     return result;
 }

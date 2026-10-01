@@ -4,22 +4,22 @@
 void test_api()
 {
 	// init rhi
-	rhi_init(device_type_dx12);
+	rhi_init(device_type_vk);
 
 	// simple platform windows creation
-	// test_create_window();
+	//test_create_window();
 
 	// swap chain
 	test_swap_chain();
 
 	// raster triangle
-	test_raster_triangle();
+//	test_raster_triangle();
 
 	// raster textured triangle
-     test_raster_textured_triangle();
+ //    test_raster_textured_triangle();
 
 	// rt triangle
-	test_rt_triangle();
+//	test_rt_triangle();
 
 	// end rhi
 	rhi_end();

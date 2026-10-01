@@ -22,10 +22,14 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
 	HWND hwnd = static_cast<HWND>(desc->window->handle);
 	
+	ASSERT_EXPR(desc->buffer_count > 0);
+	ASSERT_EXPR(desc->width > 0);
+	ASSERT_EXPR(desc->height > 0);
+
 	// Extract parameters from desc with sensible defaults if fields are missing
-	UINT width = static_cast<UINT>((desc->width > 0) ? desc->width : 800);
-	UINT height = static_cast<UINT>((desc->height > 0) ? desc->height : 600);
-	UINT buffer_count = static_cast<UINT>((desc->buffer_count > 0) ? desc->buffer_count : 2);
+	UINT width = static_cast<UINT>(desc->width);
+	UINT height = static_cast<UINT>(desc->height);
+	UINT buffer_count = static_cast<UINT>(desc->buffer_count);
 	DXGI_FORMAT format = (desc->color_format != resource_format_none)
 		?  dx12_resource_format_type[desc->color_format]
 		: DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -57,6 +61,8 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	scDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 	scDesc.Flags = allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+	// TODO: should be configurable
+	scDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
 	// Create swap chain
 	IDXGISwapChain1* i_swap_chain_1 = nullptr;
@@ -87,6 +93,9 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 	result->buffers_count = static_cast<size_t>(buffer_count);
 	result->command_queue = desc->command_queue;
 	result->current_image_index = 0;
+	// TODO: should be configurable
+	i_swap_chain_3->SetMaximumFrameLatency(buffer_count);
+	result->frame_sync = i_swap_chain_3->GetFrameLatencyWaitableObject();
 	return result;
 }
 
@@ -168,7 +177,7 @@ RHI_VIEW* dx12_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_
 void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 
 	ASSERT_PTR(swap_chain);
-	const DX_SWAP_CHAIN* swap_chain_impl = static_cast<const DX_SWAP_CHAIN*>(swap_chain);
+	DX_SWAP_CHAIN* swap_chain_impl = static_cast<DX_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
 	ASSERT_PTR(swap_chain_impl);
 	IDXGISwapChain3* i_swap_chain = *swap_chain_impl;
 	UINT flags, interval;
@@ -181,14 +190,20 @@ void dx12_swap_chain_present(const RHI_SWAP_CHAIN* const swap_chain) {
 		flags = swap_chain_impl->is_full_screen ? 0 : DXGI_PRESENT_ALLOW_TEARING;
 	}
 	i_swap_chain->Present(interval, flags);
+	swap_chain_impl->frames_count++;
 }
 
 uint32_t dx12_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_chain) {
 
 	ASSERT_PTR(swap_chain);
-	IDXGISwapChain3* i_swap_chain = *static_cast<const DX_SWAP_CHAIN*>(swap_chain);
+	DX_SWAP_CHAIN* swap_chain_impl = static_cast<DX_SWAP_CHAIN*>(const_cast<RHI_SWAP_CHAIN*>(swap_chain));
+	ASSERT_PTR(swap_chain_impl);
+	IDXGISwapChain3* i_swap_chain = *swap_chain_impl;
 	ASSERT_PTR(i_swap_chain);
 
+	if (swap_chain_impl->frame_sync != nullptr && swap_chain_impl->frame_sync != INVALID_HANDLE_VALUE) {
+		WaitForSingleObject(swap_chain_impl->frame_sync, INFINITE);
+	}
 	return static_cast<uint32_t>(i_swap_chain->GetCurrentBackBufferIndex());
 }
 

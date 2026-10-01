@@ -34,36 +34,45 @@ RHI_COMMAND_QUEUE* dx12_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const
 	return result;
 }
 
-void command_queue_dx12_sync(RHI_COMMAND_QUEUE* command_queue) {
+uint64_t command_queue_dx12_sync(RHI_COMMAND_QUEUE* command_queue) {
 
 	ASSERT_PTR(command_queue);
+	ASSERT_PTR(command_queue->fence);
 
 	const DX_COMMAND_QUEUE* command_queue_impl = static_cast<const DX_COMMAND_QUEUE*>(command_queue);
 	ID3D12CommandQueue* i_cmd_queue = *command_queue_impl;
 	ASSERT_PTR(i_cmd_queue);
 	ID3D12Fence* i_fence = *static_cast<const DX_FENCE*>(command_queue->fence.get());
 	ASSERT_PTR(i_fence);
-	HANDLE eventHandle = command_queue_impl->event_handle;
-	const uint64_t fc = ++command_queue->fence_counter;
+	HANDLE event_handle = command_queue_impl->event_handle;
+	const uint64_t fc = ++command_queue->fence->counter;
 	ASSERT_EXPR(fc != UINT64_MAX);
 	i_cmd_queue->Signal(i_fence, fc);
-	if (i_fence->GetCompletedValue() < fc) {
+	uint64_t completed_value = i_fence->GetCompletedValue();
+	if (completed_value < fc) {
 		// Wait for the fence to be signaled
-		i_fence->SetEventOnCompletion(fc, eventHandle);
-		;		WaitForSingleObjectEx(eventHandle, INFINITE, FALSE);
+		i_fence->SetEventOnCompletion(fc, event_handle);
+		WaitForSingleObject(event_handle, INFINITE);
 	}
+	return completed_value;
 }
 
-void dx12_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue, const bool wait_completion,
+uint64_t dx12_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue, const bool wait_completion,
 	fptr_command_queue_on_execute callback) {
 
 	ASSERT_PTR(command_queue);
-
-	std::vector<RHI_COMMAND_BUFFER*> command_buffer_list;
+	
 	ID3D12CommandQueue* i_cmd_queue = *static_cast<DX_COMMAND_QUEUE*>(command_queue);
 	ASSERT_PTR(i_cmd_queue);
+
+	ID3D12Fence* i_fence = *static_cast<const DX_FENCE*>(command_queue->fence.get());
+	ASSERT_PTR(i_fence);
+
+	std::vector<RHI_COMMAND_BUFFER*> command_buffer_list;
+
 	callback(static_cast<RHI_VOID_PTR>(i_cmd_queue), &command_buffer_list);
 	size_t list_size = command_buffer_list.size();
+
 	if (list_size > 0) {
 		std::vector<ID3D12CommandList*> native_list(list_size);
 		for (int i = 0; i < list_size; i++)
@@ -73,4 +82,5 @@ void dx12_command_queue_execute(RHI_COMMAND_QUEUE* const command_queue, const bo
 			command_queue_dx12_sync(command_queue);
 		}
 	}
+	return i_fence->GetCompletedValue();
 }

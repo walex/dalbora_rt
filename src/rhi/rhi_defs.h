@@ -10,7 +10,8 @@ enum device_type
 {
 	device_type_none = 0,
 	device_type_dx12,
-	device_type_vk
+	device_type_vk,
+	device_type_count
 };
 
 enum resource_format
@@ -28,7 +29,8 @@ enum resource_format
 	resource_format_d24_norm_s8_uint,
 	resource_format_32_float,
 	resource_format_d16_norm,
-	resource_format_bc1_norm
+	resource_format_bc1_norm,
+	resource_format_count
 };
 
 enum shader_view_type
@@ -57,15 +59,18 @@ enum buffer_type
 	buffer_type_image_2d,
 	buffer_type_image_3d,
 	buffer_type_bvh,
-	buffer_type_depth_stencil
+	buffer_type_depth_stencil,
+	buffer_type_count
 };
 
 enum buffer_memory_type
 {
-	buffer_memory_type_default = 0,
 	buffer_memory_type_gpu_only = 0,
 	buffer_memory_type_shared_rw,
-	buffer_memory_type_shared_read_only
+	buffer_memory_type_shared_read_only,
+	buffer_memory_type_count,
+
+	buffer_memory_type_default = 0
 };
 
 enum queue_type
@@ -82,32 +87,35 @@ enum primitive_topology
 	primitive_topology_point,
 	primitive_topology_line,
 	primitive_topology_triangle,
-	primitive_topology_patch
+	primitive_topology_patch,
+	primitive_topology_count
 };
 
 enum resource_flags {
 	resource_flags_none = 0,
 	resource_flags_shader_read_write = 0x1,
-	resource_flags_render_target = 0x2
+	resource_flags_render_target = 0x2,
 };
 
 enum fence_flags
 {
 	fence_flags_none = 0,
-	fence_flags_shared = 1
+	fence_flags_shared,
+	fence_flags_count
 };
 
 enum raster_pipeline_shader_type
 {
 
 	shader_type_undef = 0,
-	shader_type_vertex = 1,
-	shader_type_hull = 2,
-	shader_type_domain = 3,
-	shader_type_geometry = 4,
-	shader_type_pixel = 5,
-	shader_type_amplification = 6,
-	shader_type_mesh = 7
+	shader_type_vertex,
+	shader_type_hull,
+	shader_type_domain,
+	shader_type_geometry,
+	shader_type_pixel,
+	shader_type_amplification,
+	shader_type_mesh,
+	shader_type_count
 };
 
 enum hlsl_shader_model
@@ -125,7 +133,8 @@ enum hlsl_shader_model
 
 enum memory_resource_type {
 	memory_resource_type_descriptor_table,
-	memory_resource_type_pool
+	memory_resource_type_pool,
+	memory_resource_type_count
 };
 
 enum memory_descriptor_type
@@ -145,6 +154,31 @@ enum shader_binding_signature
 	shader_binding_signature_rw_buffer = 3,
 	shader_binding_signature_read_only_buffer = 4,
 	shader_binding_signature_count
+};
+
+enum pipeline_stage {
+
+	pipeline_stage_none,
+	pipeline_stage_all_commands,
+	pipeline_stage_all_graphics,
+	pipeline_stage_index_input,
+	pipeline_stage_vertex_input,
+	pipeline_stage_vertex_shader,
+	pipeline_stage_hull_shader,
+	pipeline_stage_domain_shader,
+	pipeline_stage_geometry_shader,
+	pipeline_stage_task_shader,
+	pipeline_stage_mesh_shader,
+	pipeline_stage_early_fragment_tests,
+	pipeline_stage_pixel_shader,
+	pipeline_stage_late_fragment_tests,
+	pipeline_stage_color_attachment_output,
+	pipeline_stage_compute_shader,
+	pipeline_stage_copy,
+	pipeline_stage_clear,
+	pipeline_stage_ray_tracing,
+	pipeline_stage_pre_rasterization_shaders,
+	pipeline_stage_count
 };
 
 constexpr __int64 device_features_none = 0x0;

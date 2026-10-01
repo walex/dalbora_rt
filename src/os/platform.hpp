@@ -341,12 +341,12 @@ struct observer_ptr : std::unique_ptr<T, D> {
 };
 
 template <typename T, typename U>
-auto make_releseable_observer_ptr(U* ptr) {
+observer_ptr<T> make_releseable_observer_ptr(U* ptr) {
 	return observer_ptr<T>(ptr, &observer_ptr_deleter<T>::release_deleter);
 }
 
 template <typename T, typename U>
-auto make_observer_ptr(U* ptr) {
+observer_ptr<T> make_observer_ptr(U* ptr) {
 	return observer_ptr<T>(ptr, nullptr);
 }
 

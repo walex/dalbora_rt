@@ -31,6 +31,9 @@
 	#error "Vulkan support not yet implemented for this platform"
 #endif
 
+void vk_rhi_init();
+void vk_rhi_end();
+RHI_APP_INSTANCE vk_rhi_get_app_instance();
 
 struct VK_DEVICE;
 
@@ -55,16 +58,9 @@ struct VK_DEVICE
 	, public VK_HANDLE<VkDevice> {
 	
 	~VK_DEVICE() {
-		for (int i = 0; i < queue_type_count; ++i) {
-			if (queue_command_pool[i] != VK_NULL_HANDLE) {
-				vkDestroyCommandPool(*this, queue_command_pool[i], nullptr);
-				queue_family_index[i] = -1;
-			}
-		}
 		vkDestroyDevice(*this, nullptr);
 	}
 	VkPhysicalDevice physical_device;
-	VkCommandPool queue_command_pool[queue_type_count] = { VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE };
 	int32_t queue_family_index[queue_type_count] = { -1, -1, -1 };
 };
 
@@ -86,6 +82,8 @@ struct VK_MEMORY_DESCRIPTOR
 		this->unmap();
 		ASSERT_PTR(this->parent_device);
 		vkDestroyBuffer(*this->parent_device, *this, nullptr);
+		ASSERT_PTR(this->memory_device);
+		vkFreeMemory(*this->parent_device, this->memory_device, nullptr);
 		this->memory_device = VK_NULL_HANDLE;
 	}
 	void map() {
@@ -119,14 +117,23 @@ struct VK_MEMORY_POOL
 	}
 };
 
+struct VK_PIPELINE_STAGE_SYNC {
+	virtual ~VK_PIPELINE_STAGE_SYNC() = default;
+	VkSemaphore semaphore = VK_NULL_HANDLE;
+	pipeline_stage stage = pipeline_stage_none;
+};
+
+#define MAX_SYNC_OBJECTS 16
 struct VK_COMMAND_QUEUE
 	: public RHI_COMMAND_QUEUE
 	, public VK_NON_DISPATCHABLE_HANDLE<VkQueue> {
 
-	VkSemaphore timeline_semaphore = VK_NULL_HANDLE;
 	~VK_COMMAND_QUEUE() {
 		// No need to destroy VkQueue, as it is managed by the VkDevice
 	}
+	// can we use as generic for all graohics apis?
+	size_t sync_objects_count = 0;
+	VK_PIPELINE_STAGE_SYNC sync_objects[MAX_SYNC_OBJECTS];
 };
 
 struct VK_COMMAND_BUFFER
@@ -146,20 +153,33 @@ struct VK_SWAP_CHAIN
 	, public VK_NON_DISPATCHABLE_HANDLE<VkSwapchainKHR> {
 	~VK_SWAP_CHAIN() {
 		ASSERT_PTR(this->parent_device);
+		vkDeviceWaitIdle(*this->parent_device);
 		vkDestroySwapchainKHR(*this->parent_device, *this, nullptr);
 		ASSERT_PTR(this->native_surface);
-		vkDestroySurfaceKHR(*this->parent_device, this->native_surface, nullptr);
+		vkDestroySurfaceKHR(static_cast<VkInstance>(vk_rhi_get_app_instance()), this->native_surface, nullptr);
+		if (this->buffers_count > 0) {
+			for (size_t i = 0; i < this->buffers_count; ++i) {
+				ASSERT_PTR(this->render_complete_sync[i]);
+				ASSERT_PTR(this->next_image_sync[i]);
+				vkDestroySemaphore(*this->parent_device, this->next_image_sync[i], nullptr);
+				vkDestroySemaphore(*this->parent_device, this->render_complete_sync[i], nullptr);
+			}
+			delete[] this->next_image_sync;
+			delete[] this->render_complete_sync;
+		}
 	}
-	VkSurfaceKHR native_surface;
+	VkSurfaceKHR native_surface = VK_NULL_HANDLE;
+	VkSemaphore* next_image_sync;
+	VkSemaphore* render_complete_sync;
 };
 
 struct VK_FENCE
 	: public RHI_FENCE
-	, public VK_NON_DISPATCHABLE_HANDLE<VkFence> {
+	, public VK_NON_DISPATCHABLE_HANDLE<VkSemaphore> {
 
 	~VK_FENCE() {
 		ASSERT_PTR(this->parent_device);
-		vkDestroyFence(*this->parent_device, *this, nullptr);
+		vkDestroySemaphore(*this->parent_device, *this, nullptr);
 	}
 };
 
@@ -195,6 +215,15 @@ struct VK_TEXTURE_2D
 	}
 };
 
+// FixME: should inherit from VK_TEXTURE_2D but blocks destructor
+struct VK_SWAP_CHAIN_TEXTURE_2D
+	: public VK_NON_DISPATCHABLE_HANDLE<VkImage>
+	, public RHI_TEXTURE_2D
+	, public RHI_BUFFER {
+
+	~VK_SWAP_CHAIN_TEXTURE_2D() = default;
+};
+
 struct VK_RENDER_PASS
 	: public RHI_RENDER_PASS {
 };
@@ -203,7 +232,9 @@ struct VK_COMMAND_ALLOCATOR
 	: public VK_NON_DISPATCHABLE_HANDLE<VkCommandPool>
 	, public RHI_COMMAND_ALLOCATOR {
 
+
 	~VK_COMMAND_ALLOCATOR() {
+
 		ASSERT_PTR(this->parent_device);
 		vkDestroyCommandPool(*this->parent_device, *this, nullptr);
 	}
@@ -211,7 +242,7 @@ struct VK_COMMAND_ALLOCATOR
 
 // VK_BVH -> VkAccelerationStructureKHR  ??
 
-constexpr VkFormat vk_resource_format_type[] = {
+constexpr VkFormat vk_resource_format_type[resource_format_count] = {
 	VK_FORMAT_UNDEFINED,                // resource_format_none
 	VK_FORMAT_R8_UINT,                  // resource_format_uint18
 	VK_FORMAT_R16_UINT,                 // resource_format_uint16
@@ -228,8 +259,29 @@ constexpr VkFormat vk_resource_format_type[] = {
 	VK_FORMAT_BC1_RGBA_UNORM_BLOCK      // resource_format_bc1_norm
 };
 
-void vk_rhi_init();
-void vk_rhi_end();
-RHI_APP_INSTANCE vk_rhi_get_app_instance();
+constexpr VkPipelineStageFlagBits2 vk_pipeline_stages[pipeline_stage_count] = {
+		VK_PIPELINE_STAGE_2_NONE,
+		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+		VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT,
+		VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT,
+		VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+		VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT,
+		VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT,
+		VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT,
+		VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT,
+		VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT,
+		VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+		VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+		VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+		VK_PIPELINE_STAGE_2_COPY_BIT,
+		VK_PIPELINE_STAGE_2_CLEAR_BIT,
+		VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+		VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT
+};
+
+
 
 #endif

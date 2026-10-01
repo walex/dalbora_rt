@@ -31,7 +31,7 @@ inline RHI_COMMAND_ALLOCATOR* (*rhi_command_allocator_create)(const RHI_DEVICE* 
 
 // command queue
 inline RHI_COMMAND_QUEUE* (*rhi_command_queue_create)(const RHI_COMMAND_QUEUE_DESC* const queue_desc);
-inline void (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE* const command_queue, bool wait_completion, fptr_command_queue_on_execute callback);
+inline uint64_t (*rhi_command_queue_execute)(RHI_COMMAND_QUEUE* const command_queue, const bool wait_completion, fptr_command_queue_on_execute callback);
 
 // command buffer
 inline RHI_COMMAND_BUFFER* (*rhi_command_buffer_create)(const RHI_COMMAND_BUFFER_DESC* const cb_desc);

@@ -57,6 +57,7 @@ struct RHI_MEMORY_POOL {
 
 struct RHI_FENCE {
 	virtual ~RHI_FENCE() = default;
+	uint64_t counter = 0;
 };
 
 struct RHI_COMMAND_ALLOCATOR {
@@ -66,7 +67,6 @@ struct RHI_COMMAND_ALLOCATOR {
 struct RHI_COMMAND_QUEUE {
 	virtual ~RHI_COMMAND_QUEUE() = default;
 	std::unique_ptr<RHI_FENCE> fence;
-	uint64_t fence_counter = 0;
 	queue_type type = queue_type_graphics;
 };
 
@@ -88,6 +88,7 @@ struct RHI_SWAP_CHAIN {
 	size_t buffer_width = 0;
 	size_t buffer_height = 0;
 	size_t buffer_mip_count = 0;
+	size_t frames_count = 0;
 	RHI_COMMAND_QUEUE* command_queue = nullptr;
 };
 

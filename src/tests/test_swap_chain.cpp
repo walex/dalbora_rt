@@ -45,137 +45,149 @@ void test_swap_chain(fptr_test_on_init on_init
 	, fptr_test_on_draw on_draw
 	, fptr_test_on_before_present on_before_present
 	, fptr_test_on_end on_end
-    , fptr_test_on_configure_device on_configure_device) {
-
-	std::unique_ptr<RHI_DEVICE> device;
-	std::unique_ptr<RHI_COMMAND_QUEUE> command_queue;
-	std::unique_ptr<RHI_SWAP_CHAIN> swap_chain;
-	std::unique_ptr<RHI_COMMAND_BUFFER> command_buffer;
-	std::unique_ptr<RHI_RENDER_PASS> render_pass;
-	std::vector<std::unique_ptr<RHI_VIEW>> views;
-	std::vector<std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT>> views_slots;
-	RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count];
-
-	std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
-
-	callbacks.get()->on_init = ([&](RHI_WINDOW* const window) {
-
-		RHI_DEVICE_DESC device_desc;
-		device_desc.adapter_id = -1;
-		device_desc.features = device_features_none;
-		device_desc.app_instance = rhi_get_app_instance();
-		device_desc.graphics_queue_count = 1;
-		device_desc.compute_queue_count = 1;
-		device_desc.copy_queue_count = 1;
-		if (on_configure_device)
-			on_configure_device(device_desc);
-
-		device.reset(rhi_create_device(&device_desc));
-
-		
-		memory_table_init(device.get());
-
-		command_allocator_pool[queue_type_graphics] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_graphics);
-		command_allocator_pool[queue_type_compute] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_compute);
-		command_allocator_pool[queue_type_copy] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_copy);
-
-		RHI_COMMAND_QUEUE_DESC queue_desc;
-		queue_desc.device = device.get();
-		queue_desc.type = queue_type_graphics;
-		command_queue.reset(rhi_command_queue_create(&queue_desc));
-
-		RHI_SWAP_CHAIN_DESC swap_chain_desc;
-		swap_chain_desc.device = device.get();
-		swap_chain_desc.command_queue = command_queue.get();
-		swap_chain_desc.window = window;
-		swap_chain_desc.width = 800;
-		swap_chain_desc.height = 600;
-		swap_chain_desc.enable_vsync = false;
-		swap_chain_desc.is_full_screen = false;
-		swap_chain_desc.buffer_count = 3;
-		swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
-		swap_chain.reset(rhi_swap_chain_create(&swap_chain_desc));
-
-		for (size_t i = 0; i < swap_chain_desc.buffer_count; i++) {
-
-			views_slots.emplace_back(*get_rtv_memory_table().next_descriptor_ptr());
-			RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device.get(), swap_chain.get(), views_slots.back().get(), swap_chain_desc.color_format, i);
-			views.push_back(std::unique_ptr<RHI_VIEW>(view_ptr));
-		}
-
-		RHI_COMMAND_BUFFER_DESC command_buffer_desc;
-		command_buffer_desc.device = device.get();
-		command_buffer_desc.command_queue = command_queue.get();
-		command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[queue_type_graphics]);
-		command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
-		command_buffer->buffer_memory_descriptor = get_buffers_memory_table();
-
-		RHI_VIEWPORT vp;
-		vp.x = 0;
-		vp.y = 0;
-		vp.width = 800;
-		vp.height = 600;
-		vp.min_z = 0.0f;
-		vp.max_z = 1.0f;
-
-		RHI_RENDER_PASS_DESC render_pass_desc;
-		render_pass_desc.device = device.get();
-		render_pass.reset(rhi_render_pass_create(&render_pass_desc));
-		render_pass->view_port = vp;
-
-		if (on_init)
-			on_init(*device, *command_queue, *command_buffer, *swap_chain, command_allocator_pool);
-		});
-
-	callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
-
-		swap_chain->current_image_index = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
-		render_pass->render_target_view = views[swap_chain->current_image_index].get();
-		
-		if (on_before_draw)
-			on_before_draw(*render_pass);
-
-		rhi_command_queue_execute(command_queue.get(), true, [&](
-			RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
-			std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list) {
-
-				rhi_command_buffer_record(command_buffer.get(),
-					[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
-						// begin pass
-						rhi_render_pass_execute_raster_mode(render_pass.get(), command_buffer.get(), [&] {
-
-							if (on_draw)
-								on_draw(*device, *render_pass, *command_buffer);
-
-						});
-				});
-				command_buffer_list->push_back(command_buffer.get());
-		});
-		if (on_before_present)
-			on_before_present(*render_pass, *swap_chain, *command_buffer);
-
-		// present
-		rhi_swap_chain_present(swap_chain.get());
-		print_fps();
-	});
-	test_create_window(callbacks);
+	, fptr_test_on_configure_device on_configure_device) {
 
 	{
-		if (on_end)
-			on_end(*device);
+		std::unique_ptr<RHI_DEVICE> device;
+		{
+			std::unique_ptr<RHI_COMMAND_QUEUE> command_queue;
+			std::unique_ptr<RHI_SWAP_CHAIN> swap_chain;
+			std::unique_ptr<RHI_COMMAND_BUFFER> command_buffer;
+			std::unique_ptr<RHI_RENDER_PASS> render_pass;
+			std::vector<std::unique_ptr<RHI_VIEW>> views;
+			std::vector<std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT>> views_slots;
+			RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count];
 
-		// release objects in order
-		swap_chain.reset();
-		RHI_COMMAND_ALLOCATOR* command_allocator = command_buffer->command_allocator;
-		command_buffer.reset();
-		command_queue.reset();
-		render_pass.reset();
-		swap_chain.reset();
-		rhi_command_allocator_pool_release(command_allocator_pool[queue_type_graphics], command_allocator);
-		rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_graphics]);
-		delete command_allocator_pool[queue_type_graphics];
-		delete command_allocator_pool[queue_type_compute];
-		delete command_allocator_pool[queue_type_copy];
+			std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
+
+			callbacks.get()->on_init = ([&](RHI_WINDOW* const window) {
+
+				RHI_DEVICE_DESC device_desc;
+				device_desc.adapter_id = -1;
+				device_desc.features = device_features_none;
+				device_desc.app_instance = rhi_get_app_instance();
+				device_desc.graphics_queue_count = 1;
+				device_desc.compute_queue_count = 1;
+				device_desc.copy_queue_count = 1;
+				if (on_configure_device)
+					on_configure_device(device_desc);
+
+				device.reset(rhi_create_device(&device_desc));
+
+
+				memory_table_init(device.get());
+
+				command_allocator_pool[queue_type_graphics] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_graphics);
+				command_allocator_pool[queue_type_compute] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_compute);
+				command_allocator_pool[queue_type_copy] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_copy);
+
+				RHI_COMMAND_QUEUE_DESC queue_desc;
+				queue_desc.device = device.get();
+				queue_desc.type = queue_type_graphics;
+				command_queue.reset(rhi_command_queue_create(&queue_desc));
+
+				RHI_SWAP_CHAIN_DESC swap_chain_desc;
+				swap_chain_desc.device = device.get();
+				swap_chain_desc.command_queue = command_queue.get();
+				swap_chain_desc.window = window;
+				swap_chain_desc.width = 800;
+				swap_chain_desc.height = 600;
+				swap_chain_desc.enable_vsync = false;
+				swap_chain_desc.is_full_screen = false;
+				swap_chain_desc.buffer_count = 3;
+				swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
+				swap_chain.reset(rhi_swap_chain_create(&swap_chain_desc));
+
+				for (size_t i = 0; i < swap_chain_desc.buffer_count; i++) {
+
+					views_slots.emplace_back(*get_rtv_memory_table().next_descriptor_ptr());
+					RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device.get(), swap_chain.get(), views_slots.back().get(), swap_chain_desc.color_format, i);
+					views.push_back(std::unique_ptr<RHI_VIEW>(view_ptr));
+				}
+
+				RHI_COMMAND_BUFFER_DESC command_buffer_desc;
+				command_buffer_desc.device = device.get();
+				command_buffer_desc.command_queue = command_queue.get();
+				command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[queue_type_graphics]);
+				command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
+				command_buffer->buffer_memory_descriptor = get_buffers_memory_table();
+
+				RHI_VIEWPORT vp;
+				vp.x = 0;
+				vp.y = 0;
+				vp.width = swap_chain->buffer_width;
+				vp.height = swap_chain->buffer_height;
+				vp.min_z = 0.0f;
+				vp.max_z = 1.0f;
+
+				RHI_RENDER_PASS_DESC render_pass_desc;
+				render_pass_desc.device = device.get();
+				render_pass.reset(rhi_render_pass_create(&render_pass_desc));
+				render_pass->view_port = vp;
+
+				if (on_init)
+					on_init(*device, *command_queue, *command_buffer, *swap_chain, command_allocator_pool);
+				});
+
+			callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
+
+				swap_chain->current_image_index = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
+				render_pass->render_target_view = views[swap_chain->current_image_index].get();
+
+				if (on_before_draw)
+					on_before_draw(*render_pass);
+
+				rhi_command_queue_execute(command_queue.get(), true, [&](
+					RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
+					std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list) {
+
+						rhi_command_buffer_record(command_buffer.get(),
+							[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
+								// begin pass
+								rhi_render_pass_execute_raster_mode(render_pass.get(), command_buffer.get(), [&] {
+
+									if (on_draw)
+										on_draw(*device, *render_pass, *command_buffer);
+
+									});
+							});
+						command_buffer_list->push_back(command_buffer.get());
+					});
+				if (on_before_present)
+					on_before_present(*render_pass, *swap_chain, *command_buffer);
+
+				// present
+				rhi_swap_chain_present(swap_chain.get());
+				print_fps();
+				});
+			test_create_window(callbacks);
+
+			if (on_end)
+				on_end(*device);
+
+			// release objects in order
+
+			RHI_COMMAND_ALLOCATOR* command_allocator = command_buffer->command_allocator;
+
+			command_buffer.reset();
+			command_queue.reset();
+			render_pass.reset();
+
+			rhi_command_allocator_pool_release(command_allocator_pool[queue_type_graphics], command_allocator);
+			rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_graphics]);
+			rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_compute]);
+			rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_copy]);
+			delete command_allocator_pool[queue_type_graphics];
+			delete command_allocator_pool[queue_type_compute];
+			delete command_allocator_pool[queue_type_copy];
+			swap_chain.reset();
+		}
+
+		buffers_memory_table.reset();
+		rtv_memory_table.reset();
+		dsv_memory_table.reset();
+		samplers_memory_table.reset();
+
 		device.reset();
 	}
 	return;
