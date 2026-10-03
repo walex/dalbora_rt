@@ -9,7 +9,7 @@ RHI_COMMAND_ALLOCATOR* dx12_command_allocator_create(const RHI_DEVICE* const dev
 
 	// Create command allocator
 	ID3D12CommandAllocator* i_cmd_allocator = nullptr;
-	ASSERT_SUCCESS(i_device->CreateCommandAllocator(dx12_type, IID_PPV_ARGS(&i_cmd_allocator)));
+	ASSERT_COM_SUCCESS(i_device->CreateCommandAllocator(dx12_type, IID_PPV_ARGS(&i_cmd_allocator)));
 	ASSERT_PTR(i_cmd_allocator);
 
 	DX_COMMAND_ALLOCATOR* result = new DX_COMMAND_ALLOCATOR();

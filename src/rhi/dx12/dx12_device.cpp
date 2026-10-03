@@ -2,7 +2,7 @@
 #include "dx12_factory.hpp"
 #include "dx12_heap.hpp"
 
-bool check_dx12_device_rt_support(ID3D12Device* device) {
+static bool check_device_rt_support_dx12(ID3D12Device* device) {
 	D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureData = {};
 	HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureData, sizeof(featureData));
 	if (FAILED(hr)) {
@@ -11,13 +11,13 @@ bool check_dx12_device_rt_support(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
-void check_dx12_device_features(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
+static void check_device_features_dx12(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
 
 	bool result = true;
 
 	auto feats = features;
 	if (feats & device_features_raytracing) {
-		result &= check_dx12_device_rt_support(i_device);
+		result &= check_device_rt_support_dx12(i_device);
 		feats ^= device_features_raytracing;
 	}
 	
@@ -32,7 +32,7 @@ void check_dx12_device_features(ID3D12Device* i_device, const __int64 features, 
 	}
 }
 
-IDXGIAdapter1* pick_best_dx12_device_adapter(__int64 features, hlsl_shader_model shader_model) {
+static IDXGIAdapter1* pick_best_device_adapter_dx12(__int64 features, hlsl_shader_model shader_model) {
 
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	for (UINT adapterIndex = 0;; ++adapterIndex) {
@@ -58,7 +58,7 @@ IDXGIAdapter1* pick_best_dx12_device_adapter(__int64 features, hlsl_shader_model
 		if (SUCCEEDED(hr)) {
 			bool use_it = true;
 			try {
-				check_dx12_device_features(testDevice, features, shader_model);
+				check_device_features_dx12(testDevice, features, shader_model);
 			}
 			catch (std::exception&) {
 				
@@ -85,22 +85,22 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	bool check_features = true;
 	if (desc->adapter_id != -1) {
 		// Try to get the adapter by index
-		ASSERT_SUCCESS(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
+		ASSERT_COM_SUCCESS(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
 		ASSERT_PTR(chosenAdapter);
 	}
 	else {
-		chosenAdapter = pick_best_dx12_device_adapter(desc->features, desc->shader_model);
+		chosenAdapter = pick_best_device_adapter_dx12(desc->features, desc->shader_model);
 		check_features = false;
 	}
 
 	// Create D3D12 device (request ID3D12Device). Try feature level 12_0.
 	ID3D12Device* i_device = nullptr;
-	ASSERT_SUCCESS(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
+	ASSERT_COM_SUCCESS(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
 	ASSERT_PTR(i_device);
 	if (check_features == true) {
 
 		try {
-			check_dx12_device_features(i_device, desc->features, desc->shader_model);
+			check_device_features_dx12(i_device, desc->features, desc->shader_model);
 		}
 		catch (std::exception& ex) {
 			throw ex;

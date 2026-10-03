@@ -61,7 +61,7 @@ void dx12_rhi_init()
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
 
 	// buffers
-	rhi_buffers_create_raw = &dx12_buffers_create_raw;
+	rhi_buffers_create_raw = &dx12_buffers_create_linear;
 	rhi_buffers_create_vertices = &dx12_buffers_create_vertices;
 	rhi_buffers_create_indices = &dx12_buffers_create_indices;
 	rhi_buffers_create_depth = &dx12_buffers_create_depth;

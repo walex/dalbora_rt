@@ -35,7 +35,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	ASSERT_PTR(pipeline_impl);
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer_5;
-	ASSERT_SUCCESS(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
+	ASSERT_COM_SUCCESS(i_command_buffer->QueryInterface(IID_PPV_ARGS(&i_command_buffer_5)));
 	ASSERT_PTR(i_command_buffer_5);
 
 	// configure heap
@@ -61,6 +61,7 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	i_command_buffer_5->SetPipelineState1(*static_cast<DX_RT_PIPELINE*>(pipeline_impl));
 	if (callback)
 		callback();
+
 }
 
 void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass, 

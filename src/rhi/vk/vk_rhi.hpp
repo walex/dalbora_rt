@@ -204,6 +204,13 @@ struct VK_VIEW
 	}
 };
 
+struct VK_BUFFER
+	: public RHI_BUFFER
+	, public VK_NON_DISPATCHABLE_HANDLE<VkBuffer> {
+
+	observer_ptr<VK_MEMORY_POOL> memory_pool;
+};
+
 struct VK_TEXTURE_2D
 	: public VK_NON_DISPATCHABLE_HANDLE<VkImage>
 	, public RHI_TEXTURE_2D
@@ -213,6 +220,8 @@ struct VK_TEXTURE_2D
 		ASSERT_PTR(this->parent_device);
 		vkDestroyImage(*this->parent_device, *this, nullptr);
 	}
+
+	observer_ptr<VK_MEMORY_POOL> memory_pool;
 };
 
 // FixME: should inherit from VK_TEXTURE_2D but blocks destructor
@@ -240,9 +249,16 @@ struct VK_COMMAND_ALLOCATOR
 	}
 };
 
-// VK_BVH -> VkAccelerationStructureKHR  ??
+struct VK_BVH_BUFFER
+	: public RHI_BUFFER
+	, public VK_NON_DISPATCHABLE_HANDLE<VkAccelerationStructureKHR> {
+	~VK_BVH_BUFFER() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyAccelerationStructureKHR(*this->parent_device, *this, nullptr);
+	}
+};
 
-constexpr VkFormat vk_resource_format_type[resource_format_count] = {
+const VkFormat vk_resource_format_type[resource_format_count] = {
 	VK_FORMAT_UNDEFINED,                // resource_format_none
 	VK_FORMAT_R8_UINT,                  // resource_format_uint18
 	VK_FORMAT_R16_UINT,                 // resource_format_uint16
@@ -259,7 +275,18 @@ constexpr VkFormat vk_resource_format_type[resource_format_count] = {
 	VK_FORMAT_BC1_RGBA_UNORM_BLOCK      // resource_format_bc1_norm
 };
 
-constexpr VkPipelineStageFlagBits2 vk_pipeline_stages[pipeline_stage_count] = {
+const VkMemoryPropertyFlags vk_heap_type[buffer_memory_type_count] = {
+	// buffer_memory_type_default / buffer_memory_type_gpu_only (D3D12_HEAP_TYPE_DEFAULT)
+	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+
+	// buffer_memory_type_shared_rw (D3D12_HEAP_TYPE_UPLOAD)
+	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+
+	// buffer_memory_type_shared_read_only (D3D12_HEAP_TYPE_READBACK)
+	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT
+};
+
+const VkPipelineStageFlagBits2 vk_pipeline_stages[pipeline_stage_count] = {
 		VK_PIPELINE_STAGE_2_NONE,
 		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 		VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
@@ -282,6 +309,34 @@ constexpr VkPipelineStageFlagBits2 vk_pipeline_stages[pipeline_stage_count] = {
 		VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT
 };
 
+const VkPrimitiveTopology vk_primitive_topology_type[primitive_topology_count] = {
+	VK_PRIMITIVE_TOPOLOGY_MAX_ENUM,       // primitive_topology_none
+	VK_PRIMITIVE_TOPOLOGY_POINT_LIST,     // primitive_topology_point
+	VK_PRIMITIVE_TOPOLOGY_LINE_LIST,      // primitive_topology_line
+	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  // primitive_topology_triangle
+	VK_PRIMITIVE_TOPOLOGY_PATCH_LIST      // primitive_topology_patch
+};
 
+const VkQueueFlags vk_queue_type[queue_type_count] = {
+	VK_QUEUE_GRAPHICS_BIT, // queue_type_graphics
+	VK_QUEUE_COMPUTE_BIT,  // queue_type_compute
+	VK_QUEUE_TRANSFER_BIT  // queue_type_copy
+};
+
+const VkImageType vulkan_buffer_type[buffer_type_count] = {
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_undef
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_raw (Es VkBuffer, no VkImage)
+	VK_IMAGE_TYPE_1D,       // buffer_type_image_1d
+	VK_IMAGE_TYPE_2D,       // buffer_type_image_2d
+	VK_IMAGE_TYPE_3D,       // buffer_type_image_3d
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_rt_bvh (Es VkBuffer, no VkImage)
+	VK_IMAGE_TYPE_2D,       // buffer_type_depth_stencil (En Vulkan es una VkImage 2D con formato Depth)
+};
+
+#ifdef DEBUG
+#define ASSERT_VK_RESULT(expr) ASSERT_EXPR(expr == VK_SUCCESS)
+#else
+#define ASSERT_VK_RESULT(expr) expr
+#endif
 
 #endif

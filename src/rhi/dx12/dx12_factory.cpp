@@ -13,7 +13,7 @@ void dx12_factory_create() {
 #if defined(DEBUG)
 	{
 		ID3D12Debug1* debugController = nullptr;
-		ASSERT_SUCCESS(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
+		ASSERT_COM_SUCCESS(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
 		ASSERT_PTR(debugController);
 		debugController->EnableDebugLayer();
 		//debugController->SetEnableGPUBasedValidation(TRUE);
@@ -24,7 +24,7 @@ void dx12_factory_create() {
 #endif
 	// Create DXGI factory
 	IDXGIFactory5* i_factory = nullptr;
-	ASSERT_SUCCESS(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&i_factory)));
+	ASSERT_COM_SUCCESS(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&i_factory)));
 	ASSERT_PTR(i_factory);
 	g_dx12_factory.set_handle(i_factory);
 }

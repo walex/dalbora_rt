@@ -9,7 +9,7 @@ RHI_FENCE* dx12_fence_create(const RHI_FENCE_DESC* const desc) {
 	ASSERT_PTR(i_device);
 
 	ID3D12Fence* i_fence = nullptr;
-	ASSERT_SUCCESS(i_device->CreateFence(desc->initial_value,
+	ASSERT_COM_SUCCESS(i_device->CreateFence(desc->initial_value,
 		D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&i_fence)));
 	ASSERT_PTR(i_fence);
 

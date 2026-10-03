@@ -66,7 +66,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
 	// Create swap chain
 	IDXGISwapChain1* i_swap_chain_1 = nullptr;
-	ASSERT_SUCCESS(i_factory->CreateSwapChainForHwnd(
+	ASSERT_COM_SUCCESS(i_factory->CreateSwapChainForHwnd(
 		i_command_queue,
 		hwnd,
 		&scDesc,
@@ -78,7 +78,7 @@ RHI_SWAP_CHAIN* dx12_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
 
 	// Query for IDXGISwapChain3
 	IDXGISwapChain3* i_swap_chain_3 = nullptr;
-	ASSERT_SUCCESS(i_swap_chain_1->QueryInterface(IID_PPV_ARGS(&i_swap_chain_3)));
+	ASSERT_COM_SUCCESS(i_swap_chain_1->QueryInterface(IID_PPV_ARGS(&i_swap_chain_3)));
 	ASSERT_PTR(i_swap_chain_3);
 
 	DX_SWAP_CHAIN* result = new DX_SWAP_CHAIN();
@@ -118,7 +118,7 @@ RHI_VIEW* dx12_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_
 	ASSERT_EXPR(buffer_id < static_cast<UINT>(desc.BufferCount));
 
 	ID3D12Resource* i_buffer;
-	ASSERT_SUCCESS(i_swap_chain_3->GetBuffer(static_cast<UINT>(buffer_id), IID_PPV_ARGS(&i_buffer)));
+	ASSERT_COM_SUCCESS(i_swap_chain_3->GetBuffer(static_cast<UINT>(buffer_id), IID_PPV_ARGS(&i_buffer)));
 	ASSERT_PTR(i_buffer);
 
 	D3D12_RESOURCE_DESC texDesc = i_buffer->GetDesc();
@@ -201,7 +201,7 @@ uint32_t dx12_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_
 	IDXGISwapChain3* i_swap_chain = *swap_chain_impl;
 	ASSERT_PTR(i_swap_chain);
 
-	if (swap_chain_impl->frame_sync != nullptr && swap_chain_impl->frame_sync != INVALID_HANDLE_VALUE) {
+	if (swap_chain_impl->frame_sync != INVALID_HANDLE_VALUE) {
 		WaitForSingleObject(swap_chain_impl->frame_sync, INFINITE);
 	}
 	return static_cast<uint32_t>(i_swap_chain->GetCurrentBackBufferIndex());

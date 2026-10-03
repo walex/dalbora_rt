@@ -91,7 +91,7 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 	psoDesc.SampleDesc.Count = 1;
 
 	ID3D12PipelineState* pipelineState = nullptr;
-	ASSERT_SUCCESS(i_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState)));
+	ASSERT_COM_SUCCESS(i_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState)));
 	ASSERT_PTR(pipelineState);
 
 	DX_RASTER_PIPELINE* result = new DX_RASTER_PIPELINE();

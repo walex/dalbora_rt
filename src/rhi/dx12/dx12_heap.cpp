@@ -1,7 +1,7 @@
 #include "dx12_heap.hpp"
 
-ID3D12DescriptorHeap*
-heap_create_dx12_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESCRIPTOR_HEAP_TYPE type,
+static ID3D12DescriptorHeap*
+heap_create_descriptor_dx12(const DX_DEVICE* const device_impl, const D3D12_DESCRIPTOR_HEAP_TYPE type,
 	const size_t slot_count, const D3D12_DESCRIPTOR_HEAP_FLAGS flags) {
 
 	ASSERT_PTR(device_impl);
@@ -15,12 +15,12 @@ heap_create_dx12_descriptor(const DX_DEVICE* const device_impl, const D3D12_DESC
 	heapDesc.NodeMask = 0;
 
 	ID3D12DescriptorHeap* i_heap = nullptr;
-	ASSERT_SUCCESS(i_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&i_heap)));
+	ASSERT_COM_SUCCESS(i_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&i_heap)));
 	ASSERT_PTR(i_heap);
 	return i_heap;
 }
 
-RHI_MEMORY_DESCRIPTOR* heap_create_dx12_descriptor_table(const DX_DEVICE* const device_impl,
+static RHI_MEMORY_DESCRIPTOR* heap_create_descriptor_table_dx12(const DX_DEVICE* const device_impl,
 	const memory_descriptor_type heap_type,
 	const size_t slots_size,
 	const bool shader_visible) {
@@ -51,7 +51,7 @@ RHI_MEMORY_DESCRIPTOR* heap_create_dx12_descriptor_table(const DX_DEVICE* const 
 	default:
 		throw std::exception("heap type not supported");
 	}
-	ID3D12DescriptorHeap* dh = heap_create_dx12_descriptor(device_impl, type,
+	ID3D12DescriptorHeap* dh = heap_create_descriptor_dx12(device_impl, type,
 		slots_size,
 		(shader_visible == true)
 		? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
@@ -77,7 +77,7 @@ RHI_MEMORY_DESCRIPTOR* dx12_memory_resource_create(const RHI_MEMORY_RESOURCE_DES
 
 	switch (desc->type) {
 	case memory_resource_type_descriptor_table:
-		return heap_create_dx12_descriptor_table(static_cast<const DX_DEVICE*>(desc->device), desc->descriptor_desc.type,
+		return heap_create_descriptor_table_dx12(static_cast<const DX_DEVICE*>(desc->device), desc->descriptor_desc.type,
 			desc->descriptor_desc.count, desc->descriptor_desc.shader_visible);
 	case memory_resource_type_pool:
 		throw std::exception("memory resource type pool not implemented");

@@ -4,6 +4,10 @@
 #include "rhi.hpp"
 #include "dx12_helpers.hpp"
 
+void dx12_rhi_init();
+void dx12_rhi_end();
+RHI_APP_INSTANCE dx12_rhi_get_app_instance();
+
 template <typename T>
 struct DX_HANDLE 
 	: public RHI_HANDLE {
@@ -183,6 +187,35 @@ constexpr DXGI_FORMAT dx12_resource_format_type[resource_format_count] = {
 	DXGI_FORMAT_BC1_UNORM			  // resource_format_bc1_norm
 };
 
+constexpr D3D12_HEAP_TYPE dx12_heap_type[buffer_memory_type_count] = {
+	D3D12_HEAP_TYPE_DEFAULT, // buffer_memory_type_default / buffer_memory_type_gpu_only
+	D3D12_HEAP_TYPE_UPLOAD,	 // buffer_memory_type_shared_rw
+	D3D12_HEAP_TYPE_READBACK // buffer_memory_type_shared_read_only
+};
+
+constexpr D3D12_BARRIER_SYNC dx12_pipeline_stage[pipeline_stage_count] = {
+		D3D12_BARRIER_SYNC_NONE,
+		D3D12_BARRIER_SYNC_ALL,
+		D3D12_BARRIER_SYNC_DRAW,
+		D3D12_BARRIER_SYNC_INDEX_INPUT,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_VERTEX_SHADING,
+		D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+		D3D12_BARRIER_SYNC_PIXEL_SHADING,
+		D3D12_BARRIER_SYNC_DEPTH_STENCIL,
+		D3D12_BARRIER_SYNC_RENDER_TARGET,
+		D3D12_BARRIER_SYNC_COMPUTE_SHADING,
+		D3D12_BARRIER_SYNC_COPY,
+		D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW,
+		D3D12_BARRIER_SYNC_RAYTRACING,
+		D3D12_BARRIER_SYNC_NON_PIXEL_SHADING
+};
+
 constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE dx12_primitive_topology_type[primitive_topology_count] = {
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, // primitive_topology_none
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT,	 // primitive_topology_point
@@ -205,46 +238,15 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[buffer_type_count] = {
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D, // buffer_type_image_2d
 	D3D12_RESOURCE_DIMENSION_TEXTURE3D, // buffer_type_image_3d
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_rt_bvh
-	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_depth_stencil
+	D3D12_RESOURCE_DIMENSION_TEXTURE2D,	// buffer_type_depth_stencil
 };
 
-constexpr D3D12_HEAP_TYPE dx12_heap_type[buffer_memory_type_count] = {
-	D3D12_HEAP_TYPE_DEFAULT, // buffer_memory_type_default / buffer_memory_type_gpu_only
-	D3D12_HEAP_TYPE_UPLOAD,	 // buffer_memory_type_shared_rw
-	D3D12_HEAP_TYPE_READBACK // buffer_memory_type_shared_read_only
-};
 
-constexpr D3D12_BARRIER_SYNC dx12_pipeline_stage[pipeline_stage_count] = {
-		D3D12_BARRIER_SYNC_NONE,
-		D3D12_BARRIER_SYNC_ALL,
-		D3D12_BARRIER_SYNC_DRAW,
-		D3D12_BARRIER_SYNC_INDEX_INPUT,          
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_VERTEX_SHADING,       
-		D3D12_BARRIER_SYNC_DEPTH_STENCIL,
-		D3D12_BARRIER_SYNC_PIXEL_SHADING,        
-		D3D12_BARRIER_SYNC_DEPTH_STENCIL,
-		D3D12_BARRIER_SYNC_RENDER_TARGET,
-		D3D12_BARRIER_SYNC_COMPUTE_SHADING,      
-		D3D12_BARRIER_SYNC_COPY,
-		D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW, 
-		D3D12_BARRIER_SYNC_RAYTRACING,
-		D3D12_BARRIER_SYNC_NON_PIXEL_SHADING
-};
-
-void dx12_rhi_init();
-void dx12_rhi_end();
-RHI_APP_INSTANCE dx12_rhi_get_app_instance();
 
 #ifdef DEBUG
-	#define ASSERT_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)
+	#define ASSERT_COM_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)
 #else
-	#define ASSERT_SUCCESS(expr) expr
+	#define ASSERT_COM_SUCCESS(expr) expr
 #endif
 
 #endif

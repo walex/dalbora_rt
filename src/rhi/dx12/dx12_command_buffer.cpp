@@ -17,7 +17,7 @@ RHI_COMMAND_BUFFER* dx12_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* co
 
 	// Create command list
 	ID3D12GraphicsCommandList* i_cmd_list = nullptr;
-	ASSERT_SUCCESS(i_device->CreateCommandList(0, type, i_cmd_allocator, nullptr, IID_PPV_ARGS(&i_cmd_list)));
+	ASSERT_COM_SUCCESS(i_device->CreateCommandList(0, type, i_cmd_allocator, nullptr, IID_PPV_ARGS(&i_cmd_list)));
 	ASSERT_PTR(i_cmd_list);
 	// Close the command list as it is created in an open state
 	i_cmd_list->Close();
@@ -120,7 +120,7 @@ void dx12_command_buffer_ray_trace(
 	DX_COMMAND_BUFFER* cmd_buffer_impl = static_cast<DX_COMMAND_BUFFER*>(command_buffer);
 	ID3D12GraphicsCommandList* i_command_buffer_0 = *cmd_buffer_impl;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> i_command_buffer;
-	ASSERT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_COM_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);	
 	DX_RESOURCE* render_target_impl = static_cast<DX_TEXTURE_2D*>(render_target);
 	ID3D12Resource* i_table = *static_cast<const DX_SBT_TABLE*>(sbt);	

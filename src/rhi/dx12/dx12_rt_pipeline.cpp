@@ -10,7 +10,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 	ID3D12Device* i_device_0 = *static_cast<DX_DEVICE*>(desc->device);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	ASSERT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_COM_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
 	ASSERT_PTR(i_device);
 
 	// root signature
@@ -181,14 +181,14 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 
 	ID3D12StateObject* i_state_object = nullptr;
 
-	ASSERT_SUCCESS(i_device->CreateStateObject(
+	ASSERT_COM_SUCCESS(i_device->CreateStateObject(
 		&pipelineDesc,
 		IID_PPV_ARGS(&i_state_object)
 	));
 	ASSERT_PTR(i_state_object);
 
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> props;
-	ASSERT_SUCCESS(i_state_object->QueryInterface(
+	ASSERT_COM_SUCCESS(i_state_object->QueryInterface(
 		IID_PPV_ARGS(&props)
 	));
 	ASSERT_PTR(props);
@@ -311,10 +311,10 @@ RHI_SBT_TABLE* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const
 	buffer_desc.memory_type = buffer_memory_type_shared_rw;
 	buffer_desc.type = buffer_type_raw;
 	buffer_desc.mips = 1;
-	std::unique_ptr<DX_BUFFER> shared_buffer;
-	shared_buffer.reset(dx12_buffers_create<DX_BUFFER>(&buffer_desc));
+	std::unique_ptr<RHI_BUFFER> shared_buffer;
+	shared_buffer.reset(dx12_buffers_create_linear(&buffer_desc));
 	ASSERT_PTR(shared_buffer);
-	ID3D12Resource* i_resource = *shared_buffer;
+	ID3D12Resource* i_resource = *static_cast<DX_BUFFER*>(shared_buffer.get());
 	ASSERT_PTR(i_resource);
 	i_resource->AddRef();
 
