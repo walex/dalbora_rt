@@ -42,6 +42,7 @@ struct RHI_MEMORY_DESCRIPTOR {
 	virtual ~RHI_MEMORY_DESCRIPTOR() = default;
 	size_t descriptor_count = 0;
 	size_t descriptor_size = 0;
+	size_t descriptor_alignment = 0;
 	uint64_t cpu_handle = 0;
 	uint64_t gpu_handle = 0;
 };

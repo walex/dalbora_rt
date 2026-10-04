@@ -1,4 +1,5 @@
 #include "vk_buffers.hpp"
+#include "vk_heap.hpp"
 
 static uint32_t find_memory_type_index(VkPhysicalDevice physical_device, uint32_t type_filter, VkMemoryPropertyFlags properties)
 {
@@ -12,6 +13,88 @@ static uint32_t find_memory_type_index(VkPhysicalDevice physical_device, uint32_
 	}
 	ASSERT_EXPR(false, "Compatible memory type with Vulkan not found");
 	return 0;
+}
+
+static RHI_VIEW* create_view_from_buffer_view_vk(const RHI_VIEW_DESC* const desc, const VkBufferViewCreateInfo& view_info,
+    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+
+	ASSERT_PTR(desc);
+    ASSERT_PTR(desc->device);
+    ASSERT_PTR(slot);
+    
+    VkBufferView buffer_view = VK_NULL_HANDLE;
+    vkCreateBufferView(*static_cast<VK_DEVICE*>(desc->device), &view_info, nullptr, &buffer_view);
+    ASSERT_PTR(buffer_view);
+
+	VK_VIEW* result = new VK_VIEW();
+	ASSERT_PTR(result);
+    result->set_handle(buffer_view);
+	result->buffer = *static_cast<const VK_BUFFER*>(desc->buffer);
+	result->type = desc->type;
+	result->format = desc->format;
+	result->mip_map_count = 1;
+	result->memory_descriptor = desc->memory_descriptor;
+
+	return result;
+}
+
+static RHI_VIEW* create_view_from_image_view_vk(const RHI_VIEW_DESC* const desc, const VkImageViewCreateInfo& view_info,
+    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+	
+    ASSERT_PTR(desc);
+    ASSERT_PTR(desc->device);
+    ASSERT_PTR(slot);
+
+    VkImageView image_view = VK_NULL_HANDLE;
+    vkCreateImageView(*static_cast<VK_DEVICE*>(desc->device), &view_info, nullptr, &image_view);
+    ASSERT_PTR(image_view);
+    
+	VK_IMAGE_VIEW* result = new VK_IMAGE_VIEW();
+	ASSERT_PTR(result);
+	result->set_handle(image_view);
+	result->buffer = *static_cast<const VK_BUFFER*>(desc->buffer);
+	result->type = desc->type;
+	result->format = desc->format;
+	result->mip_map_count = desc->mip_maps_count;
+	result->memory_descriptor = desc->memory_descriptor;
+
+    vk_memory_resource_write_image_descriptor(*static_cast<VK_DEVICE*>(desc->device), slot, &view_info);
+
+	return result;
+}
+
+static RHI_VIEW* create_view_from_agnostic_buffer_vk(const RHI_VIEW_DESC* const desc, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+
+	VkDescriptorBufferInfo buffer_info{};
+	buffer_info.buffer = *static_cast<const VK_BUFFER*>(desc->buffer);
+	buffer_info.offset = 0;
+	buffer_info.range = desc->buffer->length;
+
+	VK_AGNOSTIC_BUFFER_VIEW* result = new VK_AGNOSTIC_BUFFER_VIEW();
+	result->buffer = make_observer_ptr<RHI_BUFFER>(desc->buffer);
+	result->offset = buffer_info.offset;
+	result->range = buffer_info.range;
+
+	vk_memory_resource_write_constant_buffer_view_descriptor(*static_cast<VK_DEVICE*>(desc->device), slot, &buffer_info);
+}
+
+static RHI_VIEW* create_view_from_tlas_vk(const RHI_VIEW_DESC* const desc, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(slot);
+
+	VkAccelerationStructureKHR bvh = *static_cast<const VK_BUFFER*>(desc->buffer);
+
+	VK_AGNOSTIC_BUFFER_VIEW* result = new VK_AGNOSTIC_BUFFER_VIEW();
+	ASSERT_PTR(result);
+	result->buffer = make_observer_ptr<RHI_BUFFER>(desc->buffer);
+	result->offset = 0;
+	result->range = desc->buffer->length;
+
+	vk_memory_resource_write_acceleration_structure_descriptor(*static_cast<VK_DEVICE*>(desc->device), slot, &bvh);
+
+	return result;
 }
 
 template <typename T>
@@ -163,15 +246,19 @@ static T* buffers_create_vk(const RHI_BUFFER_DESC* const desc) {
 	return buffers_create_2d_vk<T>(&desc_2d);
 }
 
-static void buffers_create_dsv_from_handle_vk(
-    VkDevice i_device,
-    RHI_BUFFER* const i_resource,
-    resource_format format,
-    uint64_t cpu_address) {
+static VkImageView buffers_create_dsv_from_handle_vk(
+    const VK_DEVICE* const device_impl,
+    const RHI_BUFFER* const buffer,
+    const resource_format format,
+    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+
+	ASSERT_PTR(device_impl);
+    ASSERT_PTR(slot);
+    ASSERT_PTR(buffer);
 
     VkImageViewCreateInfo view_info{};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    view_info.image = *static_cast<VK_TEXTURE_2D*>(i_resource);
+    view_info.image = *static_cast<const VK_TEXTURE_2D*>(buffer);
     view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     view_info.format = vk_resource_format_type[format];
     view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -186,14 +273,14 @@ static void buffers_create_dsv_from_handle_vk(
     view_info.subresourceRange.baseArrayLayer = 0;
     view_info.subresourceRange.layerCount = 1;
 
+
     VkImageView image_view = VK_NULL_HANDLE;
-    vkCreateImageView(i_device, &view_info, nullptr, &image_view);
+    vkCreateImageView(*device_impl, &view_info, nullptr, &image_view);
+    ASSERT_PTR(image_view);
 
-    VkDescriptorImageInfo image_info{};
-    image_info.imageView = image_view;
-    image_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    vk_memory_resource_write_image_descriptor(device_impl, slot, &view_info);
 
-	memcpy(reinterpret_cast<void*>(cpu_address), &image_info, sizeof(VkDescriptorImageInfo));
+	return image_view;
 }
 
 static RHI_VIEW* buffers_create_dsv_vk(const RHI_VIEW_DESC* const desc) {
@@ -202,18 +289,14 @@ static RHI_VIEW* buffers_create_dsv_vk(const RHI_VIEW_DESC* const desc) {
     ASSERT_PTR(desc->buffer);
     ASSERT_PTR(desc->memory_descriptor);
 
-    VkDevice i_device = *static_cast<VK_DEVICE*>(desc->device);
-    ASSERT_PTR(i_device);
-
-    RHI_BUFFER* i_resource = static_cast<RHI_BUFFER*>(desc->buffer);
-    ASSERT_PTR(i_resource);
-
-    VK_VIEW* result = new VK_VIEW();
+    VK_IMAGE_VIEW* result = new VK_IMAGE_VIEW();
     ASSERT_PTR(result);
 
-    buffers_create_dsv_from_handle_vk(i_device, i_resource, desc->format, desc->memory_descriptor->cpu_handle);
-
-    result->buffer = desc->buffer;
+    VkImageView image_view = buffers_create_dsv_from_handle_vk(static_cast<VK_DEVICE*>(desc->device), desc->buffer,
+        desc->format, desc->memory_descriptor);
+    
+	result->set_handle(image_view);
+    result->buffer = make_observer_ptr<RHI_BUFFER>(desc->buffer);
     result->type = desc->type;
     result->format = desc->format;
     result->mip_map_count = 1;
@@ -223,15 +306,15 @@ static RHI_VIEW* buffers_create_dsv_vk(const RHI_VIEW_DESC* const desc) {
 
 // --- RTV (Render Target View) ---
 
-static void buffers_create_rtv_from_handle_vk(
-    VkDevice i_device,
-    RHI_BUFFER* const i_resource,
-    resource_format format,
-    uint64_t cpu_address) {
+static VkImageView buffers_create_rtv_from_handle_vk(
+    const VK_DEVICE* const device_impl,
+    const RHI_BUFFER* const buffer,
+    const resource_format format,
+    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
 
     VkImageViewCreateInfo view_info{};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    view_info.image = *static_cast<VK_TEXTURE_2D*>(i_resource);
+    view_info.image = *static_cast<const VK_TEXTURE_2D*>(buffer);
     view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     view_info.format = vk_resource_format_type[format];
     view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -241,13 +324,12 @@ static void buffers_create_rtv_from_handle_vk(
     view_info.subresourceRange.layerCount = 1;
 
     VkImageView image_view = VK_NULL_HANDLE;
-    vkCreateImageView(i_device, &view_info, nullptr, &image_view);
+    vkCreateImageView(*device_impl, &view_info, nullptr, &image_view);
+	ASSERT_PTR(image_view);
 
-    VkDescriptorImageInfo image_info{};
-    image_info.imageView = image_view;
-    image_info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    vk_memory_resource_write_image_descriptor(device_impl, slot, &view_info);
 
-    memcpy(reinterpret_cast<void*>(cpu_address), &image_info, sizeof(VkDescriptorImageInfo));
+    return image_view;
 }
 
 static RHI_VIEW* buffers_create_rtv_vk(const RHI_VIEW_DESC* const desc) {
@@ -256,18 +338,14 @@ static RHI_VIEW* buffers_create_rtv_vk(const RHI_VIEW_DESC* const desc) {
     ASSERT_PTR(desc->buffer);
     ASSERT_PTR(desc->memory_descriptor);
 
-    VkDevice i_device = *static_cast<VK_DEVICE*>(desc->device);
-    ASSERT_PTR(i_device);
-
-    RHI_BUFFER* i_resource = static_cast<RHI_BUFFER*>(desc->buffer);
-    ASSERT_PTR(i_resource);
-
-    VK_VIEW* result = new VK_VIEW();
+    VK_IMAGE_VIEW* result = new VK_IMAGE_VIEW();
     ASSERT_PTR(result);
 
-    buffers_create_rtv_from_handle_vk(i_device, i_resource, desc->format, desc->memory_descriptor->cpu_handle);
+    VkImageView image_view = buffers_create_rtv_from_handle_vk(static_cast<VK_DEVICE*>(desc->device), desc->buffer, 
+        desc->format, desc->memory_descriptor);
 
-    result->buffer = desc->buffer;
+    result->set_handle(image_view);
+    result->buffer = make_observer_ptr<RHI_BUFFER>(desc->buffer);
     result->type = desc->type;
     result->format = desc->format;
     result->mip_map_count = 1;
@@ -277,85 +355,94 @@ static RHI_VIEW* buffers_create_rtv_vk(const RHI_VIEW_DESC* const desc) {
 
 // --- CBV / SRV / UAV ---
 
-static void buffers_create_cbv_srv_uav_from_handle_vk(
-    VkDevice i_device,
-    RHI_BUFFER* const i_resource,
-    shader_view_type type,
-    size_t buffer_length,
-    size_t buffer_stride,
-    resource_format format,
-    size_t mip_maps_count,
-    uint64_t cpu_address) {
+static RHI_VIEW* buffers_create_cbv_srv_uav_from_handle_vk(
+    const VK_DEVICE* const device_impl,
+    const RHI_BUFFER* const buffer,
+    const shader_view_type type,
+    const size_t buffer_length,
+    const size_t buffer_stride,
+    const resource_format format,
+    const size_t mip_maps_count,
+    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+
+    RHI_VIEW* result = nullptr;
 
     // 1. CONSTANT BUFFER (CBV) -> Uniform Buffer Descriptor
     if (type == shader_view_type_constant_buffer) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = *static_cast<VK_BUFFER*>(i_resource);
-        buffer_info.offset = 0;
-        buffer_info.range = buffer_length;
-
-        memcpy(reinterpret_cast<void*>(cpu_address), &buffer_info, sizeof(VkDescriptorBufferInfo));
+		RHI_VIEW_DESC desc;
+		desc.type = type;
+		desc.format = format;
+		desc.mip_maps_count = mip_maps_count;
+		desc.device = const_cast<VK_DEVICE*>(device_impl);
+		desc.memory_descriptor = slot;
+		result = create_view_from_agnostic_buffer_vk(&desc, slot);
     }
-
     // 2. READ-ONLY BUFFER (SRV) -> Structured Storage Buffer o Uniform Texel Buffer
     else if (type == shader_view_type_read_only_buffer) {
         if (format != resource_format_none) {
             // Buffer formateado (Typed / Texel Buffer)
             VkBufferViewCreateInfo view_info{};
             view_info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
-            view_info.buffer = *static_cast<VK_BUFFER*>(i_resource);
+            view_info.buffer = *static_cast<const VK_BUFFER*>(buffer);
             view_info.format = vk_resource_format_type[format];
             view_info.offset = 0;
             view_info.range = buffer_length;
 
-            VkBufferView buffer_view = VK_NULL_HANDLE;
-            vkCreateBufferView(i_device, &view_info, nullptr, &buffer_view);
-
-			memcpy(reinterpret_cast<void*>(cpu_address), &buffer_view, sizeof(VkBufferView));
+			RHI_VIEW_DESC desc;
+			desc.type = type;
+			desc.format = format;
+			desc.mip_maps_count = mip_maps_count;
+			desc.device = const_cast<VK_DEVICE*>(device_impl);
+			desc.memory_descriptor = slot;
+			desc.buffer = const_cast<RHI_BUFFER*>(buffer);
+			result = create_view_from_buffer_view_vk(&desc, view_info, slot);            
         }
         else {
-            // Structured / ByteAddress Buffer -> Storage Buffer Descriptor (Read-Only)
-            VkDescriptorBufferInfo buffer_info{};
-            buffer_info.buffer = *static_cast<VK_BUFFER*>(i_resource);
-            buffer_info.offset = 0;
-            buffer_info.range = buffer_length;
-
-            memcpy(reinterpret_cast<void*>(cpu_address), &buffer_info, sizeof(VkDescriptorBufferInfo));
+			RHI_VIEW_DESC desc;
+			desc.type = type;
+			desc.format = format;
+			desc.mip_maps_count = mip_maps_count;
+			desc.device = const_cast<VK_DEVICE*>(device_impl);
+			desc.memory_descriptor = slot;
+			result = create_view_from_agnostic_buffer_vk(&desc, slot);
         }
     }
-
     // 3. READ-WRITE BUFFER (UAV) -> RW Structured Storage Buffer o Storage Texel Buffer
     else if (type == shader_view_type_rw_buffer) {
         if (format != resource_format_none) {
             // RW Typed Texel Buffer
             VkBufferViewCreateInfo view_info{};
             view_info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
-            view_info.buffer = *static_cast<VK_BUFFER*>(i_resource);
+            view_info.buffer = *static_cast<const VK_BUFFER*>(buffer);
             view_info.format = vk_resource_format_type[format];
             view_info.offset = 0;
             view_info.range = buffer_length;
 
-            VkBufferView buffer_view = VK_NULL_HANDLE;
-            vkCreateBufferView(i_device, &view_info, nullptr, &buffer_view);
+			RHI_VIEW_DESC desc;
+			desc.type = type;
+			desc.format = format;
+			desc.mip_maps_count = mip_maps_count;
+			desc.device = const_cast<VK_DEVICE*>(device_impl);
+			desc.memory_descriptor = slot;
+			desc.buffer = const_cast<RHI_BUFFER*>(buffer);
 
-            memcpy(reinterpret_cast<void*>(cpu_address), &buffer_view, sizeof(VkBufferView));
+            result = create_view_from_buffer_view_vk(&desc, view_info, slot);
         }
         else {
-            // RW Structured / ByteAddress Buffer -> Storage Buffer Descriptor
-            VkDescriptorBufferInfo buffer_info{};
-            buffer_info.buffer = *static_cast<VK_BUFFER*>(i_resource);
-            buffer_info.offset = 0;
-            buffer_info.range = buffer_length;
-
-            memcpy(reinterpret_cast<void*>(cpu_address), &buffer_info, sizeof(VkDescriptorBufferInfo));
+			RHI_VIEW_DESC desc;
+			desc.type = type;
+			desc.format = format;
+			desc.mip_maps_count = mip_maps_count;
+			desc.device = const_cast<VK_DEVICE*>(device_impl);
+			desc.memory_descriptor = slot;
+			result = create_view_from_agnostic_buffer_vk(&desc, slot);
         }
     }
-
     // 4. READ-ONLY TEXTURE (SRV Textura 2D) -> Sampled Image
     else if (type == shader_view_type_read_only_texture_buffer) {
         VkImageViewCreateInfo view_info{};
         view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        view_info.image = *static_cast<VK_TEXTURE_2D*>(i_resource);
+        view_info.image = *static_cast<const VK_TEXTURE_2D*>(buffer);
         view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         view_info.format = vk_resource_format_type[format];
         view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -364,21 +451,20 @@ static void buffers_create_cbv_srv_uav_from_handle_vk(
         view_info.subresourceRange.baseArrayLayer = 0;
         view_info.subresourceRange.layerCount = 1;
 
-        VkImageView image_view = VK_NULL_HANDLE;
-        vkCreateImageView(i_device, &view_info, nullptr, &image_view);
-
-        VkDescriptorImageInfo image_info{};
-        image_info.imageView = image_view;
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        memcpy(reinterpret_cast<void*>(cpu_address), &image_info, sizeof(VkDescriptorImageInfo));
+		RHI_VIEW_DESC desc;
+		desc.type = type;
+		desc.format = format;
+		desc.mip_maps_count = mip_maps_count;
+		desc.device = const_cast<VK_DEVICE*>(device_impl);
+		desc.memory_descriptor = slot;
+		desc.buffer = const_cast<RHI_BUFFER*>(buffer);
+        result = create_view_from_image_view_vk(&desc, view_info, slot);
     }
-
     // 5. READ-WRITE TEXTURE (UAV Textura 2D) -> Storage Image
     else if (type == shader_view_type_rw_texture_buffer) {
         VkImageViewCreateInfo view_info{};
         view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        view_info.image = *static_cast<VK_TEXTURE_2D*>(i_resource);
+        view_info.image = *static_cast<const VK_TEXTURE_2D*>(buffer);
         view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         view_info.format = vk_resource_format_type[format];
         view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -387,26 +473,29 @@ static void buffers_create_cbv_srv_uav_from_handle_vk(
         view_info.subresourceRange.baseArrayLayer = 0;
         view_info.subresourceRange.layerCount = 1;
 
-        VkImageView image_view = VK_NULL_HANDLE;
-        vkCreateImageView(i_device, &view_info, nullptr, &image_view);
-
-        VkDescriptorImageInfo image_info{};
-        image_info.imageView = image_view;
-        image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-        memcpy(reinterpret_cast<void*>(cpu_address), &image_info, sizeof(VkDescriptorImageInfo));
+		RHI_VIEW_DESC desc;
+		desc.type = type;
+		desc.format = format;
+		desc.mip_maps_count = mip_maps_count;
+		desc.device = const_cast<VK_DEVICE*>(device_impl);
+		desc.memory_descriptor = slot;
+		desc.buffer = const_cast<RHI_BUFFER*>(buffer);
+        result = create_view_from_image_view_vk(&desc, view_info, slot);
     }
-
     // 6. RAY TRACING BVH (SRV TLAS) -> Acceleration Structure
     else if (type == shader_view_type_bvh_buffer) {
-        VkWriteDescriptorSetAccelerationStructureKHR accel_info{};
-        accel_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-        accel_info.accelerationStructureCount = 1;
-        VkAccelerationStructureKHR bvh = *static_cast<VK_BVH_BUFFER*>(i_resource);
-        accel_info.pAccelerationStructures = &bvh;
-
-        memcpy(reinterpret_cast<void*>(cpu_address), &accel_info, sizeof(VkWriteDescriptorSetAccelerationStructureKHR));
+		RHI_VIEW_DESC desc;
+		desc.type = type;
+		desc.format = format;
+		desc.mip_maps_count = mip_maps_count;
+		desc.device = const_cast<VK_DEVICE*>(device_impl);
+		desc.memory_descriptor = slot;
+		desc.buffer = const_cast<RHI_BUFFER*>(buffer);
+		result = create_view_from_tlas_vk(&desc, slot);
     }
+
+    ASSERT_PTR(result);
+    return result;
 }
 
 static RHI_VIEW* buffers_create_cbv_srv_uav_vk(const RHI_VIEW_DESC* const desc) {
@@ -415,32 +504,16 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_vk(const RHI_VIEW_DESC* const desc) 
     ASSERT_PTR(desc->buffer);
     ASSERT_PTR(desc->memory_descriptor);
 
-    VkDevice i_device = *static_cast<VK_DEVICE*>(desc->device);
-    ASSERT_PTR(i_device);
-
-    RHI_BUFFER* i_resource = static_cast<RHI_BUFFER*>(desc->buffer);
-    ASSERT_PTR(i_resource);
-
-    buffers_create_cbv_srv_uav_from_handle_vk(
-        i_device,
-        i_resource,
+    return buffers_create_cbv_srv_uav_from_handle_vk(
+        static_cast<VK_DEVICE*>(desc->device),
+        desc->buffer,
         desc->type,
         desc->buffer->length,
         desc->buffer->stride,
         desc->format,
         desc->mip_maps_count,
-        desc->memory_descriptor->cpu_handle
+        desc->memory_descriptor
     );
-
-    VK_VIEW* result = new VK_VIEW();
-    ASSERT_PTR(result);
-    result->buffer = desc->buffer;
-    result->type = desc->type;
-    result->format = desc->format;
-    result->mip_map_count = desc->mip_maps_count;
-    result->memory_descriptor = desc->memory_descriptor;
-
-    return result;
 }
 
 RHI_BUFFER* vk_buffers_create_linear(const RHI_BUFFER_DESC* const desc) {

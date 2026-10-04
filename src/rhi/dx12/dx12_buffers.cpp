@@ -133,6 +133,7 @@ static RHI_VIEW* buffers_create_dsv_dx12(const RHI_VIEW_DESC* const desc) {
 
 	buffers_create_dsv_from_handle_dx12(i_device, i_resource, desc->format,
 		{ static_cast<const DX_MEMORY_DESCRIPTOR_SLOT*>(desc->memory_descriptor)->cpu_handle });
+
 	result->buffer = desc->buffer;
 	result->type = desc->type;
 	result->format = desc->format;

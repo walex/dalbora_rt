@@ -183,6 +183,11 @@ struct VK_FENCE
 	}
 };
 
+struct VK_AGNOSTIC_BUFFER_VIEW
+	: public RHI_VIEW {
+	VkDeviceSize offset;
+	VkDeviceSize range;
+};
 
 struct VK_IMAGE_VIEW
 	: public RHI_VIEW
