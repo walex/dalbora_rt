@@ -45,3 +45,15 @@ void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_
 	auto v_map_info = this->map(offset, length);
 	memcpy(v_map_info.get_data() + offset, data, length);
 }
+
+void RhiSharedBufferGPU::create(const RhiDevice& device, const size_t length, const size_t stride, const resource_format format) {
+	RHI_BUFFER_DESC desc;
+	desc.device = device;
+	desc.length = length;
+	desc.memory_type = buffer_memory_type_gpu_upload;
+	desc.type = buffer_type_raw;
+	desc.format = format;
+	desc.stride = stride;
+	desc.mips = 1;
+	this->set_handle(rhi_buffers_create_raw(&desc));
+}

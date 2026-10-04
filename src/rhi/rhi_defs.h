@@ -68,6 +68,7 @@ enum buffer_memory_type
 	buffer_memory_type_gpu_only = 0,
 	buffer_memory_type_shared_rw,
 	buffer_memory_type_shared_read_only,
+	buffer_memory_type_gpu_upload,
 	buffer_memory_type_count,
 
 	buffer_memory_type_default = 0
@@ -186,5 +187,6 @@ constexpr __int64 device_features_raytracing = 0x1;
 constexpr __int64 device_features_variable_rate_shading = 0x2;
 constexpr __int64 device_features_mesh_shaders = 0x4;
 constexpr __int64 device_features_enable_texture_sampling = 0x8;
+constexpr __int64 device_features_gpu_upload = 0x10;
 
 #endif

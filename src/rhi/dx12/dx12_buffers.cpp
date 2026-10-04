@@ -288,6 +288,9 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_dx12(const RHI_VIEW_DESC* const desc
 }
 
 RHI_BUFFER* dx12_buffers_create_linear(const RHI_BUFFER_DESC* const desc) {
+	ASSERT_PTR(desc);
+	if (desc->memory_type == buffer_memory_type_gpu_upload && desc->device->supports_gpu_upload == false)
+		throw std::runtime_error("[DX12] GPU Upload Heap not supported on this device. Use Staging Buffer instead.");
 	return buffers_create_dx12<DX_BUFFER>(desc);
 }
 

@@ -11,6 +11,18 @@ static bool check_device_rt_support_dx12(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
+static bool check_device_gpu_upload_dx12(ID3D12Device* device) {
+
+	ASSERT_PTR(device);
+	D3D12_FEATURE_DATA_D3D12_OPTIONS16 options16 = {};
+	HRESULT hr = device->CheckFeatureSupport(
+		D3D12_FEATURE_D3D12_OPTIONS16,
+		&options16,
+		sizeof(options16)
+	);
+	return (SUCCEEDED(hr) && options16.GPUUploadHeapSupported);
+}
+
 static void check_device_features_dx12(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
 
 	bool result = true;
@@ -21,6 +33,11 @@ static void check_device_features_dx12(ID3D12Device* i_device, const __int64 fea
 		feats ^= device_features_raytracing;
 	}
 	
+	if (feats & device_features_gpu_upload) {
+		result &= check_device_gpu_upload_dx12(i_device);
+		feats ^= device_features_gpu_upload;
+	}
+
 	if (result == false) {
 		throw std::exception("Device doesn't support requested features\n\n");
 	}
@@ -114,7 +131,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	DX_DEVICE* dx_device = new DX_DEVICE;
 	ASSERT_PTR(dx_device);
 	dx_device->set_handle(i_device);
-
+	dx_device->supports_gpu_upload = check_device_gpu_upload_dx12(i_device);
 	return dx_device;
 }
 

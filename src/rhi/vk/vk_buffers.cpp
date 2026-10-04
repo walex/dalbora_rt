@@ -593,7 +593,6 @@ void vk_buffers_gpu_download_region(RHI_COMMAND_BUFFER* const command_buffer, co
 
 void vk_buffers_gpu_download(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
 	RHI_BUFFER* const gpu_buffer) {
-
 }
 
 RHI_VOID_PTR vk_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset,

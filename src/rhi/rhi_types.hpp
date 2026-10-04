@@ -36,6 +36,7 @@ struct RHI_HANDLE {
 
 struct RHI_DEVICE {
 	virtual ~RHI_DEVICE() = default;
+	bool supports_gpu_upload = false;
 };
 
 struct RHI_MEMORY_DESCRIPTOR {

@@ -190,7 +190,8 @@ constexpr DXGI_FORMAT dx12_resource_format_type[resource_format_count] = {
 constexpr D3D12_HEAP_TYPE dx12_heap_type[buffer_memory_type_count] = {
 	D3D12_HEAP_TYPE_DEFAULT, // buffer_memory_type_default / buffer_memory_type_gpu_only
 	D3D12_HEAP_TYPE_UPLOAD,	 // buffer_memory_type_shared_rw
-	D3D12_HEAP_TYPE_READBACK // buffer_memory_type_shared_read_only
+	D3D12_HEAP_TYPE_READBACK, // buffer_memory_type_shared_read_only
+	D3D12_HEAP_TYPE_GPU_UPLOAD // buffer_memory_type_gpu_upload
 };
 
 constexpr D3D12_BARRIER_SYNC dx12_pipeline_stage[pipeline_stage_count] = {
