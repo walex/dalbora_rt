@@ -113,4 +113,27 @@ RHI_MEMORY_DESCRIPTOR_SLOT* dx12_memory_resource_get_descriptor(const RHI_MEMORY
 	return result;
 }
 
+bool dx12_memory_resource_check_type(const DX_DEVICE* const device_impl, const buffer_memory_type memory_type) {
+	
+	switch (memory_type) {
+	case buffer_memory_type_gpu_read_only:
+	case buffer_memory_type_shared_rw:
+	case buffer_memory_type_shared_read_only:
+		return true;
+	case buffer_memory_type_gpu_rw: {
+		ASSERT_PTR(device_impl);
+		ID3D12Device* i_device = *device_impl;
+		ASSERT_PTR(i_device);
+		D3D12_FEATURE_DATA_D3D12_OPTIONS16 options16 = {};
+		ASSERT_COM_SUCCESS(i_device->CheckFeatureSupport(
+			D3D12_FEATURE_D3D12_OPTIONS16,
+			&options16,
+			sizeof(options16)
+		));
+		return options16.GPUUploadHeapSupported;
+	}
+	default:
+		return false;
+	}
+}
 

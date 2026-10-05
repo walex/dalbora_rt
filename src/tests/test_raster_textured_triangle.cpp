@@ -150,7 +150,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             // create texture
             RHI_TEXTURE_2D_DESC texture_desc;
             texture_desc.device = &device;
-            texture_desc.memory_type = buffer_memory_type_gpu_only;
+            texture_desc.memory_type = buffer_memory_type_gpu_read_only;
             texture_desc.type = buffer_type_image_2d;
             texture_desc.format = dxgi_to_resource(dds.GetFormat());
             texture_desc.width = static_cast<size_t>(dds.GetWidth());

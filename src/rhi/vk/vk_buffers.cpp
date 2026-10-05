@@ -11,7 +11,6 @@ static uint32_t find_memory_type_index(VkPhysicalDevice physical_device, uint32_
 			return i;
 		}
 	}
-	ASSERT_EXPR(false, "Compatible memory type with Vulkan not found");
 	return 0;
 }
 

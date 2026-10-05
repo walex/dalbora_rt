@@ -11,16 +11,12 @@ static bool check_device_rt_support_dx12(ID3D12Device* device) {
 	return featureData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 }
 
-static bool check_device_gpu_upload_dx12(ID3D12Device* device) {
+static bool check_device_mappeable_gpu_memory_dx12(ID3D12Device* device) {
 
-	ASSERT_PTR(device);
-	D3D12_FEATURE_DATA_D3D12_OPTIONS16 options16 = {};
-	HRESULT hr = device->CheckFeatureSupport(
-		D3D12_FEATURE_D3D12_OPTIONS16,
-		&options16,
-		sizeof(options16)
-	);
-	return (SUCCEEDED(hr) && options16.GPUUploadHeapSupported);
+	DX_DEVICE device_impl;
+	device_impl.set_handle(device);
+	device->AddRef();
+	return dx12_memory_resource_check_type(&device_impl, buffer_memory_type_gpu_rw);
 }
 
 static void check_device_features_dx12(ID3D12Device* i_device, const __int64 features, hlsl_shader_model shader_model) {
@@ -33,17 +29,28 @@ static void check_device_features_dx12(ID3D12Device* i_device, const __int64 fea
 		feats ^= device_features_raytracing;
 	}
 	
-	if (feats & device_features_gpu_upload) {
-		result &= check_device_gpu_upload_dx12(i_device);
-		feats ^= device_features_gpu_upload;
+	if (feats & device_features_mappeable_gpu_memory) {
+		result &= check_device_mappeable_gpu_memory_dx12(i_device);
+		feats ^= device_features_mappeable_gpu_memory;
+	}
+
+	if (feats & device_features_dedicated_gpu) {
+		D3D12_FEATURE_DATA_ARCHITECTURE archCaps = {};
+		ASSERT_COM_SUCCESS(i_device->CheckFeatureSupport(
+			D3D12_FEATURE_ARCHITECTURE,
+			&archCaps,
+			sizeof(archCaps)));
+		result &= ~(archCaps.UMA);
 	}
 
 	if (result == false) {
 		throw std::exception("Device doesn't support requested features\n\n");
 	}
+
 	D3D12_FEATURE_DATA_SHADER_MODEL SM = {};
 	SM.HighestShaderModel = D3D_HIGHEST_SHADER_MODEL;
-	i_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM));
+	ASSERT_COM_SUCCESS(i_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM)));
+
 	if (SM.HighestShaderModel < static_cast<D3D_SHADER_MODEL>(shader_model)) {
 		throw std::exception("Device doesn't support requested Shader Model\n\n");
 	}
@@ -54,7 +61,8 @@ static IDXGIAdapter1* pick_best_device_adapter_dx12(__int64 features, hlsl_shade
 	IDXGIAdapter1* chosenAdapter = nullptr;
 	for (UINT adapterIndex = 0;; ++adapterIndex) {
 		IDXGIAdapter1* adapter = nullptr;
-		HRESULT hr = dx12_factory_get()->EnumAdapters1(adapterIndex, &adapter);
+		HRESULT hr = dx12_factory_get()->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+			IID_PPV_ARGS(&adapter));
 		if (hr == DXGI_ERROR_NOT_FOUND) {
 			break;
 		}
@@ -131,7 +139,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	DX_DEVICE* dx_device = new DX_DEVICE;
 	ASSERT_PTR(dx_device);
 	dx_device->set_handle(i_device);
-	dx_device->supports_gpu_upload = check_device_gpu_upload_dx12(i_device);
+	dx_device->mappeable_gpu_memory = check_device_mappeable_gpu_memory_dx12(i_device);
 	return dx_device;
 }
 

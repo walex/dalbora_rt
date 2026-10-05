@@ -1,7 +1,8 @@
 #include "vk_device.hpp"
 #include "vk_command_queue.hpp"
+#include "vk_heap.hpp"
 
-bool device_vk_check_heap_table_features(const VkPhysicalDevice physical_device) {
+static bool device_check_heap_table_features_vk(const VkPhysicalDevice physical_device) {
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT heapFeatures{};
 	heapFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
 	VkPhysicalDeviceFeatures2 deviceFeatures2{};
@@ -11,7 +12,7 @@ bool device_vk_check_heap_table_features(const VkPhysicalDevice physical_device)
 	return heapFeatures.descriptorHeap;
 }
 
-bool device_vk_check_ray_tracing_features(const VkPhysicalDevice physical_device) {
+static bool device_check_ray_tracing_features_vk(const VkPhysicalDevice physical_device) {
     
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
     accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
@@ -30,7 +31,13 @@ bool device_vk_check_ray_tracing_features(const VkPhysicalDevice physical_device
         rayTracingPipelineFeatures.rayTracingPipeline;
 }
 
-bool device_vk_check_device_features(const VkPhysicalDevice physical_device, const size_t features,
+static bool check_device_mappeable_gpu_memory_vk(VkPhysicalDevice physical_device) {
+    
+    return vk_memory_resource_find_memory_type(physical_device, UINT32_MAX,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) >= 0;
+}
+
+static bool device_check_device_features_vk(const VkPhysicalDevice physical_device, const size_t features,
     std::vector<const char*>& device_extensions) {
 
     device_extensions = {
@@ -71,22 +78,41 @@ bool device_vk_check_device_features(const VkPhysicalDevice physical_device, con
         return false;
     }
 
-    if (device_vk_check_heap_table_features(physical_device) == false) {
+    if (device_check_heap_table_features_vk(physical_device) == false) {
 		std::cout << "Descriptor heap feature not supported." << std::endl;
         return false;
     }
 
     if ((feats & device_features_raytracing)
-        && device_vk_check_ray_tracing_features(physical_device) == false) {
+        && device_check_ray_tracing_features_vk(physical_device) == false) {
 		
         std::cout << "Ray tracing features not supported." << std::endl;
         return false;
     }
     feats ^= device_features_raytracing;
+
+    if (feats & device_features_mappeable_gpu_memory && 
+        check_device_mappeable_gpu_memory_vk(physical_device) == false) {
+        std::cout << "Mappable GPU memory not supported." << std::endl;
+        return false;
+    }
+
+    feats ^= device_features_mappeable_gpu_memory;
+
+    if (feats & device_features_dedicated_gpu) {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(physical_device, &deviceProperties);
+		if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+			std::cout << "Dedicated GPU required but not found." << std::endl;
+			return false;
+		}
+    }
+    feats ^= device_features_dedicated_gpu;
+
     return true;    
 }
 
-void device_vk_get_command_queue_family_indices(const VkPhysicalDevice physical_device, uint32_t& graphics_family_index,
+static void device_get_command_queue_family_indices_vk(const VkPhysicalDevice physical_device, uint32_t& graphics_family_index,
     uint32_t& compute_family_index, uint32_t& copy_family_index) {
 
 	graphics_family_index = -1;
@@ -127,7 +153,7 @@ void device_vk_get_command_queue_family_indices(const VkPhysicalDevice physical_
     }
 }
 
-VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32_t graphics_queue_count,
+static VkDevice device_create_logical_device_vk(const VkInstance instance, const uint32_t graphics_queue_count,
     const uint32_t compute_queue_count, const uint32_t copy_queue_count, const unsigned long long device_features,
     VkPhysicalDevice* physical_device_out = nullptr, uint32_t* graphics_queue_family_index_out = nullptr,
     uint32_t* compute_queue_family_index_out = nullptr, uint32_t* copy_queue_family_index_out = nullptr) {
@@ -145,7 +171,7 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
     for (const auto& pdev : devices) {
 
         device_extensions.clear();
-        if (device_vk_check_device_features(pdev, device_features, device_extensions) == true) {
+        if (device_check_device_features_vk(pdev, device_features, device_extensions) == true) {
 
             physical_device = pdev;
             break;
@@ -156,7 +182,7 @@ VkDevice device_vk_create_logical_device(const VkInstance instance, const uint32
         throw std::runtime_error("compatible physical device not found");
     }
 
-    device_vk_get_command_queue_family_indices(physical_device, graphics_queue_family_index,
+    device_get_command_queue_family_indices_vk(physical_device, graphics_queue_family_index,
         compute_queue_family_index, copy_family_index);
 
     if (graphics_queue_count > 0 && graphics_queue_family_index_out != nullptr && graphics_queue_family_index == -1) {
@@ -264,7 +290,7 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
 	uint32_t compute_queue_family_index = -1;
     uint32_t copy_queue_family_index = -1;
 
-    VkDevice device = device_vk_create_logical_device(static_cast<VkInstance>(desc->app_instance), desc->graphics_queue_count,
+    VkDevice device = device_create_logical_device_vk(static_cast<VkInstance>(desc->app_instance), desc->graphics_queue_count,
         desc->compute_queue_count, desc->copy_queue_count, desc->features, 
         &physical_device, &graphics_queue_family_index,
         &compute_queue_family_index, &copy_queue_family_index);
@@ -276,5 +302,6 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
 	vk_device->queue_family_index[queue_type_graphics] = graphics_queue_family_index;
 	vk_device->queue_family_index[queue_type_compute] = compute_queue_family_index;
 	vk_device->queue_family_index[queue_type_copy] = copy_queue_family_index;
+	vk_device->mappeable_gpu_memory = check_device_mappeable_gpu_memory_vk(physical_device);
     return vk_device;
 }

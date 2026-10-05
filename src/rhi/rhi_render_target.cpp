@@ -8,7 +8,7 @@ void RhiRenderTarget::create(const RhiDevice& device, const resource_format form
 
     RHI_TEXTURE_2D_DESC desc;
     desc.device = device;
-    desc.memory_type = buffer_memory_type_gpu_only;
+    desc.memory_type = buffer_memory_type_gpu_read_only;
     desc.type = buffer_type_image_2d;
     desc.width = width;
     desc.height = height;

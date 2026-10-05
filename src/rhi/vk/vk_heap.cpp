@@ -45,7 +45,7 @@ void calculate_max_descriptor_layout_properties_vk(VkPhysicalDevice physical_dev
 	*slot_alignment_out = alignment;
 }
 
-uint32_t memory_resource_find_memory_type_vk(VkPhysicalDevice physical_device, uint32_t type_filter, 
+int32_t vk_memory_resource_find_memory_type(VkPhysicalDevice physical_device, uint32_t type_filter, 
 	VkMemoryPropertyFlags properties) {
 
 	VkPhysicalDeviceMemoryProperties mem_properties;
@@ -56,7 +56,7 @@ uint32_t memory_resource_find_memory_type_vk(VkPhysicalDevice physical_device, u
 			return i;
 		}
 	}
-	throw std::runtime_error("Memory type not found");
+	return -1;
 }
 
 RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* const device_impl,
@@ -116,8 +116,9 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* cons
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.pNext = &allocFlagsInfo; // Connect the flags
 	allocInfo.allocationSize = mem_requirements.size; // The size returned
-	allocInfo.memoryTypeIndex = memory_resource_find_memory_type_vk(device_impl->physical_device, mem_requirements.memoryTypeBits,
+	allocInfo.memoryTypeIndex = vk_memory_resource_find_memory_type(device_impl->physical_device, mem_requirements.memoryTypeBits,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	ASSERT_EXPR(allocInfo.memoryTypeIndex >= 0, "Memory type not found");
 
 	// GPU handle
 	VkDeviceMemory heap_memory_device;

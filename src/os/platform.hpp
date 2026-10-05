@@ -162,25 +162,32 @@ at the moment is not possible as libopencv_java3.so only can be built with gnust
 		SAFE_DELETE(p);     \
 	}
 
+#include <stdio.h>
+#include <stdlib.h>
+
+inline void _assert_fail(const char* expr, const char* file, int line, const char* func, ...) {
+	fprintf(stderr, "Assertion failed: (%s)\n", expr);
+	fprintf(stderr, "  File:  %s\n", file);
+	fprintf(stderr, "  Line:    %d\n", line);
+	fprintf(stderr, "  Function:  %s\n", func);
+	va_list args;
+	va_start(args, func);
+	const char* msg = va_arg(args, const char*);
+	va_end(args);
+	if (msg) {
+		fprintf(stderr, "  Message:  %s\n", msg);
+	}
 #ifdef DEBUG
-
-#define ASSERT_EXPR(expr) assert(expr)
-#define ASSERT_PTR(expr) ASSERT_EXPR(expr != nullptr)
-#define ASSERT_NULL(expr) ASSERT_EXPR(expr == nullptr)
-
-#define UNUSED_PARAM_ON_RELEASE(a) a
-#define UNUSED_PARAM_ON_DEBUG(a)
-
-#else
-
-#define ASSERT_EXPR(expr)
-#define ASSERT_PTR(expr)
-#define ASSERT_NULL(expr)
-
-#define UNUSED_PARAM_ON_RELEASE(a)
-#define UNUSED_PARAM_ON_DEBUG(a) a
-
+	abort();
 #endif
+}
+
+#define ASSERT_EXPR(expr, ...) \
+    do { \
+        if (!(expr)) _assert_fail(#expr, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+    } while(0)
+#define ASSERT_PTR(expr) ASSERT_EXPR(expr != nullptr, "Pointer is null")
+#define ASSERT_NULL(expr) ASSERT_EXPR(expr == nullptr, "Pointer is not null")
 
 #define UNUSED_PARAM(a)
 
@@ -247,8 +254,6 @@ namespace cv
 #define _USE_MATH_DEFINES
 #include <math.h>
 #endif
-#include <stdio.h>
-#include <stdlib.h>
 #include <numeric>
 #define __STDC_WANT_LIB_EXT1__ 1
 

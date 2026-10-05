@@ -2,7 +2,7 @@
 
 static DX_FACTORY g_dx12_factory;
 
-IDXGIFactory5* dx12_factory_get() {
+IDXGIFactory6* dx12_factory_get() {
 	return g_dx12_factory;
 }
 
@@ -23,7 +23,7 @@ void dx12_factory_create() {
 	}
 #endif
 	// Create DXGI factory
-	IDXGIFactory5* i_factory = nullptr;
+	IDXGIFactory6* i_factory = nullptr;
 	ASSERT_COM_SUCCESS(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&i_factory)));
 	ASSERT_PTR(i_factory);
 	g_dx12_factory.set_handle(i_factory);

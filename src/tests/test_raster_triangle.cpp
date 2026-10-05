@@ -117,7 +117,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			vb_desc.length = vertex_count * vertex_size;
 			vb_desc.stride = vertex_size;
 			vb_desc.format = resource_format_float3;
-			vb_desc.memory_type = buffer_memory_type_gpu_only;
+			vb_desc.memory_type = buffer_memory_type_gpu_read_only;
 			vb_desc.type = buffer_type_raw;
 			vertex_buffer.reset(rhi_buffers_create_vertices(&vb_desc));
 			
@@ -127,7 +127,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			ib_desc.length = sizeof(uint16_t) * index_count;
 			ib_desc.stride = sizeof(uint16_t);
 			ib_desc.format = resource_format_uint16;
-			ib_desc.memory_type = buffer_memory_type_gpu_only;
+			ib_desc.memory_type = buffer_memory_type_gpu_read_only;
 			ib_desc.type = buffer_type_raw;
 			index_buffer.reset(rhi_buffers_create_indices(&ib_desc));
 			
