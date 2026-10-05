@@ -25,11 +25,11 @@ static T* buffers_create_2d_dx12(const RHI_BUFFER_2D_DESC* const desc)
 		flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		initial_state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	}
-	if ((desc->flags & resource_flags_shader_read_write
+	if ((desc->resource_flags & resource_flags_shader_read_write
 		) == resource_flags_shader_read_write) {
 		flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	}
-	if (desc->is_render_target == true) {
+	if ((desc->resource_flags & resource_flags_render_target) == resource_flags_render_target) {
 		flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	}
 
@@ -298,8 +298,7 @@ RHI_BUFFER* dx12_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc) {
 	return buffers_create_2d_dx12<DX_BUFFER>(desc);
 }
 
-RHI_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc)
-{
+RHI_BUFFER* dx12_buffers_create_constant(const RHI_BUFFER_DESC* const desc) {
 	return buffers_create_dx12<DX_BUFFER>(desc);
 }
 

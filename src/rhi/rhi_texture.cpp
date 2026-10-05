@@ -6,7 +6,8 @@ RhiTexture::RhiTexture(RHI_TEXTURE_2D* handle) : RhiImpl<RHI_TEXTURE_2D>(handle)
 void RhiTexture::create(const RhiDevice& device, const resource_format format,
     const size_t width, const size_t height,
     const bool is_cube_map, const size_t depth,
-    const size_t dimension, const size_t mip_count) {
+    const size_t dimension, const size_t mip_count,
+    const bool sampling_enable) {
 
     RHI_TEXTURE_2D_DESC desc;
     desc.device = device;
@@ -19,6 +20,8 @@ void RhiTexture::create(const RhiDevice& device, const resource_format format,
     desc.depth = depth;
     desc.dims = dimension;
     desc.mips = mip_count;
+    if (sampling_enable)
+        desc.resource_flags = resource_flags_texture_sampling;
     this->set_handle(rhi_texture_2d_create(&desc));
 }
 

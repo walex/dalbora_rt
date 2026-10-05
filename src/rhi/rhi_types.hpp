@@ -109,7 +109,7 @@ struct RHI_BUFFER {
 	size_t length = 0;
 	size_t stride = 0;
 	resource_format format = resource_format_none;
-	buffer_type type = buffer_type_undef;
+	buffer_type type = buffer_type_raw;
 };
 
 #define MAX_TEXTURE_MIP_LEVELS 16

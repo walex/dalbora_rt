@@ -34,14 +34,13 @@ struct RHI_BUFFER_DESC  {
 	size_t length = 0, mips = 0, stride = 0;
 	buffer_memory_type memory_type = buffer_memory_type_default;
 	resource_format format = resource_format_none;
-	buffer_type type = buffer_type_undef;
-	resource_flags flags = resource_flags_none;
+	buffer_type type = buffer_type_raw;
+	uint32_t resource_flags = resource_flags_none;
 };
 
 struct RHI_BUFFER_2D_DESC : RHI_BUFFER_DESC {
 	size_t width = 0;
 	size_t height = 0;
-	bool is_render_target = false;
 };
 
 struct RHI_VERTEX_BUFFER_DESC : public RHI_BUFFER_DESC {

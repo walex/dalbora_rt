@@ -233,12 +233,12 @@ constexpr D3D12_COMMAND_LIST_TYPE dx12_queue_type[queue_type_count] = {
 
 constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[buffer_type_count] = {
 
-	D3D12_RESOURCE_DIMENSION_UNKNOWN,	// buffer_type_undef
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_raw
+	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_bvh
+	// image buffers
 	D3D12_RESOURCE_DIMENSION_TEXTURE1D, // buffer_type_image_1d
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D, // buffer_type_image_2d
 	D3D12_RESOURCE_DIMENSION_TEXTURE3D, // buffer_type_image_3d
-	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_rt_bvh
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D,	// buffer_type_depth_stencil
 };
 

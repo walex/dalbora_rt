@@ -82,9 +82,8 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			tx_desc.width = 800;
 			tx_desc.height = 600;
 			tx_desc.format = resource_format_R8G8B8A8_norm;
-			tx_desc.is_render_target = true;
 			tx_desc.mips = 1;
-			tx_desc.flags = resource_flags_shader_read_write;
+			tx_desc.resource_flags = resource_flags_shader_read_write | resource_flags_render_target;
 			render_target.reset(rhi_texture_2d_create(&tx_desc));
 			
 			// compile shaders

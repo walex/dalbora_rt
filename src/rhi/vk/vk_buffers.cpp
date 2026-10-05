@@ -110,20 +110,104 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 
 	buffer_type buffer_type = desc->type;
 
-	// Si es BVH (Ray Tracing), en Vulkan es un VkBuffer, no una VkImage
-	if (buffer_type == buffer_type_bvh)
-	{
-		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		buffer_info.size = desc->length; // O width * stride
-		buffer_info.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	bool is_image = buffer_type >= buffer_type_image_1d;
+	VkBufferUsageFlags usage_flags = 0;
 
-		VkBuffer vk_buffer = VK_NULL_HANDLE;
-		VkResult res = vkCreateBuffer(device, &buffer_info, nullptr, &vk_buffer);
+	if (buffer_type == buffer_type_depth_stencil) {
+		usage_flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	}
+	else if (buffer_type == buffer_type_bvh) {
+		usage_flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+	}
+	else if (buffer_type == buffer_type_raw) {
+		usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	}
+	else if (buffer_type >= buffer_type_count) {
+		ASSERT_EXPR(false, "Invalid buffer type.");
+	}
+	if ((desc->resource_flags & resource_flags_shader_read_write
+		) == resource_flags_shader_read_write) {
+		if (is_image) {
+			usage_flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+		}
+		else {
+			usage_flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		}
+	}
+	if ((desc->resource_flags & resource_flags_render_target) == resource_flags_render_target) {
+		ASSERT_EXPR(buffer_type == buffer_type_image_2d, "Invalid buffer type for render target");
+		usage_flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+		usage_flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	}	
+
+	T* buffer_impl = new T();
+	ASSERT_PTR(buffer_impl);
+
+	if (is_image) {
+		if ((desc->resource_flags & resource_flags_texture_sampling) == resource_flags_texture_sampling) {
+			usage_flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		}
+		usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		// Creación de la VkImage
+		VkImageCreateInfo image_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+		image_info.imageType = VK_IMAGE_TYPE_2D;
+		image_info.format = vk_resource_format_type[desc->format];
+		image_info.extent.width = static_cast<uint32_t>(desc->width);
+		image_info.extent.height = static_cast<uint32_t>(desc->height);
+		image_info.extent.depth = 1;
+		image_info.mipLevels = static_cast<uint32_t>(desc->mips);
+		image_info.arrayLayers = 1;
+		image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+		image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image_info.usage = usage_flags;
+		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		VkImage vk_image = VK_NULL_HANDLE;
+		VkResult res = vkCreateImage(device, &image_info, nullptr, &vk_image);
 		ASSERT_VK_RESULT(res);
 
-		// Requerimientos de memoria y asignación
+		// Reservar memoria física para la imagen
+		VkMemoryRequirements mem_reqs;
+		vkGetImageMemoryRequirements(device, vk_image, &mem_reqs);
+
+		VkMemoryPropertyFlags memory_properties = vk_heap_type[desc->memory_type]; // e.g., VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+
+		VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+		alloc_info.allocationSize = mem_reqs.size;
+		alloc_info.memoryTypeIndex = find_memory_type_index(physical_device, mem_reqs.memoryTypeBits, memory_properties);
+
+		VkDeviceMemory vk_memory = VK_NULL_HANDLE;
+		res = vkAllocateMemory(device, &alloc_info, nullptr, &vk_memory);
+		ASSERT_VK_RESULT(res);
+
+		res = vkBindImageMemory(device, vk_image, vk_memory, 0);
+		ASSERT_VK_RESULT(res);
+
+		buffer_impl->length = desc->length;
+		buffer_impl->format = desc->format;
+		buffer_impl->stride = desc->stride;
+		buffer_impl->type = desc->type;
+		buffer_impl->set_handle(vk_image);
+		// TODO: 
+		// if is_external_memory-pool == true
+		//	make_observer_ptr<VK_MEMORY_POOL>(vk_memory);
+		// else
+		buffer_impl->memory_pool = make_releseable_observer_ptr<VK_MEMORY_POOL>(new VK_MEMORY_POOL());
+		buffer_impl->memory_pool->set_handle(vk_memory);
+	}
+	else {
+
+		usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		buffer_info.size = desc->length;
+		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VkBuffer vk_buffer = VK_NULL_HANDLE;
+		VkResult res = vkCreateBuffer(device, &buffer_info, nullptr, &vk_buffer);
+		ASSERT_VK_RESULT(res, "Failed to create buffer");
+
 		VkMemoryRequirements mem_reqs;
 		vkGetBufferMemoryRequirements(device, vk_buffer, &mem_reqs);
 
@@ -137,13 +221,11 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 
 		VkDeviceMemory vk_memory = VK_NULL_HANDLE;
 		res = vkAllocateMemory(device, &alloc_info, nullptr, &vk_memory);
-		ASSERT_VK_RESULT(res);
+		ASSERT_VK_RESULT(res, "Failed to allocate memory");
 
 		res = vkBindBufferMemory(device, vk_buffer, vk_memory, 0);
-		ASSERT_VK_RESULT(res);
+		ASSERT_VK_RESULT(res, "Failed to bind buffer memory");
 
-		T* buffer_impl = new T();
-		ASSERT_PTR(buffer_impl);
 		buffer_impl->length = desc->length;
 		buffer_impl->format = desc->format;
 		buffer_impl->stride = desc->stride;
@@ -153,76 +235,10 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		// if is_external_memory-pool == true
 		//	make_observer_ptr<VK_MEMORY_POOL>(vk_memory);
 		// else
-			buffer_impl->memory_pool = make_releseable_observer_ptr<VK_MEMORY_POOL>(new VK_MEMORY_POOL());
-		buffer_impl->memory_pool->set_handle(vk_memory);
-		return buffer_impl;
-	}
-
-	// Configuración de Flags de Uso para VkImage
-	VkImageUsageFlags usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-	if (buffer_type == buffer_type_depth_stencil) {
-		usage_flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		buffer_type = buffer_type_image_2d;
-	}
-
-	if ((desc->flags & resource_flags_shader_read_write) == resource_flags_shader_read_write) {
-		usage_flags |= VK_IMAGE_USAGE_STORAGE_BIT;
-	}
-
-	if (desc->is_render_target == true) {
-		usage_flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	}
-
-	// Creación de la VkImage
-	VkImageCreateInfo image_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	image_info.imageType = VK_IMAGE_TYPE_2D;
-	image_info.format = vk_resource_format_type[desc->format];
-	image_info.extent.width = static_cast<uint32_t>(desc->width);
-	image_info.extent.height = static_cast<uint32_t>(desc->height);
-	image_info.extent.depth = 1;
-	image_info.mipLevels = static_cast<uint32_t>(desc->mips);
-	image_info.arrayLayers = 1;
-	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-	image_info.usage = usage_flags;
-	image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-	VkImage vk_image = VK_NULL_HANDLE;
-	VkResult res = vkCreateImage(device, &image_info, nullptr, &vk_image);
-	ASSERT_VK_RESULT(res);
-
-	// Reservar memoria física para la imagen
-	VkMemoryRequirements mem_reqs;
-	vkGetImageMemoryRequirements(device, vk_image, &mem_reqs);
-
-	VkMemoryPropertyFlags memory_properties = vk_heap_type[desc->memory_type]; // e.g., VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-
-	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	alloc_info.allocationSize = mem_reqs.size;
-	alloc_info.memoryTypeIndex = find_memory_type_index(physical_device, mem_reqs.memoryTypeBits, memory_properties);
-
-	VkDeviceMemory vk_memory = VK_NULL_HANDLE;
-	res = vkAllocateMemory(device, &alloc_info, nullptr, &vk_memory);
-	ASSERT_VK_RESULT(res);
-
-	res = vkBindImageMemory(device, vk_image, vk_memory, 0);
-	ASSERT_VK_RESULT(res);
-
-	T* buffer_impl = new T();
-	ASSERT_PTR(buffer_impl);
-	buffer_impl->length = desc->length;
-	buffer_impl->format = desc->format;
-	buffer_impl->stride = desc->stride;
-	buffer_impl->type = desc->type;
-	buffer_impl->set_handle(vk_image);
-	// TODO: 
-	// if is_external_memory-pool == true
-	//	make_observer_ptr<VK_MEMORY_POOL>(vk_memory);
-	// else
 		buffer_impl->memory_pool = make_releseable_observer_ptr<VK_MEMORY_POOL>(new VK_MEMORY_POOL());
-	buffer_impl->memory_pool->set_handle(vk_memory);
+		buffer_impl->memory_pool->set_handle(vk_memory);
+	}
+
 	return buffer_impl;
 }
 
@@ -504,10 +520,14 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_vk(const RHI_VIEW_DESC* const desc) 
 }
 
 RHI_BUFFER* vk_buffers_create_linear(const RHI_BUFFER_DESC* const desc) {
+	if (desc->memory_type == buffer_memory_type_gpu_rw && desc->device->mappeable_gpu_memory == false)
+		throw std::runtime_error("[VK] GPU Upload Heap not supported on this device. Use Staging Buffer instead.");
 	return buffers_create_vk<VK_BUFFER>(desc);
 }
 
 RHI_BUFFER* vk_buffers_create_2d(const RHI_BUFFER_2D_DESC* const desc) {
+	if (desc->type >= buffer_type_image_1d)
+		return buffers_create_2d_vk<VK_TEXTURE_2D>(desc);
 	return buffers_create_2d_vk<VK_BUFFER>(desc);
 }
 

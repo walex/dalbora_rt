@@ -159,6 +159,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             texture_desc.depth = static_cast<size_t>(dds.GetDepth());
             texture_desc.dims = static_cast<size_t>(dds.GetTextureDimension()) - 1;
             texture_desc.mips = static_cast<size_t>(dds.GetMipCount());
+			texture_desc.resource_flags = resource_flags_texture_sampling;
             texture.reset(rhi_texture_2d_create(&texture_desc));
 
             // create texture view            

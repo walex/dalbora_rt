@@ -53,12 +53,12 @@ constexpr size_t resources_count = static_cast<size_t>(shader_view_type_count);
 enum buffer_type
 {
 
-	buffer_type_undef = 0,
-	buffer_type_raw,
+	buffer_type_raw = 0,
+	buffer_type_bvh,
+	// image buffers
 	buffer_type_image_1d,
 	buffer_type_image_2d,
 	buffer_type_image_3d,
-	buffer_type_bvh,
 	buffer_type_depth_stencil,
 	buffer_type_count
 };
@@ -96,6 +96,7 @@ enum resource_flags {
 	resource_flags_none = 0,
 	resource_flags_shader_read_write = 0x1,
 	resource_flags_render_target = 0x2,
+	resource_flags_texture_sampling = 0x4,
 };
 
 enum fence_flags

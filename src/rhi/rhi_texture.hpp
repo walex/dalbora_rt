@@ -13,7 +13,8 @@ class RhiTexture
     , public ICreateRhiObject<const RhiDevice&, const resource_format,
                             const size_t, const size_t,
                             const bool, const size_t,
-                            const size_t, const size_t> {
+                            const size_t, const size_t,
+                            const bool> {
 
 public:
 	RhiTexture(RHI_TEXTURE_2D* handle = nullptr);
@@ -21,7 +22,8 @@ public:
     void create(const RhiDevice& device, const resource_format format,
         const size_t width, const size_t height,
         const bool is_cube_map, const size_t depth,
-        const size_t dimension, const size_t mip_count);
+        const size_t dimension, const size_t mip_count,
+        const bool sampling_enable = true);
     virtual RhiView new_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
     virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
     virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);

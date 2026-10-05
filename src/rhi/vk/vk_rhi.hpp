@@ -329,19 +329,19 @@ const VkQueueFlags vk_queue_type[queue_type_count] = {
 };
 
 const VkImageType vulkan_buffer_type[buffer_type_count] = {
-	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_undef
-	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_raw (Es VkBuffer, no VkImage)
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_raw
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_rt_bvha
+	// image buffers
 	VK_IMAGE_TYPE_1D,       // buffer_type_image_1d
 	VK_IMAGE_TYPE_2D,       // buffer_type_image_2d
 	VK_IMAGE_TYPE_3D,       // buffer_type_image_3d
-	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_rt_bvh (Es VkBuffer, no VkImage)
-	VK_IMAGE_TYPE_2D,       // buffer_type_depth_stencil (En Vulkan es una VkImage 2D con formato Depth)
+	VK_IMAGE_TYPE_2D,       // buffer_type_depth_stencil
 };
 
 #ifdef DEBUG
-#define ASSERT_VK_RESULT(expr) ASSERT_EXPR(expr == VK_SUCCESS)
+#define ASSERT_VK_RESULT(expr, ...) ASSERT_EXPR(expr == VK_SUCCESS, __VA_ARGS__)
 #else
-#define ASSERT_VK_RESULT(expr) expr
+#define ASSERT_VK_RESULT(expr, ...) expr
 #endif
 
 #endif

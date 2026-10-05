@@ -13,9 +13,8 @@ void RhiRenderTarget::create(const RhiDevice& device, const resource_format form
     desc.width = width;
     desc.height = height;
     desc.format = format;
-    desc.is_render_target = true;
     desc.mips = 1;
-    desc.flags = resource_flags_shader_read_write;    
+    desc.resource_flags = resource_flags_shader_read_write | resource_flags_render_target;    
     this->set_handle(rhi_texture_2d_create(&desc));
 }
 
