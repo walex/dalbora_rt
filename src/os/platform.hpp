@@ -256,6 +256,7 @@ namespace cv
 #endif
 #include <numeric>
 #define __STDC_WANT_LIB_EXT1__ 1
+#include <random>
 
 #ifndef _MAX_FNAME
 #define _MAX_FNAME 256
@@ -301,16 +302,23 @@ namespace std
 
 #else
 
-#define LD(label, ...) printf(__VA_ARGS__)
+	#ifdef WINDOWS_PLATFORM
+	#define LD(label, ...) OutputDebugStringA(__VA_ARGS__)
+	#else
+		#define LD(label, ...) printf(__VA_ARGS__)
+	#endif
 
 #endif
 
 #define LOG_D(format, ...) LD(__PRETTY_FUNCTION__, format, __VA_ARGS__)
 
 void msg_box(void *parent_window, const char *title, const char *message);
+bool run_program(const std::string& programa_path, const std::vector<std::string>& args);
 void set_thread_affinity(const std::vector<unsigned int> &cores);
 void print_fps(const char* label = nullptr, const double inteval_secs = 2.0);
 std::string get_executable_folder(const std::string& concat_path = "");
+std::string load_string_from_file(const char* path);
+void save_binary_to_file(const char* const path, const uint8_t* const content, size_t size);
 
 #define ALIGN(value, alignment) \
     (((value) + ((alignment) - 1)) & ~((alignment) - 1))
@@ -354,5 +362,6 @@ template <typename T, typename U>
 observer_ptr<T> make_observer_ptr(U* ptr) {
 	return observer_ptr<T>(ptr, nullptr);
 }
+
 
 #endif

@@ -1,8 +1,59 @@
 #include "platform.hpp"
-
 #include <sstream>
 
 #ifdef WINDOWS_PLATFORM
+#else
+#include <unistd.h>
+#include <sys/wait.h>
+    #ifdef __ANDROID__
+    #include <sys/prctl.h>
+    #endif
+#endif
+
+#ifdef WINDOWS_PLATFORM
+
+bool run_program(const std::string& programa_path, const std::vector<std::string>& args) {
+
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+
+    // Construir la línea de comando completa: "programa arg1 arg2"
+    std::string comandoCompleto = programa_path;
+    for (const auto& arg : args) {
+        comandoCompleto += " " + arg;
+    }
+
+    // Windows requiere un buffer de caracteres modificable (char*)
+    std::vector<char> cmdBuffer(comandoCompleto.begin(), comandoCompleto.end());
+    cmdBuffer.push_back('\0');
+
+    // Crear el proceso
+    if (!CreateProcessA(
+        NULL,               // Aplicación (NULL usa la línea de comandos)
+        cmdBuffer.data(),   // Línea de comando
+        NULL,               // Atributos del proceso
+        NULL,               // Atributos del hilo
+        FALSE,              // Heredar handles
+        0,                  // Flags de creación
+        NULL,               // Entorno
+        NULL,               // Directorio actual
+        &si,                // Información de inicio
+        &pi                 // Información del proceso
+    )) {
+        return false;
+    }
+
+    // Esperar a que el programa termine
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    // Cerrar handles para evitar fugas de memoria
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return true;
+}
 
 std::string get_executable_folder(const std::string& concat_path) {
     char buffer[MAX_PATH];
@@ -33,6 +84,39 @@ void set_thread_affinity(const std::vector<unsigned int>& cores) {
 
 #else
 
+bool run_program(const std::string& programa_path, const std::vector<std::string>& args) {
+
+    // --- IMPLEMENTACIÓN PARA LINUX / MACOS (POSIX) ---
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        return false; // Error al hacer el fork
+    }
+    else if (pid == 0) {
+        // Proceso Hijo: Preparar argumentos para execvp
+        // execvp requiere un array de char* que termine en NULL
+        std::vector<char*> argsChar;
+        argsChar.push_back(const_cast<char*>(programa.c_str()));
+
+        for (const auto& arg : argumentos) {
+            argsChar.push_back(const_cast<char*>(arg.c_str()));
+        }
+        argsChar.push_back(nullptr);
+
+        // Reemplaza el proceso hijo con el programa objetivo
+        execvp(argsChar[0], argsChar.data());
+
+        // Si execvp llega aquí, significa que hubo un error (no se encontró el programa)
+        _exit(127);
+    }
+    else {
+        // Proceso Padre: Esperar a que el hijo termine
+        int status;
+        waitpid(pid, &status, 0);
+        return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    }
+}
+
 void set_thread_affinity(const std::vector<unsigned int>& cores) {
 
     cpu_set_t cpuset;
@@ -49,9 +133,6 @@ void set_thread_affinity(const std::vector<unsigned int>& cores) {
 
 #endif
 
-#ifdef __ANDROID__
-#include <sys/prctl.h>
-#endif
 
 std::string GetCurrentThreadID() {
 
@@ -149,4 +230,25 @@ void print_fps(const char* label, const double inteval_secs) {
         s_frames = 0;
         s_start = now;
     }
+}
+
+
+std::string load_string_from_file(const char* path) {
+    std::ifstream file(path, std::ios::in | std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("could not read the file: ");
+    }
+
+    return std::string(
+        (std::istreambuf_iterator<char>(file)),
+        std::istreambuf_iterator<char>()
+    );
+}
+
+void save_binary_to_file(const char* const path, const uint8_t* const content, size_t size) {
+	std::ofstream file(path, std::ios::out | std::ios::binary);
+	if (!file) {
+		throw std::runtime_error("could not write to the file: ");
+	}
+	file.write(reinterpret_cast<const char*>(content), size);
 }

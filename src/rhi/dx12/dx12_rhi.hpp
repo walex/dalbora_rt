@@ -122,12 +122,6 @@ struct DX_COMMAND_ALLOCATOR
 	, public DX_HANDLE<ID3D12CommandAllocator> {
 };
 
-struct DX_COMPILED_SHADER_BUFFER : 
-	public RHI_COMPILED_SHADER_BUFFER, 
-	public RHI_BUFFER,
-	public DX_HANDLE<IDxcBlob> {
-};
-
 struct DX_BVH_BUFFER 
 	: public RHI_BUFFER,
 	public DX_RESOURCE {

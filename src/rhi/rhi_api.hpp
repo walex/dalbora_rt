@@ -5,9 +5,9 @@
 #include "rhi_creation_descriptors.hpp"
 
 // generic api
-void rhi_init(device_type dt);
+void rhi_init(rhi_device_type dt);
 void rhi_end();
-device_type rhi_get_device_type();
+rhi_device_type rhi_get_device_type();
 RHI_APP_INSTANCE rhi_get_app_instance();
 
 // window api
@@ -83,10 +83,6 @@ inline RHI_SBT_TABLE* (*rhi_rt_pipeline_create_sbt)(const RHI_DEVICE* const devi
 
 // pipeline layout
 inline RHI_PIPELINE_LAYOUT* (*rhi_pipeline_layout_create)(const RHI_PIPELINE_LAYOUT_DESC* const desc);
-inline RHI_COMPILED_SHADER_BUFFER* (*rhi_shaders_compiler_compile)(const char* const file,
-	const char* const entry,
-	const char* const target);
-inline void (*rhi_shaders_compiler_set_folder)(const char *const folder);
 
 // render pass api
 inline RHI_RENDER_PASS* (*rhi_render_pass_create)(const RHI_RENDER_PASS_DESC* const desc);

@@ -132,7 +132,15 @@ struct RHI_VIEW {
 };
 
 struct RHI_COMPILED_SHADER_BUFFER {
-	virtual ~RHI_COMPILED_SHADER_BUFFER() = default;
+	virtual ~RHI_COMPILED_SHADER_BUFFER() {
+		if (buffer) {
+			delete[] buffer;
+			buffer = nullptr;
+			buffer_size = 0;
+		}
+	};
+	uint8_t* buffer = nullptr;
+	size_t buffer_size = 0;
 };
 
 struct RHI_PIPELINE_LAYOUT {

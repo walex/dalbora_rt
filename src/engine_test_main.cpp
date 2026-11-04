@@ -38,7 +38,7 @@ void test_rt() {
 	device_desc.app_instance = rhi_get_app_instance();
 
 	// init device
-	rhi_init(device_type_dx12);
+	rhi_init(rhi_device_type_dx12);
 	device.create(device_desc);
 	render_target.create(device, surface_format, surface_width, surface_height);
 	render_target_view = render_target.new_view(device);
@@ -89,9 +89,9 @@ void test_rt() {
 	std::string closest_hit_shader_file = shaders_folder.concat("ray_trace.hlsl").string();
 
 	// compile shaders
-	RhiShaderProgram ray_gen_shader;
-	RhiShaderProgram miss_shader;
-	RhiShaderProgram closest_hit_shader;
+	RhiShaderProgramHLSL ray_gen_shader;
+	RhiShaderProgramHLSL miss_shader;
+	RhiShaderProgramHLSL closest_hit_shader;
 
 	ray_gen_shader.create(ray_gen_shader_file,
 		"RayGen", "lib_6_6");

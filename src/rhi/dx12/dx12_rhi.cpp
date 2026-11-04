@@ -9,7 +9,6 @@
 #include "dx12_render_pass.hpp"
 #include "dx12_raster_pipeline.hpp"
 #include "dx12_texture_2d.hpp"
-#include "dx12_shaders_compiler.hpp"
 #include "dx12_pipeline_layout.hpp"
 #include "dx12_buffers.hpp"
 #include "dx12_sampler.hpp"
@@ -83,9 +82,7 @@ void dx12_rhi_init()
 	rhi_texture_2d_create = &dx12_texture_2d_create;
 	rhi_sampler_create = &dx12_sampler_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
-	rhi_shaders_compiler_compile = &dx12_shaders_compiler_compile;
-	rhi_shaders_compiler_set_folder = &dx12_shaders_compiler_set_folder;
-
+	
 	// render pass
 	rhi_render_pass_create = &dx12_render_pass_create;
 	rhi_render_pass_execute_raster_mode = &dx12_render_pass_execute_raster_mode;

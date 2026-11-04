@@ -5,6 +5,8 @@
 #include "Camera.hpp"
 #include "ResourceManager.hpp"
 
+#define MAX_COMMAND_ALLOCATORS 8
+
 #define DEGREE_TO_RADIAN(x) ((x) * 3.14159265358979323846 / 180.0)
 
 std::unique_ptr<BaseCamera> create_camera(ResourceManager& resource_manager, float3 bb_min,
@@ -77,6 +79,11 @@ void test_rt_scene() {
 			// we use descriptor tables
 			resources_manager->create_descriptor_tables(constant_shader_count, read_only_shader_count,
 				rw_shader_count);
+
+			// create command allocator pools
+			RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_graphics);
+			RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_compute);
+			RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_copy);
 
 			// create renderer
 			resource_format surface_format = resource_format_R8G8B8A8_norm;

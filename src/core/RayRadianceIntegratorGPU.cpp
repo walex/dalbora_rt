@@ -7,8 +7,8 @@
 
 RayRadianceIntegratorGPU::RayRadianceIntegratorGPU(
 	const RhiDevice& device, RhiCommandQueue& command_queue,
-	const RhiShaderProgram& ray_gen_shader, const RhiShaderProgram& miss_shader,
-	const RhiShaderProgram& closest_hit_shader, resource_format surface_format) {
+	const RhiShaderProgramHLSL& ray_gen_shader, const RhiShaderProgramHLSL& miss_shader,
+	const RhiShaderProgramHLSL& closest_hit_shader, resource_format surface_format) {
 
 	// save shader programs references
 

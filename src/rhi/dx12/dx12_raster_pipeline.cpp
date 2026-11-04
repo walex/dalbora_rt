@@ -68,14 +68,12 @@ RHI_RASTER_PIPELINE* dx12_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC*
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = *static_cast<DX_PIPELINE_LAYOUT*>(desc->layout);
 	if (desc->vertex_shader) {
-		IDxcBlob* buffer_vs = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->vertex_shader);
-		psoDesc.VS.pShaderBytecode = buffer_vs->GetBufferPointer();
-		psoDesc.VS.BytecodeLength = buffer_vs->GetBufferSize();
+		psoDesc.VS.pShaderBytecode = desc->vertex_shader->buffer;
+		psoDesc.VS.BytecodeLength = desc->vertex_shader->buffer_size;
 	}
 	if (desc->pixel_shader) {
-		IDxcBlob* buffer_ps = *static_cast<DX_COMPILED_SHADER_BUFFER*>(desc->pixel_shader);
-		psoDesc.PS.pShaderBytecode = buffer_ps->GetBufferPointer();
-		psoDesc.PS.BytecodeLength = buffer_ps->GetBufferSize();
+		psoDesc.PS.pShaderBytecode = desc->pixel_shader->buffer;
+		psoDesc.PS.BytecodeLength = desc->pixel_shader->buffer_size;
 	}
 	psoDesc.BlendState = belnd_desc_default;
 	psoDesc.SampleMask = UINT_MAX;

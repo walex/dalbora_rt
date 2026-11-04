@@ -47,9 +47,8 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 			exp.Name = name.c_str();
 			exp.ExportToRename = nullptr;
 			exp.Flags = D3D12_EXPORT_FLAG_NONE;
-			IDxcBlob* i_buffer = static_cast<DX_COMPILED_SHADER_BUFFER&>(*unit_0.blob);
-			lib.DXILLibrary.pShaderBytecode = i_buffer->GetBufferPointer();
-			lib.DXILLibrary.BytecodeLength = i_buffer->GetBufferSize();
+			lib.DXILLibrary.pShaderBytecode = unit_0.blob->buffer;
+			lib.DXILLibrary.BytecodeLength = unit_0.blob->buffer_size;
 			lib.NumExports = 1;
 			lib.pExports = &exp;
 			auto& sub_object = sub_objects.emplace_back();
@@ -77,8 +76,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 			exp.Name = name.c_str();
 			exp.ExportToRename = nullptr;
 			exp.Flags = D3D12_EXPORT_FLAG_NONE;
-			IDxcBlob* i_buffer = static_cast<DX_COMPILED_SHADER_BUFFER&>(*unit_1.blob);
-			lib.DXILLibrary = { i_buffer->GetBufferPointer(), i_buffer->GetBufferSize() };
+			lib.DXILLibrary = { unit_1.blob->buffer, unit_1.blob->buffer_size };
 			lib.NumExports = 1;
 			lib.pExports = &exp;
 			auto& sub_object = sub_objects.emplace_back();
@@ -95,8 +93,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 			exp.Name = name.c_str();
 			exp.ExportToRename = nullptr;
 			exp.Flags = D3D12_EXPORT_FLAG_NONE;
-			IDxcBlob* i_buffer = static_cast<DX_COMPILED_SHADER_BUFFER&>(*unit_2.blob);
-			lib.DXILLibrary = { i_buffer->GetBufferPointer(), i_buffer->GetBufferSize() };
+			lib.DXILLibrary = { unit_2.blob->buffer, unit_2.blob->buffer_size };
 			lib.NumExports = 1;
 			lib.pExports = &exp;
 			auto& sub_object = sub_objects.emplace_back();
@@ -113,8 +110,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 			exp.Name = name.c_str();
 			exp.ExportToRename = nullptr;
 			exp.Flags = D3D12_EXPORT_FLAG_NONE;
-			IDxcBlob* i_buffer = static_cast<DX_COMPILED_SHADER_BUFFER&>(*unit_3.blob);
-			lib.DXILLibrary = { i_buffer->GetBufferPointer(), i_buffer->GetBufferSize() };
+			lib.DXILLibrary = { unit_3.blob->buffer, unit_3.blob->buffer_size };
 			lib.NumExports = 1;
 			lib.pExports = &exp;
 			auto& sub_object = sub_objects.emplace_back();
@@ -140,8 +136,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 			exp.Name = name.c_str();
 			exp.ExportToRename = nullptr;
 			exp.Flags = D3D12_EXPORT_FLAG_NONE;
-			IDxcBlob* i_buffer = static_cast<DX_COMPILED_SHADER_BUFFER&>(*unit_4.blob);
-			lib.DXILLibrary = { i_buffer->GetBufferPointer(), i_buffer->GetBufferSize() };
+			lib.DXILLibrary = { unit_4.blob->buffer, unit_4.blob->buffer_size };
 			lib.NumExports = 1;
 			lib.pExports = &exp;
 			auto& sub_object = sub_objects.emplace_back();

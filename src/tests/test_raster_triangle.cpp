@@ -100,15 +100,15 @@ void test_raster_triangle(fptr_test_on_init on_init,
 				desc_pos.offset = 0;
 			}
 			 
-			
+			vs_file = std::filesystem::path(shaders_folder / vs_file).string();
+			ps_file = std::filesystem::path(shaders_folder / ps_file).string();
+
 			// create pipeline layout
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 
 			// compile shaders
-
-			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
-			vertex_shader.reset(rhi_shaders_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0"));
-			pixel_shader.reset(rhi_shaders_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0"));
+			vertex_shader.reset(rhi_hlsl_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0", shaders_folder.string().c_str(), byte_code_format_source_hlsl));
+			pixel_shader.reset(rhi_hlsl_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0", shaders_folder.string().c_str(), byte_code_format_source_hlsl));
 			
 			// create geometry buffers
 			RHI_VERTEX_BUFFER_DESC vb_desc;
@@ -320,8 +320,10 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
-	RhiShaderProgram vertex_shader;
-	RhiShaderProgram pixel_shader;
+	RhiShaderProgramHLSL vertex_shader;
+	RhiShaderProgramHLSL pixel_shader;
+	std::vector<uint8_t> bytecode_vs;
+	std::vector<uint8_t> bytecode_ps;
 	RhiGPUBuffer vertex_buffer;
 	RhiGPUBuffer index_buffer;
 	RhiDepthBuffer depth_buffer;
@@ -368,20 +370,7 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
 
 		RhiSharedBuffer shared_vertex_buffer;
-		RhiSharedBuffer shared_index_buffer;
-
-		// setup pipeline layout
-		// add layout descriptors ( order mathers )
-	
-		pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
-			0, unit_test.read_only_shader_registers_count,
-			0, unit_test.rw_shader_registers_count);
-
-		// setup pipeline
-		RhiRasterPipelineShaderPrograms shader_programs;
-		shader_programs.vertex_shader = &vertex_shader;
-		shader_programs.pixel_shader = &pixel_shader;
-		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);		
+		RhiSharedBuffer shared_index_buffer;	
 
 		// setup shaders
 		const std::filesystem::path shaders_path = get_executable_folder("shaders");
@@ -401,10 +390,44 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 			callbacks->on_init(unit_test);
 
 		// compile shaders
-		vertex_shader.create(unit_test.vertex_shader_file,
-			"VSMain", "vs_6_0");
-		pixel_shader.create(unit_test.pixel_shader_file,
-			"PSMain", "ps_6_0");
+		{
+			RhiShaderProgramHLSL vertex_shader_tmp;
+			RhiShaderProgramHLSL pixel_shader_tmp;
+			byte_code_format bc_format = byte_code_format_source_hlsl;
+			if (rhi_get_device_type() == rhi_device_type_vulkan) {
+				int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_spirv_output);
+				bc_format = static_cast<byte_code_format>(flag);
+			}
+			vertex_shader_tmp.create(unit_test.vertex_shader_file,
+				"VSMain", "vs_6_0", bc_format);
+			pixel_shader_tmp.create(unit_test.pixel_shader_file,
+				"PSMain", "ps_6_0", bc_format);
+			
+			vertex_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
+			pixel_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
+
+			vertex_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
+			pixel_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
+
+			// delete temporary shader files
+			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
+			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
+
+		}
+
+
+		// setup pipeline layout
+		// add layout descriptors ( order mathers )
+
+		pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
+			0, unit_test.read_only_shader_registers_count,
+			0, unit_test.rw_shader_registers_count);
+
+		// setup pipeline
+		RhiRasterPipelineShaderPrograms shader_programs;
+		shader_programs.vertex_shader = &vertex_shader;
+		shader_programs.pixel_shader = &pixel_shader;
+		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, 

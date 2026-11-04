@@ -3,12 +3,12 @@
 
 #include "rhi_pipeline.hpp"
 
-class RhiShaderProgram;
+class RhiShaderProgramHLSL;
 class RhiRayTracePipelineShaderPrograms {	
 public:
-	const RhiShaderProgram* ray_gen_shader = nullptr;
-	const RhiShaderProgram* miss_shader = nullptr;
-	const RhiShaderProgram* closest_hit_shader = nullptr;
+	const RhiShaderProgramHLSL* ray_gen_shader = nullptr;
+	const RhiShaderProgramHLSL* miss_shader = nullptr;
+	const RhiShaderProgramHLSL* closest_hit_shader = nullptr;
 	std::vector<RHI_RT_SHADER_UNIT_DESC> ray_gen_shaders_desc;
 	std::vector<RHI_RT_SHADER_UNIT_DESC> miss_shaders_desc;
 	std::vector<RHI_RT_HIT_GROUP_DESC> hit_groups_desc;

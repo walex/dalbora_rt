@@ -6,12 +6,13 @@ enum rhi_api
 	rhi_api_dx12
 };
 
-enum device_type
+enum rhi_device_type
 {
-	device_type_none = 0,
-	device_type_dx12,
-	device_type_vk,
-	device_type_count
+	rhi_device_type_none = 0,
+	rhi_device_type_dx12,
+	rhi_device_type_vulkan,
+	rhi_device_type_metal,
+	rhi_device_type_count
 };
 
 enum resource_format
@@ -181,6 +182,11 @@ enum pipeline_stage {
 	pipeline_stage_ray_tracing,
 	pipeline_stage_pre_rasterization_shaders,
 	pipeline_stage_count
+};
+
+enum byte_code_format {
+	byte_code_format_source_hlsl = 0x2,
+	byte_code_format_spirv_output = 0x8
 };
 
 constexpr __int64 device_features_none = 0x0;

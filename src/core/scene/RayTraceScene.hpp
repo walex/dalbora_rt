@@ -56,7 +56,7 @@ private:
 	std::vector<std::vector<const float*>> m_tlas_transforms;
 	RhiRayTraceGeometrydBufferInstances m_tlas_buffers;
 	RhiView m_tlas_view;
-	RhiShaderProgram m_ray_gen_shader, m_miss_shader, m_closest_hit_shader;
+	RhiShaderProgramHLSL m_ray_gen_shader, m_miss_shader, m_closest_hit_shader;
 	RhiRayTracePipeline m_pipeline;
 	RhiShaderBindingTable m_sbt;
 };

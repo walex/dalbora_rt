@@ -87,12 +87,11 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			render_target.reset(rhi_texture_2d_create(&tx_desc));
 			
 			// compile shaders
-			rhi_shaders_compiler_set_folder(shaders_folder.string().c_str());
-			std::string rt_file = "simple_rt.hlsl";
-			
-			auto ray_gen_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "RayGen", "lib_6_6");
-			auto miss_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "Miss", "lib_6_6");
-			auto closest_hit_shader = rhi_shaders_compiler_compile(rt_file.c_str(), "ClosestHit", "lib_6_6");
+			std::string rt_file = std::filesystem::path(shaders_folder / "simple_rt.hlsl").string();
+
+			auto ray_gen_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "RayGen", "lib_6_6", byte_code_format_source_hlsl);
+			auto miss_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "Miss", "lib_6_6", byte_code_format_source_hlsl);
+			auto closest_hit_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "ClosestHit", "lib_6_6", byte_code_format_source_hlsl);
 
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
 			pl_desc.device = &dev;
@@ -369,9 +368,9 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 	RhiRenderTarget render_target;
 	RhiView render_target_view;
-	RhiShaderProgram ray_gen_shader;
-	RhiShaderProgram miss_shader;
-	RhiShaderProgram closest_hit_shader;
+	RhiShaderProgramHLSL ray_gen_shader;
+	RhiShaderProgramHLSL miss_shader;
+	RhiShaderProgramHLSL closest_hit_shader;
 	RhiGPUBuffer vertex_buffer;
 	RhiGPUBuffer index_buffer;
 	std::vector<RhiRayTraceGeometryBuffer> geometry_buffers;

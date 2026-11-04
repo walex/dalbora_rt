@@ -3,17 +3,17 @@
 
 #include "rhi_pipeline.hpp"
 
-class RhiShaderProgram;
+class RhiShaderProgramHLSL;
 class RhiRasterPipelineShaderPrograms {	
 public:
-	RhiShaderProgram* vertex_shader = nullptr;
-	RhiShaderProgram* pixel_shader = nullptr;
-	RhiShaderProgram* geometry_shader = nullptr;
-	RhiShaderProgram* hull_shader = nullptr;
-	RhiShaderProgram* tess_shader = nullptr;
-	RhiShaderProgram* domain_shader = nullptr;
-	RhiShaderProgram* as_shader = nullptr;
-	RhiShaderProgram* mesh_shader = nullptr;
+	RhiShaderProgramHLSL* vertex_shader = nullptr;
+	RhiShaderProgramHLSL* pixel_shader = nullptr;
+	RhiShaderProgramHLSL* geometry_shader = nullptr;
+	RhiShaderProgramHLSL* hull_shader = nullptr;
+	RhiShaderProgramHLSL* tess_shader = nullptr;
+	RhiShaderProgramHLSL* domain_shader = nullptr;
+	RhiShaderProgramHLSL* as_shader = nullptr;
+	RhiShaderProgramHLSL* mesh_shader = nullptr;
 };
 class RhiDevice;
 class RhiPipelineLayout;
