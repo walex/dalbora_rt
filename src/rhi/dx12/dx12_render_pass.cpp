@@ -41,20 +41,20 @@ void dx12_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, 
 	// configure heap
 	UINT heap_count = 0;
 	if (command_buffer_impl->buffer_memory_descriptor) {
-		ID3D12DescriptorHeap* resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor);
+		ID3D12DescriptorHeap* resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor.get());
 		ASSERT_PTR(resource_heap);
 		command_buffer_impl->heaps[heap_count++] = resource_heap;
 	}
 
 	ID3D12DescriptorHeap* sampler_heap = nullptr;
 	if (command_buffer_impl->sampler_memory_descriptor) {
-		sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor);
+		sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor.get());
 		ASSERT_PTR(sampler_heap);
 		command_buffer_impl->heaps[heap_count++] = sampler_heap;
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle 
-		= {static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor)->gpu_handle};
+		= {static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor.get())->gpu_handle};
 	i_command_buffer_5->SetDescriptorHeaps(heap_count, command_buffer_impl->heaps);
 	i_command_buffer_5->SetComputeRootSignature(*static_cast<DX_PIPELINE_LAYOUT*>(render_pass->pipeline->layout));
 	i_command_buffer_5->SetComputeRootDescriptorTable(0, gpu_handle);
@@ -121,14 +121,14 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 			ID3D12DescriptorHeap* resource_heap = nullptr;
 			// configure heap
 			if (command_buffer->buffer_memory_descriptor) {
-				resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor);
+				resource_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor.get());
 				ASSERT_PTR(resource_heap);
 				command_buffer_impl->heaps[heap_count++] = resource_heap;
 			}
 			
 			ID3D12DescriptorHeap* sampler_heap = nullptr;
 			if (command_buffer->sampler_memory_descriptor) {
-				sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor);
+				sampler_heap = *static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor.get());
 				ASSERT_PTR(sampler_heap);
 				command_buffer_impl->heaps[heap_count++] = sampler_heap;
 			}
@@ -164,7 +164,7 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 				ASSERT_PTR(command_buffer_impl->buffer_memory_descriptor);
 
 				D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = 
-					{ static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor)->gpu_handle };
+					{ static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor.get())->gpu_handle };
 				ID3D12PipelineState* i_pipeline = *pipeline_impl;
 				ASSERT_PTR(i_pipeline);
 				i_command_buffer->SetPipelineState(i_pipeline);
@@ -173,7 +173,7 @@ void dx12_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pa
 				i_command_buffer->SetGraphicsRootSignature(i_signature);
 				i_command_buffer->SetGraphicsRootDescriptorTable(0, gpu_handle);
 				if (sampler_heap) {
-					gpu_handle = { static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor)->gpu_handle };
+					gpu_handle = { static_cast<DX_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor.get())->gpu_handle };
 					i_command_buffer->SetGraphicsRootDescriptorTable(1, gpu_handle);
 				}
 			}

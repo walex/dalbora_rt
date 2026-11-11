@@ -4,7 +4,7 @@
 void test_api()
 {
 	// init rhi
-	rhi_init(rhi_device_type_dx12);
+	rhi_init(rhi_device_type_vulkan);
 
 	// simple platform windows creation
 	//test_create_window();
@@ -13,10 +13,10 @@ void test_api()
 	//test_swap_chain();
 
 	// raster triangle
-	test_raster_triangle();
+	// test_raster_triangle();
 
 	// raster textured triangle
-   // test_raster_textured_triangle();
+    test_raster_textured_triangle();
 
 	// rt triangle
 	// test_rt_triangle();
@@ -52,8 +52,8 @@ void test_objects() {
 int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 {
 
-	// test_api();
-	test_objects();
+	test_api();
+	//test_objects();
 
 	return 0;
 }

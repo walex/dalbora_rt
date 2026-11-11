@@ -30,6 +30,10 @@ public:
 	RhiMemoryDescriptor* next_descriptor_ptr(size_t group_index = 0);
 	std::unique_ptr<RhiMemoryDescriptor> next_descriptor(size_t group_index = 0);
 	void restore_descriptor_slot(const size_t slot_id, const size_t group_index);
+	operator RHI_MEMORY_DESCRIPTOR* () {
+		return this->get_handle();
+	}
+
 private:
 
 	void create(const RhiDevice& device, const memory_descriptor_type type,

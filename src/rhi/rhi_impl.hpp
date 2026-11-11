@@ -14,7 +14,7 @@ public:
 		if (m_owner == false)
 			m_handle.release();
 	};
-	operator T* () const { return m_handle.get(); }
+	operator T* () const { return this->get_handle(); }
 	bool empty() const { return m_handle == nullptr; }
 
 	void set_handle(T* handle) {
@@ -31,7 +31,7 @@ protected:
 			m_owner = ownership;
 		}
 	}
-	
+	T* get_handle() const { return m_handle.get(); }
 private:
 	bool m_owner = false;
 	std::unique_ptr<T> m_handle;

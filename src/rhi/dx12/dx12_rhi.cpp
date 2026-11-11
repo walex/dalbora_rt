@@ -55,9 +55,15 @@ void dx12_rhi_init()
 	rhi_buffers_map_read = &dx12_buffers_map_read;
 	rhi_command_buffer_draw_triangle_list = &dx12_command_buffer_draw_triangle_list;
 
+	// render pass
+	rhi_render_pass_create = &dx12_render_pass_create;
+	rhi_render_pass_execute_raster_mode = &dx12_render_pass_execute_raster_mode;
+	rhi_render_pass_execute_rt_mode = &dx12_render_pass_execute_rt_mode;
+
 	// pipeline
 	rhi_pipeline_layout_create = &dx12_pipeline_layout_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
+	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
 
 	// buffers
 	rhi_buffers_create_raw = &dx12_buffers_create_linear;
@@ -81,15 +87,8 @@ void dx12_rhi_init()
 
 	rhi_texture_2d_create = &dx12_texture_2d_create;
 	rhi_sampler_create = &dx12_sampler_create;
-	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
 	
-	// render pass
-	rhi_render_pass_create = &dx12_render_pass_create;
-	rhi_render_pass_execute_raster_mode = &dx12_render_pass_execute_raster_mode;
-	rhi_render_pass_execute_rt_mode = &dx12_render_pass_execute_rt_mode;
-
 	// rt
-	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
 	rhi_rt_bvh_create = &dx12_rt_bvh_create;
 	rhi_rt_bvh_build_geometry_instances = &dx12_rt_bvh_build_geometry_instances;
 	rhi_rt_bvh_update_geometry_instances = &dx12_rt_bvh_update_geometry_instances;

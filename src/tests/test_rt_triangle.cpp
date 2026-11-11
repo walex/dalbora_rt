@@ -89,9 +89,9 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			// compile shaders
 			std::string rt_file = std::filesystem::path(shaders_folder / "simple_rt.hlsl").string();
 
-			auto ray_gen_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "RayGen", "lib_6_6", byte_code_format_source_hlsl);
-			auto miss_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "Miss", "lib_6_6", byte_code_format_source_hlsl);
-			auto closest_hit_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "ClosestHit", "lib_6_6", byte_code_format_source_hlsl);
+			auto ray_gen_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "RayGen", "lib_6_6", byte_code_format_input_hlsl);
+			auto miss_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "Miss", "lib_6_6", byte_code_format_input_hlsl);
+			auto closest_hit_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "ClosestHit", "lib_6_6", byte_code_format_input_hlsl);
 
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
 			pl_desc.device = &dev;

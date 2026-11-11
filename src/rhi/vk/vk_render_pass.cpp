@@ -35,6 +35,45 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 
 	const RHI_VIEWPORT& vp = render_pass->view_port;
 
+	UINT heap_count = 0;
+	if (command_buffer_impl->buffer_memory_descriptor) {
+
+		VkDescriptorBufferBindingInfoEXT& bindingInfo = command_buffer_impl->heaps[heap_count];
+
+		// 1. Configurar la información de enlace para el Heap de Recursos
+		VkBindHeapInfoEXT resourceBindInfo{};
+		resourceBindInfo.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
+		resourceBindInfo.pNext = nullptr;
+
+		// El rango completo del buffer que actúa como heap (Dirección de GPU y Tamaño total)
+		resourceBindInfo.heapRange.address = command_buffer_impl->buffer_memory_descriptor->gpu_handle;
+		resourceBindInfo.heapRange.size = command_buffer_impl->buffer_memory_descriptor->descriptor_capacity;
+
+		// El área reservada por el driver (estos límites los consultas previamente de las propiedades físicas)
+		resourceBindInfo.reservedRangeSize = command_buffer_impl->buffer_memory_descriptor->reserved_range;     // Tamaño reservado
+		resourceBindInfo.reservedRangeOffset = command_buffer_impl->buffer_memory_descriptor->reserved_offset;
+
+		// 2. Vincular el heap de recursos al command buffer
+		vkCmdBindResourceHeapEXT(*command_buffer_impl, &resourceBindInfo);
+
+	}
+
+	if (command_buffer_impl->sampler_memory_descriptor) {
+		VkBindHeapInfoEXT samplerBindInfo{};
+		samplerBindInfo.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
+		samplerBindInfo.heapRange.address = command_buffer_impl->sampler_memory_descriptor->gpu_handle;
+		samplerBindInfo.heapRange.size = command_buffer_impl->sampler_memory_descriptor->descriptor_capacity;
+		samplerBindInfo.reservedRangeSize = command_buffer_impl->sampler_memory_descriptor->reserved_range;
+		samplerBindInfo.reservedRangeOffset = command_buffer_impl->sampler_memory_descriptor->reserved_offset;
+
+		vkCmdBindSamplerHeapEXT(*command_buffer_impl, &samplerBindInfo);
+		heap_count++;
+	}
+
+
+	// 1. Vincular la pipeline gráfica
+	vkCmdBindPipeline(*command_buffer_impl, VK_PIPELINE_BIND_POINT_GRAPHICS, *static_cast<const VK_RASTER_PIPELINE*>(render_pass->pipeline.get()));
+
 	// 1. Configurar la barrera de transición con la API moderna (Synchronization2)
 	VkImageMemoryBarrier2 image_barrier{};
 	image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -78,6 +117,15 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 	// vkCmdBeginRendering(commandBuffer, &renderingInfo);
 	// ==========================================
 
+	// Set view port and scissor
+	VkViewport viewport{};
+	viewport.x = static_cast<float>(vp.x);
+	viewport.y = static_cast<float>(vp.y);
+	viewport.width = static_cast<float>(vp.width);
+	viewport.height = static_cast<float>(vp.height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(*command_buffer_impl, 0, 1, &viewport);
 
 	VkRenderingInfo renderingInfo{};
 	renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -86,6 +134,8 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 	renderingInfo.layerCount = 1;
 	renderingInfo.colorAttachmentCount = 1;
 	renderingInfo.pColorAttachments = &colorAttachment;
+	vkCmdSetScissor(*command_buffer_impl, 0, 1, &renderingInfo.renderArea);
+
 
 	vkCmdBeginRendering(*command_buffer_impl, &renderingInfo);
 

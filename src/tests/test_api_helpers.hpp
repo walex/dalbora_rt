@@ -40,7 +40,7 @@ struct alignas(256) CameraCBRT
 	float pad1;      
 };
 
-inline void get_transforms(float4x4& world, float4x4& view, float4x4& projection)
+inline void get_transforms(const float aspect, float4x4& world, float4x4& view, float4x4& projection)
 {
 
 	world = float4x4::Identity();
@@ -81,7 +81,11 @@ inline void get_transforms(float4x4& world, float4x4& view, float4x4& projection
 		camera_pos.z,
 		1.0f);
 
-	projection.SetupByHalfFovy(XM_PIDIV4*0.5f, 800.0f / 600.0f, 0.1f, 100.0f, PROJ_LEFT_HANDED);
+	projection.SetupByHalfFovy(XM_PIDIV4*0.5f, aspect, 0.1f, 100.0f, PROJ_LEFT_HANDED);
+
+	if (rhi_get_device_type() == rhi_device_type_vulkan) {
+		projection.a11 *= -1.0f; // Invierte el eje Y para compensar el NDC de Vulkan
+	}
 
 }
 

@@ -26,6 +26,7 @@ RHI_COMMAND_BUFFER* dx12_command_buffer_create(const RHI_COMMAND_BUFFER_DESC* co
 	ASSERT_PTR(result);
 	result->set_handle(i_cmd_list);
 	result->command_allocator = desc->command_allocator;
+	result->command_queue_type = desc->command_queue->type;
 	return result;
 }
 

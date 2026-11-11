@@ -12,12 +12,12 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges;
 	std::vector<D3D12_DESCRIPTOR_RANGE1> descriptor_ranges_sampler;
 
+	descriptor_ranges.reserve(desc->descriptor_count);
+	descriptor_ranges_sampler.reserve(desc->descriptor_count);
+
+	size_t constant_shader_registers_count = 0;
 	for (size_t i = 0; i < desc->descriptor_count; i++) {
 
-		if (desc->descriptors[i].shader_register_start == -1 
-			|| desc->descriptors[i].shader_register_max == -1) {
-			break;
-		}
 		const RHI_SHADER_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
 		switch (descriptor.shader_view_type) {
@@ -29,6 +29,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 			break;
 		case shader_view_type_constant_buffer:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			constant_shader_registers_count += descriptor.shader_register_max;
 			break;
 		case shader_view_type_sampler:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
@@ -98,5 +99,6 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	result->topology = desc->topology;
 	result->surface_format = desc->surface_format;
 	result->depth_buffer_format = desc->depth_buffer_format;
+	result->constant_shader_registers_count = constant_shader_registers_count;
 	return result;
 }

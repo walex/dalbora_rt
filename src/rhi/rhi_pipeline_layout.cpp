@@ -52,4 +52,8 @@ void RhiPipelineLayout::set_shader_descriptors(const shader_view_type rt, const 
 	cbd.shader_register_start = offset;
 	cbd.shader_register_max = count;
 	cbd.space_index = space_index;
+
+	(rt == shader_view_type_sampler) 
+	? m_layout_desc.sampler_descriptor_count++
+	: m_layout_desc.resource_descriptor_count++;
 }

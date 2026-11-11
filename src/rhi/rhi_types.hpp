@@ -43,9 +43,12 @@ struct RHI_MEMORY_DESCRIPTOR {
 	virtual ~RHI_MEMORY_DESCRIPTOR() = default;
 	size_t descriptor_count = 0;
 	size_t descriptor_size = 0;
+	size_t descriptor_capacity = 0;
 	size_t descriptor_alignment = 0;
 	uint64_t cpu_handle = 0;
 	uint64_t gpu_handle = 0;
+	size_t reserved_range = 0;
+	size_t reserved_offset = 0;
 };
 
 struct RHI_MEMORY_DESCRIPTOR_SLOT: public RHI_MEMORY_DESCRIPTOR {
@@ -74,9 +77,12 @@ struct RHI_COMMAND_QUEUE {
 
 struct RHI_COMMAND_BUFFER {
 	virtual ~RHI_COMMAND_BUFFER() = default;
-	RHI_MEMORY_DESCRIPTOR* buffer_memory_descriptor = nullptr;
-	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr;
+	observer_ptr<RHI_MEMORY_DESCRIPTOR> buffer_memory_descriptor = nullptr;
+	observer_ptr<RHI_MEMORY_DESCRIPTOR> sampler_memory_descriptor = nullptr;
+	observer_ptr<RHI_MEMORY_DESCRIPTOR> rtv_memory_descriptor = nullptr;
+	observer_ptr<RHI_MEMORY_DESCRIPTOR> dsv_memory_descriptor = nullptr;
 	RHI_COMMAND_ALLOCATOR* command_allocator = nullptr;
+	queue_type command_queue_type = queue_type_graphics;
 };
 
 #define MAX_RENDER_TARGETS 8
@@ -137,7 +143,7 @@ struct RHI_COMPILED_SHADER_BUFFER {
 			delete[] buffer;
 			buffer = nullptr;
 			buffer_size = 0;
-		}
+		} 
 	};
 	uint8_t* buffer = nullptr;
 	size_t buffer_size = 0;
@@ -148,6 +154,7 @@ struct RHI_PIPELINE_LAYOUT {
 	primitive_topology topology = primitive_topology_none;
 	resource_format	surface_format = resource_format_none;
 	resource_format depth_buffer_format = resource_format_none;
+	size_t constant_shader_registers_count = 0;
 };
 
 struct RHI_PIPELINE { 

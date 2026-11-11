@@ -11,7 +11,7 @@ static uint32_t find_memory_type_index(VkPhysicalDevice physical_device, uint32_
 			return i;
 		}
 	}
-	return 0;
+	return UINT32_MAX;
 }
 
 static RHI_VIEW* create_view_from_buffer_view_vk(const RHI_VIEW_DESC* const desc, const VkBufferViewCreateInfo& view_info,
@@ -51,13 +51,13 @@ static RHI_VIEW* create_view_from_image_view_vk(const RHI_VIEW_DESC* const desc,
 	VK_IMAGE_VIEW* result = new VK_IMAGE_VIEW();
 	ASSERT_PTR(result);
 	result->set_handle(image_view);
-	result->buffer = *static_cast<const VK_BUFFER*>(desc->buffer);
+	result->buffer = desc->buffer;
 	result->type = desc->type;
 	result->format = desc->format;
 	result->mip_map_count = desc->mip_maps_count;
 	result->memory_descriptor = desc->memory_descriptor;
 
-    vk_memory_resource_write_image_descriptor(*static_cast<VK_DEVICE*>(desc->device), slot, &view_info);
+    vk_memory_resource_write_image_descriptor(static_cast<VK_DEVICE*>(desc->device), slot, &view_info);
 
 	return result;
 }
@@ -70,11 +70,14 @@ static RHI_VIEW* create_view_from_agnostic_buffer_vk(const RHI_VIEW_DESC* const 
 	buffer_info.range = desc->buffer->length;
 
 	VK_AGNOSTIC_BUFFER_VIEW* result = new VK_AGNOSTIC_BUFFER_VIEW();
+	ASSERT_PTR(result);
 	result->buffer = make_observer_ptr<RHI_BUFFER>(desc->buffer);
 	result->offset = buffer_info.offset;
 	result->range = buffer_info.range;
 
-	vk_memory_resource_write_constant_buffer_view_descriptor(*static_cast<VK_DEVICE*>(desc->device), slot, &buffer_info);
+	vk_memory_resource_write_constant_buffer_view_descriptor(static_cast<VK_DEVICE*>(desc->device), slot, &buffer_info);
+	
+	return result;
 }
 
 static RHI_VIEW* create_view_from_tlas_vk(const RHI_VIEW_DESC* const desc, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
@@ -112,7 +115,7 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 
 	bool is_image = buffer_type >= buffer_type_image_1d;
 	VkBufferUsageFlags usage_flags = 0;
-
+	
 	if (buffer_type == buffer_type_depth_stencil) {
 		usage_flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	}
@@ -120,10 +123,17 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		usage_flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 	else if (buffer_type == buffer_type_raw) {
-		usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 	else if (buffer_type >= buffer_type_count) {
 		ASSERT_EXPR(false, "Invalid buffer type.");
+	}
+	if (desc->memory_type == buffer_memory_type_shared_rw
+		|| desc->memory_type == buffer_memory_type_shared_read_only) {
+		//memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+	}
+	else {
+		//memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	}
 	if ((desc->resource_flags & resource_flags_shader_read_write
 		) == resource_flags_shader_read_write) {
@@ -144,10 +154,12 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 	ASSERT_PTR(buffer_impl);
 
 	if (is_image) {
-		if ((desc->resource_flags & resource_flags_texture_sampling) == resource_flags_texture_sampling) {
+		if ((desc->resource_flags & resource_flags_texture_sampling) == resource_flags_texture_sampling
+			|| buffer_type == buffer_type_depth_stencil) {
 			usage_flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
 		}
-		usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		if (buffer_type != buffer_type_depth_stencil)
+			usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 		// Creación de la VkImage
 		VkImageCreateInfo image_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -177,6 +189,7 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 		alloc_info.allocationSize = mem_reqs.size;
 		alloc_info.memoryTypeIndex = find_memory_type_index(physical_device, mem_reqs.memoryTypeBits, memory_properties);
+		ASSERT_EXPR(alloc_info.memoryTypeIndex != UINT32_MAX, "Failed to find suitable memory type for buffer");
 
 		VkDeviceMemory vk_memory = VK_NULL_HANDLE;
 		res = vkAllocateMemory(device, &alloc_info, nullptr, &vk_memory);
@@ -195,6 +208,7 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		//	make_observer_ptr<VK_MEMORY_POOL>(vk_memory);
 		// else
 		buffer_impl->memory_pool = make_releseable_observer_ptr<VK_MEMORY_POOL>(new VK_MEMORY_POOL());
+		buffer_impl->memory_pool->parent_device = static_cast<VK_DEVICE*>(desc->device);
 		buffer_impl->memory_pool->set_handle(vk_memory);
 	}
 	else {
@@ -204,6 +218,7 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_info.size = desc->length;
 		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		buffer_info.usage = usage_flags;
 		VkBuffer vk_buffer = VK_NULL_HANDLE;
 		VkResult res = vkCreateBuffer(device, &buffer_info, nullptr, &vk_buffer);
 		ASSERT_VK_RESULT(res, "Failed to create buffer");
@@ -214,10 +229,13 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		VkMemoryAllocateFlagsInfo alloc_flags_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO };
 		alloc_flags_info.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
 
+		VkMemoryPropertyFlags memory_properties = vk_heap_type[desc->memory_type];
+
 		VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 		alloc_info.pNext = &alloc_flags_info;
 		alloc_info.allocationSize = mem_reqs.size;
-		alloc_info.memoryTypeIndex = find_memory_type_index(physical_device, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		alloc_info.memoryTypeIndex = find_memory_type_index(physical_device, mem_reqs.memoryTypeBits, memory_properties);
+		ASSERT_EXPR(alloc_info.memoryTypeIndex != UINT32_MAX, "Failed to find suitable memory type for buffer");
 
 		VkDeviceMemory vk_memory = VK_NULL_HANDLE;
 		res = vkAllocateMemory(device, &alloc_info, nullptr, &vk_memory);
@@ -236,9 +254,11 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		//	make_observer_ptr<VK_MEMORY_POOL>(vk_memory);
 		// else
 		buffer_impl->memory_pool = make_releseable_observer_ptr<VK_MEMORY_POOL>(new VK_MEMORY_POOL());
+		buffer_impl->memory_pool->parent_device = static_cast<VK_DEVICE*>(desc->device);
 		buffer_impl->memory_pool->set_handle(vk_memory);
 	}
 
+	buffer_impl->parent_device = static_cast<VK_DEVICE*>(desc->device);
 	return buffer_impl;
 }
 
@@ -281,7 +301,7 @@ static RHI_VIEW* buffers_create_dsv_from_handle_vk(
 
     // Si incluye el stencil en el formato, añadimos el flag de stencil
     if (format == resource_format_d24_norm_s8_uint || format == resource_format_d32_float_s8_uint) {
-        view_info.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     }
 
     view_info.subresourceRange.baseMipLevel = 0;
@@ -378,6 +398,7 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_from_handle_vk(
 		desc.mip_maps_count = mip_maps_count;
 		desc.device = const_cast<VK_DEVICE*>(device_impl);
 		desc.memory_descriptor = slot;
+		desc.buffer = const_cast<RHI_BUFFER*>(buffer);
 		result = create_view_from_agnostic_buffer_vk(&desc, slot);
     }
     // 2. READ-ONLY BUFFER (SRV) -> Structured Storage Buffer o Uniform Texel Buffer
@@ -407,6 +428,7 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_from_handle_vk(
 			desc.mip_maps_count = mip_maps_count;
 			desc.device = const_cast<VK_DEVICE*>(device_impl);
 			desc.memory_descriptor = slot;
+			desc.buffer = const_cast<RHI_BUFFER*>(buffer);
 			result = create_view_from_agnostic_buffer_vk(&desc, slot);
         }
     }
@@ -438,6 +460,7 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_from_handle_vk(
 			desc.mip_maps_count = mip_maps_count;
 			desc.device = const_cast<VK_DEVICE*>(device_impl);
 			desc.memory_descriptor = slot;
+			desc.buffer = const_cast<RHI_BUFFER*>(buffer);
 			result = create_view_from_agnostic_buffer_vk(&desc, slot);
         }
     }
@@ -597,11 +620,63 @@ void vk_buffers_gpu_upload_region(RHI_COMMAND_BUFFER* const command_buffer, cons
 	RHI_BUFFER* const dest_buffer, const size_t offset_src,
 	const size_t offset_dest, const size_t length) {
 
+	ASSERT_PTR(command_buffer);
+	ASSERT_PTR(src_buffer);
+	ASSERT_PTR(dest_buffer);
+
+	const VK_BUFFER* src_buffer_impl = static_cast<const VK_BUFFER*>(src_buffer);
+	VK_BUFFER* dest_buffer_impl = static_cast<VK_BUFFER*>(dest_buffer);
+	VK_COMMAND_BUFFER* command_buffer_impl = static_cast<VK_COMMAND_BUFFER*>(command_buffer);
+
+	// 1. Registrar la copia del buffer compartido al buffer de la GPU
+	VkBufferCopy copy_region{};
+	copy_region.srcOffset = offset_src;
+	copy_region.dstOffset = offset_dest;
+	copy_region.size = length;
+
+	vkCmdCopyBuffer(*command_buffer_impl, *src_buffer_impl, *dest_buffer_impl, 1, &copy_region);
+
+	// 2. Definir la barrera de memoria del buffer (Synchronization 2)
+	VkBufferMemoryBarrier2 buffer_barrier{};
+	buffer_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+	buffer_barrier.pNext = nullptr;
+
+	// Configuración de Origen (Escritura de la transferencia)
+	buffer_barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+	buffer_barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+
+	// Configuración de Destino (Lectura en el Pipeline de Gráficos/Cómputo)
+	// Nota: Cambiar a INDEX_READ_BIT o SHADER_READ_BIT según corresponda a tu uso
+	if (command_buffer->command_queue_type == queue_type_copy) {
+		buffer_barrier.dstStageMask = VK_PIPELINE_STAGE_2_NONE;
+		buffer_barrier.dstAccessMask = VK_ACCESS_2_NONE;
+	}
+	else {
+		buffer_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+		buffer_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
+	}
+
+	buffer_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	buffer_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	buffer_barrier.buffer = *dest_buffer_impl;
+	buffer_barrier.offset = offset_dest;
+	buffer_barrier.size = length;
+
+	// 3. Vincular la barrera al Command Buffer
+	VkDependencyInfo dependency_info{};
+	dependency_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependency_info.pNext = nullptr;
+	dependency_info.dependencyFlags = 0;
+	dependency_info.bufferMemoryBarrierCount = 1;
+	dependency_info.pBufferMemoryBarriers = &buffer_barrier;
+
+	vkCmdPipelineBarrier2(*command_buffer_impl, &dependency_info);
 }
 
 void vk_buffers_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
 	RHI_BUFFER* const gpu_buffer) {
 
+	vk_buffers_gpu_upload_region(command_buffer, src_buffer, gpu_buffer, 0, 0, src_buffer->length);
 }
 
 void vk_buffers_gpu_download_region(RHI_COMMAND_BUFFER* const command_buffer, const RHI_BUFFER* const src_buffer,
@@ -616,26 +691,73 @@ void vk_buffers_gpu_download(RHI_COMMAND_BUFFER* const command_buffer, const RHI
 
 RHI_VOID_PTR vk_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset,
 	const size_t length) {
-	return nullptr;
+
+	VK_BUFFER* buffer_handle = reinterpret_cast<VK_BUFFER*>(buffer);
+	ASSERT_PTR(buffer_handle);
+	ASSERT_PTR(buffer_handle->parent_device);
+	ASSERT_PTR(buffer_handle->memory_pool);
+	void* data;
+
+	vkMapMemory(
+		*buffer_handle->parent_device,
+		*buffer_handle->memory_pool,
+		offset,
+		length, 
+		0,
+		&data
+	);
+	return data;
 }
 
 void vk_buffers_map_close(RHI_BUFFER* const buffer, const size_t offset,
 	const size_t length) {
     
+	VK_BUFFER* buffer_handle = reinterpret_cast<VK_BUFFER*>(buffer);
+	ASSERT_PTR(buffer_handle);
+	ASSERT_PTR(buffer_handle->parent_device);
+	ASSERT_PTR(buffer_handle->memory_pool);
+
+	vkUnmapMemory(
+		*buffer_handle->parent_device,
+		*buffer_handle->memory_pool
+	);
 }
 
 void vk_buffers_map_write(RHI_BUFFER* const buffer, const RHI_VOID_PTR data,
 	const size_t offset, const size_t length) {
 
+	RHI_VOID_PTR mapped = vk_buffers_map_open(buffer, offset,
+		length);
+	ASSERT_PTR(mapped);
+	memcpy(mapped, data, length);
+	vk_buffers_map_close(buffer, offset,
+		length);
 }
 
 void vk_buffers_map_read(RHI_BUFFER* const buffer, RHI_VOID_PTR* const data,
 	const size_t offset, const size_t length) {
 
+	RHI_VOID_PTR mapped = vk_buffers_map_open(buffer, offset,
+		length);
+	memcpy(data, mapped, length);
+	vk_buffers_map_close(buffer, offset,
+		length);	
 }
 
 RHI_VIEW* vk_buffers_create_view(const RHI_VIEW_DESC* const desc) {
-    return nullptr;
+
+	ASSERT_PTR(desc);
+
+	RHI_VIEW* result = nullptr;
+	if (desc->type == shader_view_type_depth_stencil_target)
+		result = buffers_create_dsv_vk(desc);
+	else if (desc->type == shader_view_type_render_target)
+		result = buffers_create_rtv_vk(desc);
+	else
+		result = buffers_create_cbv_srv_uav_vk(desc);
+
+	ASSERT_PTR(result);
+	return result;
 }
 
 void vk_buffers_update_view(const RHI_DEVICE* const device,

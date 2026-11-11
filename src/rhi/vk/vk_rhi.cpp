@@ -6,6 +6,9 @@
 #include "vk_command_buffer.hpp"
 #include "vk_swap_chain.hpp"
 #include "vk_render_pass.hpp"
+#include "vk_pipeline_layout.hpp"
+#include "vk_buffers.hpp"
+#include "vk_raster_pipeline.hpp"
 
 VkInstance create_vk_instance() {
 
@@ -80,10 +83,39 @@ void vk_rhi_init() {
     // command buffer
     rhi_command_buffer_create = &vk_command_buffer_create;
     rhi_command_buffer_record = &vk_command_buffer_record;
+	rhi_command_buffer_draw_triangle_list = &vk_command_buffer_draw_triangle_list;
 
     // render pass
     rhi_render_pass_create = &vk_render_pass_create;
     rhi_render_pass_execute_raster_mode = &vk_render_pass_execute_raster_mode;
+
+    // pipeline
+    rhi_pipeline_layout_create = &vk_pipeline_layout_create;
+	rhi_raster_pipeline_create = &vk_raster_pipeline_create;
+
+    // buffers
+    rhi_buffers_create_raw = &vk_buffers_create_linear;
+    rhi_buffers_create_vertices = &vk_buffers_create_vertices;
+    rhi_buffers_create_indices = &vk_buffers_create_indices;
+    rhi_buffers_create_depth = &vk_buffers_create_depth;
+    rhi_buffers_create_constant = &vk_buffers_create_constant;
+    rhi_buffers_map_open = &vk_buffers_map_open;
+    rhi_buffers_map_close = &vk_buffers_map_close;
+
+    rhi_buffers_gpu_upload_region = &vk_buffers_gpu_upload_region;
+    rhi_buffers_gpu_upload = &vk_buffers_gpu_upload;
+    rhi_buffers_gpu_download_region = &vk_buffers_gpu_download_region;
+    rhi_buffers_gpu_download = &vk_buffers_gpu_download;
+    rhi_buffers_map_write = &vk_buffers_map_write;
+    rhi_buffers_map_read = &vk_buffers_map_read;
+    rhi_buffers_create_view = &vk_buffers_create_view;
+    rhi_buffers_update_view = &vk_buffers_update_view;
+
+   // rhi_texture_2d_gpu_upload = &vk_texture_2d_gpu_upload;
+
+   // rhi_texture_2d_create = &vk_texture_2d_create;
+   // rhi_sampler_create = &vk_sampler_create;
+
 }
 
 void vk_rhi_end() {

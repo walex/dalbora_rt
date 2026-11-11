@@ -80,9 +80,9 @@ const byte_code_format format) {
 #endif
     };
 
-    if (format & byte_code_format_spirv_output) {
+    if (format & byte_code_format_output_spirv) {
         arguments.push_back(DXC_STRING_PREFIX("-spirv"));
-        arguments.push_back(DXC_STRING_PREFIX("-fspv-target-env=vulkan1.2"));
+        arguments.push_back(DXC_STRING_PREFIX("-fspv-target-env=vulkan1.3"));
     }
 
     // 4. Compilar en memoria
@@ -212,7 +212,7 @@ void rhi_hlsl_compiler_compile_to_file(const char* const file_path,
 //    };
 //    if (format & byte_code_format_spirv_output) {
 //        args.push_back(L"-spirv");
-//        args.push_back(L"-fspv-target-env=vulkan1.2");
+//        args.push_back(L"-fspv-target-env=vulkan1.3");
 //    }
 //    Microsoft::WRL::ComPtr<IDxcUtils> dxcUtils;
 //    ASSERT_COM_SUCCESS(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils)));

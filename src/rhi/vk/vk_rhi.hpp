@@ -146,6 +146,7 @@ struct VK_COMMAND_BUFFER
 		vkFreeCommandBuffers(*this->parent_device, this->command_pool, 1, &handle);
 	}
 	VkCommandPool command_pool;
+	VkDescriptorBufferBindingInfoEXT heaps[4];
 };
 
 struct VK_SWAP_CHAIN
@@ -260,6 +261,25 @@ struct VK_BVH_BUFFER
 	~VK_BVH_BUFFER() {
 		ASSERT_PTR(this->parent_device);
 		vkDestroyAccelerationStructureKHR(*this->parent_device, *this, nullptr);
+	}
+};
+
+struct VK_PIPELINE_LAYOUT
+	: public RHI_PIPELINE_LAYOUT
+	, public VK_NON_DISPATCHABLE_HANDLE<VkPipelineLayout> {
+	~VK_PIPELINE_LAYOUT() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyPipelineLayout(*this->parent_device, *this, nullptr);
+	}
+};
+
+struct VK_RASTER_PIPELINE
+	: public RHI_RASTER_PIPELINE
+	, public VK_NON_DISPATCHABLE_HANDLE<VkPipeline> {
+
+	~VK_RASTER_PIPELINE() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyPipeline(*this->parent_device, *this, nullptr);
 	}
 };
 

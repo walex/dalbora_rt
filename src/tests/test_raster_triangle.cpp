@@ -49,7 +49,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 	CameraCB camera;
 	ObjectCB triangle_transforms;
-	get_transforms(triangle_transforms.world, camera.view, camera.projection);	
+	get_transforms(image_aspect, triangle_transforms.world, camera.view, camera.projection);	
 
 	const std::filesystem::path shaders_folder = get_executable_folder("shaders");
 
@@ -74,7 +74,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			cb_desc.shader_view_type = shader_view_type_constant_buffer;
 			cb_desc.shader_register_start = 0; // ie: b0 in hlsl
 			cb_desc.shader_register_max = 5;
-			
+
 			// create shaders layouts
 			std::vector<RHI_INPUT_LAYOUT_DESC> input_layouts;
 
@@ -103,13 +103,20 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			vs_file = std::filesystem::path(shaders_folder / vs_file).string();
 			ps_file = std::filesystem::path(shaders_folder / ps_file).string();
 
+			const char* vs_entry_point = "VSMain";
+			const char* ps_entry_point = "PSMain";
+
+			// compile shaders
+			int flags = byte_code_format_input_hlsl;
+			if (rhi_get_device_type() == rhi_device_type_vulkan) {
+				flags |= byte_code_format_output_spirv;
+			}
+			vertex_shader.reset(rhi_hlsl_compiler_compile(vs_file.c_str(), vs_entry_point, "vs_6_0", shaders_folder.string().c_str(), static_cast<byte_code_format>(flags)));
+			pixel_shader.reset(rhi_hlsl_compiler_compile(ps_file.c_str(), ps_entry_point, "ps_6_0", shaders_folder.string().c_str(), static_cast<byte_code_format>(flags)));
+			
 			// create pipeline layout
 			pipeline_layout.reset(rhi_pipeline_layout_create(&pl_desc));
 
-			// compile shaders
-			vertex_shader.reset(rhi_hlsl_compiler_compile(vs_file.c_str(), "VSMain", "vs_6_0", shaders_folder.string().c_str(), byte_code_format_source_hlsl));
-			pixel_shader.reset(rhi_hlsl_compiler_compile(ps_file.c_str(), "PSMain", "ps_6_0", shaders_folder.string().c_str(), byte_code_format_source_hlsl));
-			
 			// create geometry buffers
 			RHI_VERTEX_BUFFER_DESC vb_desc;
 			vb_desc.device = &device;
@@ -268,6 +275,10 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipe_desc.topology = primitive_topology_triangle;
 			pipe_desc.format = resource_format_R8G8B8A8_norm;
 			pipe_desc.depth_buffer_format = resource_format_d24_norm_s8_uint;
+			pipe_desc.vertex_stride = vertex_size;
+			pipe_desc.resources_memory_descriptor = memory_descriptor;
+			strcpy(pipe_desc.vertex_shader_entry_point, vs_entry_point);
+			strcpy(pipe_desc.pixel_shader_entry_point, ps_entry_point);
 			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));			
 			
 			// on init
@@ -337,7 +348,7 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 	CameraCB camera;
 	ObjectCB triangle_transforms;
-	get_transforms(triangle_transforms.world, camera.view, camera.projection);
+	get_transforms(image_aspect, triangle_transforms.world, camera.view, camera.projection);
 
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
@@ -391,17 +402,20 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// compile shaders
 		{
+			const char* vs_entry_point = "VSMain";
+			const char* ps_entry_point = "PSMain";
+
 			RhiShaderProgramHLSL vertex_shader_tmp;
 			RhiShaderProgramHLSL pixel_shader_tmp;
-			byte_code_format bc_format = byte_code_format_source_hlsl;
+			byte_code_format bc_format = byte_code_format_input_hlsl;
 			if (rhi_get_device_type() == rhi_device_type_vulkan) {
-				int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_spirv_output);
+				int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_output_spirv);
 				bc_format = static_cast<byte_code_format>(flag);
 			}
 			vertex_shader_tmp.create(unit_test.vertex_shader_file,
-				"VSMain", "vs_6_0", bc_format);
+				vs_entry_point, "vs_6_0", bc_format);
 			pixel_shader_tmp.create(unit_test.pixel_shader_file,
-				"PSMain", "ps_6_0", bc_format);
+				ps_entry_point, "ps_6_0", bc_format);
 			
 			vertex_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
 			pixel_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");

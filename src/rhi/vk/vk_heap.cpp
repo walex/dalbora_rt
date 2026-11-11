@@ -65,8 +65,8 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* cons
 	const bool shader_visible) {
 
 	ASSERT_PTR(device_impl);
-
-	VkBufferUsageFlags usage_flags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+	
+	VkBufferUsageFlags usage_flags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT;
 	switch (heap_type) {
 	case memory_descriptor_type_buffer:
 		usage_flags |= VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
@@ -75,10 +75,9 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* cons
 		usage_flags |= VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
 		break;
 	case memory_descriptor_type_rtv:
+	case memory_descriptor_type_dsv:
 		usage_flags |= VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 		break;
-	case memory_descriptor_type_dsv:
-		return nullptr; // DSV not supported in Vulkan
 	default:
 		throw std::exception("heap type not supported");
 	}
@@ -92,14 +91,15 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* cons
 
 	vkGetPhysicalDeviceProperties2(device_impl->physical_device, &device_props_2);
 	
-	size_t max_size = 0;
+	
 	size_t slot_alignment = 0;
 	size_t slot_stride = 0;
 	calculate_max_descriptor_layout_properties_vk(device_impl->physical_device, &slot_stride, &slot_alignment);
+	size_t max_mem_size = (slot_stride * slots_count) + heap_props.minResourceHeapReservedRange;
 
 	VkBufferCreateInfo heapInfo{};
 	heapInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	heapInfo.size = slot_stride * slots_count;
+	heapInfo.size = max_mem_size;
 	heapInfo.usage = usage_flags;
 
 	VkBuffer heap_memory;
@@ -142,11 +142,14 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* cons
 	result->descriptor_count = slots_count;
 	result->descriptor_size = slot_stride;
 	result->descriptor_alignment = slot_alignment;
-
+	result->descriptor_capacity = max_mem_size;
+	result->reserved_range = heap_props.minResourceHeapReservedRange;
+	result->reserved_offset = max_mem_size - result->reserved_range;
 	result->parent_device = device_impl;
 	result->map();
 	result->cpu_handle = reinterpret_cast<uint64_t>(result->mapped_memory);
 	result->gpu_handle = base_gpu_address;
+	
 	return result;
 }
 
@@ -186,7 +189,7 @@ RHI_MEMORY_DESCRIPTOR_SLOT* vk_memory_resource_get_descriptor(const RHI_MEMORY_D
 	return result;
 }
 
-void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot, 
+void vk_memory_resource_write_image_descriptor2(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot, 
 	const VkImageViewCreateInfo* const image_view_info) {
 	
 	ASSERT_PTR(device_impl);
@@ -194,11 +197,14 @@ void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_imp
 	ASSERT_PTR(image_view_info);
 	ASSERT_EXPR((slot->cpu_handle % slot->descriptor_alignment) == 0);
 
+	bool is_depth_stencil = image_view_info->subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT
+		|| image_view_info->subresourceRange.aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT;
+
 	VkImageDescriptorInfoEXT image_heap_info{};
 	image_heap_info.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT;
 	image_heap_info.pNext = nullptr;
 	image_heap_info.pView = image_view_info;
-	image_heap_info.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	image_heap_info.layout = is_depth_stencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	VkResourceDescriptorInfoEXT resource_info{};
 	resource_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
@@ -220,6 +226,54 @@ void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_imp
 	}
 
 }
+
+void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot,
+	const VkImageViewCreateInfo* const image_view_info) {
+
+	ASSERT_PTR(device_impl);
+	ASSERT_PTR(slot);
+	ASSERT_PTR(image_view_info);
+	ASSERT_EXPR((slot->cpu_handle % slot->descriptor_alignment) == 0);
+
+	// 1. Configuración por defecto para texturas de color normales (Tratadas como UAV / Storage)
+	VkDescriptorType target_descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	VkImageLayout target_image_layout = VK_IMAGE_LAYOUT_GENERAL;
+
+	// 2. DETECCIÓN ANÁLOGA A DX12: Si la vista tiene aspectos de profundidad o stencil, es un SRV
+	const VkImageAspectFlags aspect_mask = image_view_info->subresourceRange.aspectMask;
+	if (aspect_mask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
+		// Obligatorio en Vulkan: Las lecturas de profundidad en shaders se mapean como SAMPLED_IMAGE (SRV)
+		target_descriptor_type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		// Layout óptimo y obligatorio para leer profundidad/stencil en shaders
+		target_image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+	}
+
+	VkImageDescriptorInfoEXT image_heap_info{};
+	image_heap_info.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT;
+	image_heap_info.pNext = nullptr;
+	image_heap_info.pView = image_view_info;
+	image_heap_info.layout = target_image_layout; // Asigna el layout correcto dinámicamente
+
+	VkResourceDescriptorInfoEXT resource_info{};
+	resource_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
+	resource_info.pNext = nullptr;
+	resource_info.type = target_descriptor_type;  // Cambia dinámicamente según el recurso de DX12
+	resource_info.data.pImage = &image_heap_info;
+
+	VkHostAddressRangeEXT target_address{};
+	target_address.address = reinterpret_cast<void*>(slot->cpu_handle);
+	target_address.size = slot->descriptor_size;
+
+	if (vkWriteResourceDescriptorsEXT(
+		*device_impl,
+		1,                // resourceCount
+		&resource_info,   // pResources
+		&target_address   // pDescriptors
+	) != VK_SUCCESS) {
+		throw std::runtime_error("Error writing resource descriptors");
+	}
+}
+
 
 void vk_memory_resource_write_buffer_view_descriptor(
 	const VK_DEVICE* const device_impl,
@@ -348,7 +402,7 @@ void vk_memory_resource_write_constant_buffer_view_descriptor(const VK_DEVICE* c
 	resource_info.pNext = nullptr;
 	resource_info.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	resource_info.data.pAddressRange = &address_range;
-
+	
 	VkHostAddressRangeEXT target_address{};
 	target_address.address = reinterpret_cast<void*>(slot->cpu_handle);
 	target_address.size = slot->descriptor_size;

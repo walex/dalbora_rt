@@ -104,6 +104,11 @@ struct RHI_RASTER_PIPELINE_DESC  {
 	primitive_topology topology = primitive_topology_none;
 	resource_format format = resource_format_none;
 	resource_format depth_buffer_format = resource_format_none;
+	size_t vertex_stride = 0;
+	char vertex_shader_entry_point[MAX_INPUT_NAME_LENGTH];
+	char pixel_shader_entry_point[MAX_INPUT_NAME_LENGTH];
+	observer_ptr<RHI_MEMORY_DESCRIPTOR> resources_memory_descriptor = nullptr;
+	observer_ptr<RHI_MEMORY_DESCRIPTOR> sampler_memory_descriptor = nullptr;
 };
 
 struct RHI_MESH_SHADER_RASTER_PIPELINE_DESC  {
@@ -156,6 +161,8 @@ struct RHI_PIPELINE_LAYOUT_DESC  {
 	resource_format depth_buffer_format = resource_format_none;
 	RHI_SHADER_DESCRIPTOR_DESC descriptors[MAX_PIPELINE_DESCRIPTORS];
 	size_t descriptor_count = 0;
+	size_t resource_descriptor_count = 0;
+	size_t sampler_descriptor_count = 0;
 	bool allow_heap_indexing = false;
 };
 

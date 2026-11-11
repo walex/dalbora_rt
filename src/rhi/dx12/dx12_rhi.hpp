@@ -129,25 +129,25 @@ struct DX_BVH_BUFFER
 	DX_HANDLE<ID3D12Resource> inputs_buffer_handle;
 };
 
-struct DX_RT_BVH 
-	: public RHI_RT_BVH
-	, public DX_RESOURCE {
-	DX_HANDLE<ID3D12Resource> scratch_handle;
-};
-
-struct DX_PIPELINE_LAYOUT 
+struct DX_PIPELINE_LAYOUT
 	: public RHI_PIPELINE_LAYOUT
 	, public DX_HANDLE<ID3D12RootSignature> {
 };
 
-struct DX_RASTER_PIPELINE 
+struct DX_RASTER_PIPELINE
 	: public RHI_RASTER_PIPELINE
 	, public DX_HANDLE<ID3D12PipelineState> {
 };
 
-struct DX_RT_PIPELINE 
+struct DX_RT_PIPELINE
 	: public RHI_RT_PIPELINE
 	, public DX_HANDLE<ID3D12StateObject> {
+};
+
+struct DX_RT_BVH 
+	: public RHI_RT_BVH
+	, public DX_RESOURCE {
+	DX_HANDLE<ID3D12Resource> scratch_handle;
 };
 
 struct DX_SAMPLER

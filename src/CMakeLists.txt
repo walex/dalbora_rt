@@ -9,6 +9,17 @@ set(rtrender_VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# system architecture
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|amd64)")
+    set(ARCH "x64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(i386|i686|X86|x86)")
+    set(ARCH "x86")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64|aarch64|ARM64)")
+    set(ARCH "arm64")
+else()
+	message(FATAL_ERROR "system architecture not supported")
+endif()
+
 # settings for gnu and clang compilers (used on linux and android)
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
 
@@ -48,24 +59,6 @@ set(RT_RENDER_HEADERS ${CORE_HEADERS} ${OS_HEADERS} ${RHI_HEADERS})
 set(RT_RENDER_SOURCES ${CORE_SOURCES} ${OS_SOURCES} ${RHI_SOURCES})
 set(RT_RENDER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} ${API_INCLUDE_DIRS} ${CORE_INCLUDE_DIRS} ${OS_INCLUDE_DIRS} ${RHI_INCLUDE_DIRS} ${RT_HLSL_DIR})
 
-# DX12 system libraries (Windows)
-if (MSVC AND WIN32)
-    
-    # Find dxcompiler.dll in Windows SDK
-    find_file(DXCOMPILER_DLL 
-        NAMES dxcompiler.dll
-        PATHS 
-            "$ENV{WindowsSdkDir}Redist/D3D/$ENV{WindowsSDKVersion}x64"
-            "$ENV{WindowsSdkDir}bin/$ENV{WindowsSDKVersion}x64"
-            "C:/Program Files (x86)/Windows Kits/10/bin/*/x64"
-            "C:/Program Files (x86)/Windows Kits/10/Redist/D3D/*/x64"
-        NO_DEFAULT_PATH
-    )
-else()
-    
-endif()
-message(${RHI_LIBS})
-
 set(LINK_LIBS ${RHI_LIBS})
 
 # Find all HLSL files in tests directory
@@ -78,10 +71,10 @@ ${SCENE_LOADERS_SOURCES} ${SCENE_LOADERS_HEADERS})
 target_include_directories(rtrender PRIVATE ${RT_RENDER_INCLUDE_DIRS} ${SCENE_LOADERS_INCLUDE_DIRS})
 target_link_libraries(rtrender PRIVATE ${LINK_LIBS})
 
-if (MSVC AND WIN32 AND DXCOMPILER_DLL)
+if (MSVC)
     add_custom_command(TARGET rtrender POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DXCOMPILER_DLL}" $<TARGET_FILE_DIR:rtrender>
+        "${DXC_COMPILER_DLL}" $<TARGET_FILE_DIR:rtrender>
     )
 endif()
 
@@ -101,10 +94,10 @@ ${SCENE_LOADERS_SOURCES} ${SCENE_LOADERS_HEADERS})
 target_include_directories(api_tests PRIVATE ${TEST_INCLUDE_DIRS} ${RT_RENDER_INCLUDE_DIRS} ${SCENE_LOADERS_INCLUDE_DIRS})
 target_link_libraries(api_tests PRIVATE ${LINK_LIBS})
 
-if (MSVC AND WIN32 AND DXCOMPILER_DLL)
+if (MSVC)
     add_custom_command(TARGET api_tests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-        "${DXCOMPILER_DLL}" $<TARGET_FILE_DIR:api_tests>
+        "${DXC_COMPILER_DLL}" $<TARGET_FILE_DIR:api_tests>
     )
 endif()
 

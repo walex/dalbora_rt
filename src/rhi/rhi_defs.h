@@ -185,8 +185,8 @@ enum pipeline_stage {
 };
 
 enum byte_code_format {
-	byte_code_format_source_hlsl = 0x2,
-	byte_code_format_spirv_output = 0x8
+	byte_code_format_input_hlsl = 0x2,
+	byte_code_format_output_spirv = 0x8
 };
 
 constexpr __int64 device_features_none = 0x0;
