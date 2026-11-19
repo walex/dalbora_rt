@@ -7,8 +7,10 @@
 #include "vk_swap_chain.hpp"
 #include "vk_render_pass.hpp"
 #include "vk_pipeline_layout.hpp"
-#include "vk_buffers.hpp"
 #include "vk_raster_pipeline.hpp"
+#include "vk_buffers.hpp"
+#include "vk_texture_2d.hpp"
+#include  "vk_sampler.hpp"
 
 VkInstance create_vk_instance() {
 
@@ -111,9 +113,11 @@ void vk_rhi_init() {
     rhi_buffers_create_view = &vk_buffers_create_view;
     rhi_buffers_update_view = &vk_buffers_update_view;
 
-   // rhi_texture_2d_gpu_upload = &vk_texture_2d_gpu_upload;
+    rhi_sampler_create = &vk_sampler_create;
 
-   // rhi_texture_2d_create = &vk_texture_2d_create;
+    rhi_texture_2d_gpu_upload = &vk_texture_2d_gpu_upload;
+
+   rhi_texture_2d_create = &vk_texture_2d_create;
    // rhi_sampler_create = &vk_sampler_create;
 
 }

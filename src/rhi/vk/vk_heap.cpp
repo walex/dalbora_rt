@@ -189,46 +189,8 @@ RHI_MEMORY_DESCRIPTOR_SLOT* vk_memory_resource_get_descriptor(const RHI_MEMORY_D
 	return result;
 }
 
-void vk_memory_resource_write_image_descriptor2(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot, 
-	const VkImageViewCreateInfo* const image_view_info) {
-	
-	ASSERT_PTR(device_impl);
-	ASSERT_PTR(slot);
-	ASSERT_PTR(image_view_info);
-	ASSERT_EXPR((slot->cpu_handle % slot->descriptor_alignment) == 0);
-
-	bool is_depth_stencil = image_view_info->subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT
-		|| image_view_info->subresourceRange.aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT;
-
-	VkImageDescriptorInfoEXT image_heap_info{};
-	image_heap_info.sType = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT;
-	image_heap_info.pNext = nullptr;
-	image_heap_info.pView = image_view_info;
-	image_heap_info.layout = is_depth_stencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	VkResourceDescriptorInfoEXT resource_info{};
-	resource_info.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
-	resource_info.pNext = nullptr;
-	resource_info.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	resource_info.data.pImage = &image_heap_info;
-
-	VkHostAddressRangeEXT target_address{};
-	target_address.address = reinterpret_cast<void*>(slot->cpu_handle);
-	target_address.size = slot->descriptor_size;
-
-	if (vkWriteResourceDescriptorsEXT(
-		*device_impl,
-		1,                // resourceCount
-		&resource_info,   // pResources
-		&target_address   // pDescriptors
-	) != VK_SUCCESS) {
-		throw std::runtime_error("Error writing resource descriptors");
-	}
-
-}
-
 void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot,
-	const VkImageViewCreateInfo* const image_view_info) {
+	const VkImageViewCreateInfo* const image_view_info, bool read_write) {
 
 	ASSERT_PTR(device_impl);
 	ASSERT_PTR(slot);
@@ -246,6 +208,16 @@ void vk_memory_resource_write_image_descriptor(const VK_DEVICE* const device_imp
 		target_descriptor_type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 		// Layout óptimo y obligatorio para leer profundidad/stencil en shaders
 		target_image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+	}
+	else if (read_write) {
+		// RWTexture2D -> storage image (requires VK_IMAGE_USAGE_STORAGE_BIT)
+		target_descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		target_image_layout = VK_IMAGE_LAYOUT_GENERAL;
+	}
+	else {
+		// Texture2D -> sampled image (requires VK_IMAGE_USAGE_SAMPLED_BIT)
+		target_descriptor_type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		target_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
 	VkImageDescriptorInfoEXT image_heap_info{};

@@ -38,7 +38,7 @@ static RHI_VIEW* create_view_from_buffer_view_vk(const RHI_VIEW_DESC* const desc
 }
 
 static RHI_VIEW* create_view_from_image_view_vk(const RHI_VIEW_DESC* const desc, const VkImageViewCreateInfo& view_info,
-    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot) {
+    const RHI_MEMORY_DESCRIPTOR_SLOT* const slot, bool read_write) {
 	
     ASSERT_PTR(desc);
     ASSERT_PTR(desc->device);
@@ -57,7 +57,7 @@ static RHI_VIEW* create_view_from_image_view_vk(const RHI_VIEW_DESC* const desc,
 	result->mip_map_count = desc->mip_maps_count;
 	result->memory_descriptor = desc->memory_descriptor;
 
-    vk_memory_resource_write_image_descriptor(static_cast<VK_DEVICE*>(desc->device), slot, &view_info);
+    vk_memory_resource_write_image_descriptor(static_cast<VK_DEVICE*>(desc->device), slot, &view_info, read_write);
 
 	return result;
 }
@@ -317,7 +317,7 @@ static RHI_VIEW* buffers_create_dsv_from_handle_vk(
 	desc.memory_descriptor = slot;
 	desc.buffer = const_cast<RHI_BUFFER*>(buffer);
 
-	return create_view_from_image_view_vk(&desc, view_info, slot);
+	return create_view_from_image_view_vk(&desc, view_info, slot, false);
 }
 
 static RHI_VIEW* buffers_create_dsv_vk(const RHI_VIEW_DESC* const desc) {
@@ -360,7 +360,7 @@ static RHI_VIEW* buffers_create_rtv_from_handle_vk(
 	desc.device = const_cast<VK_DEVICE*>(device_impl);
 	desc.memory_descriptor = slot;
 	desc.buffer = const_cast<RHI_BUFFER*>(buffer);
-	return create_view_from_image_view_vk(&desc, view_info, slot);
+	return create_view_from_image_view_vk(&desc, view_info, slot, false);
 }
 
 static RHI_VIEW* buffers_create_rtv_vk(const RHI_VIEW_DESC* const desc) {
@@ -484,7 +484,7 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_from_handle_vk(
 		desc.device = const_cast<VK_DEVICE*>(device_impl);
 		desc.memory_descriptor = slot;
 		desc.buffer = const_cast<RHI_BUFFER*>(buffer);
-        result = create_view_from_image_view_vk(&desc, view_info, slot);
+        result = create_view_from_image_view_vk(&desc, view_info, slot, false);
     }
     // 5. READ-WRITE TEXTURE (UAV Textura 2D) -> Storage Image
     else if (type == shader_view_type_rw_texture_buffer) {
@@ -506,7 +506,7 @@ static RHI_VIEW* buffers_create_cbv_srv_uav_from_handle_vk(
 		desc.device = const_cast<VK_DEVICE*>(device_impl);
 		desc.memory_descriptor = slot;
 		desc.buffer = const_cast<RHI_BUFFER*>(buffer);
-        result = create_view_from_image_view_vk(&desc, view_info, slot);
+        result = create_view_from_image_view_vk(&desc, view_info, slot, true);
     }
     // 6. RAY TRACING BVH (SRV TLAS) -> Acceleration Structure
     else if (type == shader_view_type_bvh_buffer) {

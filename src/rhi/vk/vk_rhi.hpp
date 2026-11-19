@@ -230,6 +230,16 @@ struct VK_TEXTURE_2D
 	observer_ptr<VK_MEMORY_POOL> memory_pool;
 };
 
+struct VK_SAMPLER
+	: public RHI_SAMPLER
+	, public VK_NON_DISPATCHABLE_HANDLE<VkSampler> {
+
+	~VK_SAMPLER() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroySampler(*this->parent_device, *this, nullptr);
+	}
+};
+
 // FixME: should inherit from VK_TEXTURE_2D but blocks destructor
 struct VK_SWAP_CHAIN_TEXTURE_2D
 	: public VK_NON_DISPATCHABLE_HANDLE<VkImage>
@@ -264,6 +274,13 @@ struct VK_BVH_BUFFER
 	}
 };
 
+struct VK_HEAP_RANGE {
+	VkSpirvResourceTypeFlagBitsEXT mask;
+	bool     sampler_heap;   // true -> sampler heap, false -> resource heap
+	uint32_t start_slot;     // first slot of the range inside its heap
+	uint32_t count;
+};
+
 struct VK_PIPELINE_LAYOUT
 	: public RHI_PIPELINE_LAYOUT
 	, public VK_NON_DISPATCHABLE_HANDLE<VkPipelineLayout> {
@@ -271,6 +288,7 @@ struct VK_PIPELINE_LAYOUT
 		ASSERT_PTR(this->parent_device);
 		vkDestroyPipelineLayout(*this->parent_device, *this, nullptr);
 	}
+	std::vector<VK_HEAP_RANGE> heap_ranges;
 };
 
 struct VK_RASTER_PIPELINE

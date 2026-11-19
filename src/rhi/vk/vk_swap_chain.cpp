@@ -359,7 +359,7 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
     }
     ASSERT_PTR(image_view);
     
-    vk_memory_resource_write_image_descriptor(device_impl, memory_descriptor, &view_info);
+    vk_memory_resource_write_image_descriptor(device_impl, memory_descriptor, &view_info, true);
 
     size_t offset = 0;
     size_t mip_count = swap_chain->buffer_mip_count;

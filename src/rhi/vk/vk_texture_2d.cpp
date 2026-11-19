@@ -1,6 +1,52 @@
 #include "vk_texture_2d.hpp"
 #include "vk_buffers.hpp"
 
+void transition_image_layout_vk(
+    VkCommandBuffer cmd,
+    VkImage image,
+    VkImageLayout old_layout,
+    VkImageLayout new_layout
+) {
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = old_layout;
+    barrier.newLayout = new_layout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags source_stage;
+    VkPipelineStageFlags destination_stage;
+
+    if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+
+    vkCmdPipelineBarrier(
+        cmd,
+        source_stage, destination_stage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+}
+
+
 void get_texture_format_vk(VkFormat format, uint32_t& blockWidth, uint32_t& blockHeight, uint32_t& bytesPerBlock) {
     switch (format) {
     case VK_FORMAT_R8G8B8A8_UNORM:
@@ -91,5 +137,53 @@ RHI_TEXTURE_2D* vk_texture_2d_create(const RHI_TEXTURE_2D_DESC* const desc) {
 	result->hw_format = result->format;
 	result->mip_maps = std::move(mips);
 	return result;
+}
 
+void vk_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
+    const RHI_BUFFER* const src_buffer,
+    RHI_TEXTURE_2D* const dest_buffer) {
+
+    ASSERT_PTR(command_buffer);
+    ASSERT_PTR(src_buffer);
+    ASSERT_PTR(dest_buffer);
+
+	VK_COMMAND_BUFFER* command_buffer_impl = static_cast<VK_COMMAND_BUFFER*>(command_buffer);
+	const VK_BUFFER* src_buffer_impl = static_cast<const VK_BUFFER*>(src_buffer);
+	const VK_TEXTURE_2D* dest_buffer_impl = static_cast<const VK_TEXTURE_2D*>(dest_buffer);
+
+    // PASO A: Transicionar de UNDEFINED a TRANSFER_DST_OPTIMAL
+    transition_image_layout_vk(
+        *command_buffer_impl,
+        *dest_buffer_impl,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    // PASO B: Copiar del Staging Buffer a la VkImage
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;   // 0 indica empaquetado estricto
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = { static_cast<uint32_t>(dest_buffer_impl->width), static_cast<uint32_t>(dest_buffer_impl->height), 1 };
+
+    vkCmdCopyBufferToImage(
+        *command_buffer_impl,
+        *src_buffer_impl,
+        *dest_buffer_impl,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region
+    );
+
+    transition_image_layout_vk(
+        *command_buffer_impl,
+        *dest_buffer_impl,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
 }

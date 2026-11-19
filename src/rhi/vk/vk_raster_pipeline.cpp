@@ -1,6 +1,22 @@
 #include "vk_raster_pipeline.hpp"
 
-//#define VK_ALINED_SIZE(value, alignment)  (((value + (alignment - 1)) / alignment) * alignment)
+static void add_descriptor_map_vk(
+    VkDescriptorSetAndBindingMappingEXT& mapping,
+    const VkSpirvResourceTypeFlagBitsEXT resource_mask,
+    const uint32_t heap_offset,       // bytes from heap start to the first descriptor of this range
+    const uint32_t descriptor_stride, // bytes between descriptors
+    const uint32_t binding_count)
+{
+    mapping = {};
+    mapping.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT;
+    mapping.descriptorSet = 0;
+    mapping.firstBinding = 0;   // SPIR-V bindings start at 0 (HLSL t0 / b0 / s0)
+    mapping.bindingCount = binding_count;
+    mapping.resourceMask = resource_mask;
+    mapping.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT;
+    mapping.sourceData.constantOffset.heapOffset = heap_offset;
+    mapping.sourceData.constantOffset.heapArrayStride = descriptor_stride;
+}
 
 RHI_RASTER_PIPELINE* vk_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC* const desc) {
     ASSERT_PTR(desc);
@@ -59,25 +75,61 @@ RHI_RASTER_PIPELINE* vk_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC* c
     }
 
     std::vector<VkDescriptorSetAndBindingMappingEXT> descriptor_set_and_binding_mapping;
-    descriptor_set_and_binding_mapping.reserve(8);
+    descriptor_set_and_binding_mapping.reserve(32);
     if (desc->resources_memory_descriptor.get()) {
 
-        VkDescriptorSetAndBindingMappingEXT& stage_binding_mapping = descriptor_set_and_binding_mapping.emplace_back();
-        stage_binding_mapping.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
-            stage_binding_mapping.descriptorSet = 0,
-            stage_binding_mapping.firstBinding = 0,
-            stage_binding_mapping.bindingCount = static_cast<uint32_t>(desc->layout->constant_shader_registers_count),
-            stage_binding_mapping.resourceMask = VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
-            stage_binding_mapping.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
-            stage_binding_mapping.sourceData = {
-                    .constantOffset = {
-                        .heapOffset = static_cast<uint32_t>(0),
-                        .heapArrayStride = static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size)
-                    }
-        };
+        const uint32_t res_stride = static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size);
+
+
+        if (desc->layout->constant_shader_registers_count > 0) {
+
+            add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(), VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
+                static_cast<uint32_t>(desc->layout->constant_heap_start) * res_stride,
+                static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size), 
+                static_cast<uint32_t>(desc->layout->constant_shader_registers_count));
+        }
+		if (desc->layout->read_only_shader_registers_count > 0) {
+			add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(), VK_SPIRV_RESOURCE_TYPE_READ_ONLY_STORAGE_BUFFER_BIT_EXT,
+                static_cast<uint32_t>(desc->layout->read_only_heap_start) * res_stride,
+                static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size), 
+                static_cast<uint32_t>(desc->layout->read_only_shader_registers_count));
+		}
+		if (desc->layout->rw_shader_registers_count > 0) {
+			add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(), VK_SPIRV_RESOURCE_TYPE_READ_WRITE_STORAGE_BUFFER_BIT_EXT, 
+                static_cast<uint32_t>(desc->layout->rw_heap_start) * res_stride,
+                static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size), 
+                static_cast<uint32_t>(desc->layout->rw_shader_registers_count));
+		}
+        if (desc->layout->read_only_texture_shader_registers_count > 0) {
+            //add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(), VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT,
+            //    static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size),
+            //    static_cast<uint32_t>(desc->layout->read_only_texture_shader_registers_count));
+
+            add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(),
+                VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT,
+                static_cast<uint32_t>(desc->layout->read_only_texture_heap_start) * res_stride,
+                res_stride,
+                static_cast<uint32_t>(desc->layout->read_only_texture_shader_registers_count));
+        }        
+        if (desc->layout->rw_texture_shader_registers_count > 0) {
+           add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(), VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT,
+			   static_cast<uint32_t>(desc->layout->rw_texture_heap_start) * res_stride,
+			   static_cast<uint32_t>(desc->resources_memory_descriptor->descriptor_size),
+			   static_cast<uint32_t>(desc->layout->rw_texture_shader_registers_count));
+        }
 
     }
+    if (desc->sampler_memory_descriptor.get()) {
 
+        const uint32_t res_stride = static_cast<uint32_t>(desc->sampler_memory_descriptor->descriptor_size);
+
+        if (desc->layout->sampler_shader_registers_count > 0) {
+            add_descriptor_map_vk(descriptor_set_and_binding_mapping.emplace_back(), VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT,
+                static_cast<uint32_t>(desc->layout->sampler_heap_start) * res_stride,
+                static_cast<uint32_t>(desc->sampler_memory_descriptor->descriptor_size),
+                static_cast<uint32_t>(desc->layout->sampler_shader_registers_count));
+        }
+    }
     std::unique_ptr<VkShaderDescriptorSetAndBindingMappingInfoEXT> descriptor_binding_mapping_info_ptr;
     if (descriptor_set_and_binding_mapping.size() > 0) {
 		descriptor_binding_mapping_info_ptr = std::make_unique<VkShaderDescriptorSetAndBindingMappingInfoEXT>();

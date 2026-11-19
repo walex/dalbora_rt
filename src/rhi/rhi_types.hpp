@@ -155,6 +155,17 @@ struct RHI_PIPELINE_LAYOUT {
 	resource_format	surface_format = resource_format_none;
 	resource_format depth_buffer_format = resource_format_none;
 	size_t constant_shader_registers_count = 0;
+	size_t sampler_shader_registers_count = 0;
+	size_t read_only_shader_registers_count = 0;
+	size_t rw_shader_registers_count = 0;
+	size_t read_only_texture_shader_registers_count = 0;
+	size_t rw_texture_shader_registers_count = 0;
+	size_t constant_heap_start = 0;
+	size_t sampler_heap_start = 0;
+	size_t read_only_heap_start = 0;
+	size_t rw_heap_start = 0;
+	size_t read_only_texture_heap_start = 0;
+	size_t rw_texture_heap_start = 0;
 };
 
 struct RHI_PIPELINE { 

@@ -248,6 +248,7 @@ static VkDevice device_create_logical_device_vk(const VkInstance instance, const
     features12.pNext = &features13;
     features12.timelineSemaphore = VK_TRUE;     // Sincronización por Timeline Semaphores nativa
     features12.bufferDeviceAddress = VK_TRUE;   // <--- ¡AQUÍ SE ACTIVA BDA AHORA SEGURO!
+    features12.runtimeDescriptorArray = VK_TRUE;
 
     // Estructura Contenedora Principal -> apunta al inicio de las versiones consolidadas (Vulkan 1.2)
     VkPhysicalDeviceFeatures2 deviceFeatures2{};

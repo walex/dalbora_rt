@@ -1,5 +1,4 @@
 #include "dx12_rhi.hpp"
-#include "dx12_factory.hpp"
 #include "dx12_device.hpp"
 #include "dx12_heap.hpp"
 #include "dx12_command_queue.hpp"
@@ -7,13 +6,16 @@
 #include "dx12_command_buffer.hpp"
 #include "dx12_swap_chain.hpp"
 #include "dx12_render_pass.hpp"
-#include "dx12_raster_pipeline.hpp"
-#include "dx12_texture_2d.hpp"
 #include "dx12_pipeline_layout.hpp"
+#include "dx12_raster_pipeline.hpp"
 #include "dx12_buffers.hpp"
+#include "dx12_texture_2d.hpp"
 #include "dx12_sampler.hpp"
 #include "dx12_rt_pipeline.hpp"
 #include "dx12_rt_bvh.hpp"
+
+
+#include "dx12_factory.hpp"
 
 void dx12_rhi_init()
 {
@@ -83,10 +85,11 @@ void dx12_rhi_init()
 	rhi_buffers_create_view = &dx12_buffers_create_view;
 	rhi_buffers_update_view = &dx12_buffers_update_view;
 
-	rhi_texture_2d_gpu_upload = &dx12_texture_2d_gpu_upload;
-
-	rhi_texture_2d_create = &dx12_texture_2d_create;
 	rhi_sampler_create = &dx12_sampler_create;
+
+	rhi_texture_2d_gpu_upload = &dx12_texture_2d_gpu_upload;
+	rhi_texture_2d_create = &dx12_texture_2d_create;
+	
 	
 	// rt
 	rhi_rt_bvh_create = &dx12_rt_bvh_create;

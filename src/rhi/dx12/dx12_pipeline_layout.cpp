@@ -16,15 +16,30 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	descriptor_ranges_sampler.reserve(desc->descriptor_count);
 
 	size_t constant_shader_registers_count = 0;
+	size_t sampler_shader_registers_count = 0;
+	size_t read_only_shader_registers_count = 0;
+	size_t rw_shader_registers_count = 0;
+	size_t rw_texture_shader_registers_count = 0;
+	size_t read_only_texture_shader_registers_count = 0;
 	for (size_t i = 0; i < desc->descriptor_count; i++) {
 
 		const RHI_SHADER_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
 		switch (descriptor.shader_view_type) {
 		case shader_view_type_read_only_buffer:
+			read_only_shader_registers_count += descriptor.shader_register_max;
+			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			break;
+		case shader_view_type_read_only_texture_buffer:
+			read_only_texture_shader_registers_count += descriptor.shader_register_max;
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			break;
 		case shader_view_type_rw_buffer:
+			rw_shader_registers_count += descriptor.shader_register_max;
+			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			break;
+		case shader_view_type_rw_texture_buffer:
+			rw_texture_shader_registers_count += descriptor.shader_register_max;
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			break;
 		case shader_view_type_constant_buffer:
@@ -33,6 +48,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 			break;
 		case shader_view_type_sampler:
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			sampler_shader_registers_count += descriptor.shader_register_max;
 			break;
 		default:
 			throw std::exception("Resource type not supported %d", (int)descriptor.shader_view_type);
@@ -100,5 +116,10 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	result->surface_format = desc->surface_format;
 	result->depth_buffer_format = desc->depth_buffer_format;
 	result->constant_shader_registers_count = constant_shader_registers_count;
+	result->sampler_shader_registers_count = sampler_shader_registers_count;
+	result->read_only_shader_registers_count = read_only_shader_registers_count;
+	result->rw_shader_registers_count = rw_shader_registers_count;
+	result->read_only_texture_shader_registers_count = read_only_texture_shader_registers_count;
+	result->rw_texture_shader_registers_count = rw_texture_shader_registers_count;
 	return result;
 }

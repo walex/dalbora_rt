@@ -50,8 +50,8 @@ struct PSInput
 //    uint samplerIndex;
 //};
 
-uint textureIndex = 0;
-uint samplerIndex = 0;
+static const uint textureIndex = 0;
+static const uint samplerIndex = 0;
 
 Texture2D textures[] : register(t0, space0);
 SamplerState samplers[] : register(s0, space0);

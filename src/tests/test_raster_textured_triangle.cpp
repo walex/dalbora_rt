@@ -217,7 +217,7 @@ void test_raster_textured_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
             
             // descriptors
             RHI_SHADER_DESCRIPTOR_DESC& s_desc = layout.descriptors[layout.descriptor_count++];
-            s_desc.shader_view_type = shader_view_type_read_only_buffer;
+            s_desc.shader_view_type = shader_view_type_read_only_texture_buffer;
             s_desc.shader_register_start = 0;
             s_desc.shader_register_max = 5;
 

@@ -279,11 +279,15 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipe_desc.resources_memory_descriptor = memory_descriptor;
 			strcpy(pipe_desc.vertex_shader_entry_point, vs_entry_point);
 			strcpy(pipe_desc.pixel_shader_entry_point, ps_entry_point);
-			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));			
 			
+		
 			// on init
 			if (on_init)
 				on_init(device, command_queue, command_buffer, swap_chain, command_allocator_pool);
+			
+			pipe_desc.sampler_memory_descriptor.reset(command_buffer.sampler_memory_descriptor.get());
+			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));
+
 			},
 
 			[&](RHI_RENDER_PASS &render_pass)

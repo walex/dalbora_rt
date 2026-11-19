@@ -113,6 +113,10 @@ struct DX_TEXTURE_2D
 	, public DX_BUFFER {
 };
 
+struct DX_SAMPLER
+	: public RHI_SAMPLER {
+};
+
 struct DX_RENDER_PASS
 	: public RHI_RENDER_PASS {
 };
@@ -128,6 +132,7 @@ struct DX_BVH_BUFFER
 	DX_HANDLE<ID3D12Resource> scratch_handle;
 	DX_HANDLE<ID3D12Resource> inputs_buffer_handle;
 };
+
 
 struct DX_PIPELINE_LAYOUT
 	: public RHI_PIPELINE_LAYOUT
@@ -148,11 +153,6 @@ struct DX_RT_BVH
 	: public RHI_RT_BVH
 	, public DX_RESOURCE {
 	DX_HANDLE<ID3D12Resource> scratch_handle;
-};
-
-struct DX_SAMPLER
-	: public RHI_SAMPLER {
-	D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle;
 };
 
 struct DX_SBT_TABLE
