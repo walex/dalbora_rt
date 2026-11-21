@@ -337,6 +337,15 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			tlas_desc.read_only = false;
 			tlas_desc.total_instances = 1;
 			rhi_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
+
+			rhi_render_pass_execute_rt_mode(rt_render_pass.get(), command_buffer_ptr, [&] {
+
+				rhi_command_buffer_ray_trace(
+					command_buffer_ptr,
+					render_target.get(),
+					sbt.get());
+				});
+
 		}
 		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
 
@@ -348,13 +357,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));
 
-			rhi_render_pass_execute_rt_mode(rt_render_pass.get(), &command_buffer, [&] {				
-		
-				rhi_command_buffer_ray_trace(
-					&command_buffer,
-					render_target.get(),
-					sbt.get());
-			});
+			
 			rhi_command_buffer_copy_texture(&command_buffer, dynamic_cast<RHI_TEXTURE_2D*>(render_pass.render_target_view->buffer.get()), render_target.get());
 		}
 		, [&](RHI_RENDER_PASS& UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer)) {
