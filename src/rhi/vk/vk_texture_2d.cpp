@@ -149,7 +149,7 @@ void vk_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
 
 	VK_COMMAND_BUFFER* command_buffer_impl = static_cast<VK_COMMAND_BUFFER*>(command_buffer);
 	const VK_BUFFER* src_buffer_impl = static_cast<const VK_BUFFER*>(src_buffer);
-	const VK_TEXTURE_2D* dest_buffer_impl = static_cast<const VK_TEXTURE_2D*>(dest_buffer);
+    VK_TEXTURE_2D* dest_buffer_impl = static_cast<VK_TEXTURE_2D*>(dest_buffer);
 
     // PASO A: Transicionar de UNDEFINED a TRANSFER_DST_OPTIMAL
     transition_image_layout_vk(
@@ -186,4 +186,5 @@ void vk_texture_2d_gpu_upload(RHI_COMMAND_BUFFER* const command_buffer,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
+    dest_buffer_impl->mip_zero_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }

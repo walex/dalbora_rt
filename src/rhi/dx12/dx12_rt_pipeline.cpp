@@ -304,8 +304,9 @@ RHI_SBT_TABLE* dx12_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const
 	buffer_desc.device = const_cast<RHI_DEVICE*>(device);
 	buffer_desc.length = total_size;
 	buffer_desc.memory_type = buffer_memory_type_shared_rw;
-	buffer_desc.type = buffer_type_raw;
+	buffer_desc.type = buffer_type_sbt;
 	buffer_desc.mips = 1;
+	buffer_desc.resource_flags |= resource_flags_rt_as;
 	std::unique_ptr<RHI_BUFFER> shared_buffer;
 	shared_buffer.reset(dx12_buffers_create_linear(&buffer_desc));
 	ASSERT_PTR(shared_buffer);

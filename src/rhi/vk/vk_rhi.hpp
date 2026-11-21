@@ -50,7 +50,7 @@ struct VK_HANDLE
 	RHI_VOID_PTR get_handle() const override {
 		return static_cast<RHI_VOID_PTR>(handle);
 	}
-	T handle;
+	T handle{};
 };
 
 struct VK_DEVICE 
@@ -172,6 +172,7 @@ struct VK_SWAP_CHAIN
 	VkSurfaceKHR native_surface = VK_NULL_HANDLE;
 	VkSemaphore* next_image_sync;
 	VkSemaphore* render_complete_sync;
+	VkImageUsageFlags image_usage = 0;
 };
 
 struct VK_FENCE
@@ -214,6 +215,10 @@ struct VK_BUFFER
 	: public RHI_BUFFER
 	, public VK_NON_DISPATCHABLE_HANDLE<VkBuffer> {
 
+	~VK_BUFFER() {
+		if (this->parent_device && this->handle)
+			vkDestroyBuffer(*this->parent_device, this->handle, nullptr);
+	}
 	observer_ptr<VK_MEMORY_POOL> memory_pool;
 };
 
@@ -228,6 +233,8 @@ struct VK_TEXTURE_2D
 	}
 
 	observer_ptr<VK_MEMORY_POOL> memory_pool;
+	VkImageLayout mip_zero_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	std::vector<VkImageLayout> other_mip_layouts;
 };
 
 struct VK_SAMPLER
@@ -247,6 +254,8 @@ struct VK_SWAP_CHAIN_TEXTURE_2D
 	, public RHI_BUFFER {
 
 	~VK_SWAP_CHAIN_TEXTURE_2D() = default;
+	VkImageLayout mip_zero_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	VkImageUsageFlags image_usage = 0;
 };
 
 struct VK_RENDER_PASS
@@ -272,6 +281,11 @@ struct VK_BVH_BUFFER
 		ASSERT_PTR(this->parent_device);
 		vkDestroyAccelerationStructureKHR(*this->parent_device, *this, nullptr);
 	}
+	std::unique_ptr<RHI_BUFFER> storage;
+	std::unique_ptr<RHI_BUFFER> scratch;
+	std::unique_ptr<RHI_BUFFER> inputs;
+	uint32_t instance_count = 0;
+	bool allow_update = false;
 };
 
 struct VK_HEAP_RANGE {
@@ -299,6 +313,39 @@ struct VK_RASTER_PIPELINE
 		ASSERT_PTR(this->parent_device);
 		vkDestroyPipeline(*this->parent_device, *this, nullptr);
 	}
+};
+
+struct VK_RT_PIPELINE
+	: public RHI_RT_PIPELINE
+	, public VK_NON_DISPATCHABLE_HANDLE<VkPipeline> {
+
+	~VK_RT_PIPELINE() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyPipeline(*this->parent_device, *this, nullptr);
+	}
+	// storage for the shader group handles referenced by shader_table entries
+	std::vector<uint8_t> group_handles;
+};
+
+struct VK_RT_BVH
+	: public RHI_RT_BVH
+	, public RHI_BUFFER
+	, public VK_NON_DISPATCHABLE_HANDLE<VkAccelerationStructureKHR> {
+	~VK_RT_BVH() {
+		ASSERT_PTR(this->parent_device);
+		vkDestroyAccelerationStructureKHR(*this->parent_device, *this, nullptr);
+	}
+	std::unique_ptr<RHI_BUFFER> storage;
+	std::unique_ptr<RHI_BUFFER> scratch;
+};
+
+struct VK_SBT_TABLE
+	: public RHI_SBT_TABLE
+	, public VK_NON_DISPATCHABLE_HANDLE<VkBuffer>
+{
+	virtual ~VK_SBT_TABLE() = default;
+	// owns the underlying buffer and its memory
+	std::unique_ptr<RHI_BUFFER> storage;
 };
 
 const VkFormat vk_resource_format_type[resource_format_count] = {
@@ -368,7 +415,8 @@ const VkQueueFlags vk_queue_type[queue_type_count] = {
 
 const VkImageType vulkan_buffer_type[buffer_type_count] = {
 	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_raw
-	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_rt_bvha
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_bvh
+	VK_IMAGE_TYPE_MAX_ENUM, // buffer_type_sbt
 	// image buffers
 	VK_IMAGE_TYPE_1D,       // buffer_type_image_1d
 	VK_IMAGE_TYPE_2D,       // buffer_type_image_2d

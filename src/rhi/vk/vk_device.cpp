@@ -2,6 +2,16 @@
 #include "vk_command_queue.hpp"
 #include "vk_heap.hpp"
 
+static bool device_check_dynamic_rendering_local_read_vk(const VkPhysicalDevice physical_device) {
+    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR local_read_features{};
+    local_read_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+    VkPhysicalDeviceFeatures2 device_features{};
+    device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    device_features.pNext = &local_read_features;
+    vkGetPhysicalDeviceFeatures2(physical_device, &device_features);
+    return local_read_features.dynamicRenderingLocalRead;
+}
+
 static bool device_check_heap_table_features_vk(const VkPhysicalDevice physical_device) {
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT heapFeatures{};
 	heapFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
@@ -17,9 +27,13 @@ static bool device_check_ray_tracing_features_vk(const VkPhysicalDevice physical
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
     accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
 
+    VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
+    rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    rayQueryFeatures.pNext = &accelerationStructureFeatures;
+
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{};
     rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-    rayTracingPipelineFeatures.pNext = &accelerationStructureFeatures;
+    rayTracingPipelineFeatures.pNext = &rayQueryFeatures;
 
     VkPhysicalDeviceFeatures2 deviceFeatures2{};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -28,7 +42,8 @@ static bool device_check_ray_tracing_features_vk(const VkPhysicalDevice physical
     vkGetPhysicalDeviceFeatures2(physical_device, &deviceFeatures2);
 
     return accelerationStructureFeatures.accelerationStructure &&
-        rayTracingPipelineFeatures.rayTracingPipeline;
+        rayTracingPipelineFeatures.rayTracingPipeline &&
+        rayQueryFeatures.rayQuery;
 }
 
 static bool check_device_mappeable_gpu_memory_vk(VkPhysicalDevice physical_device) {
@@ -55,7 +70,6 @@ static bool device_check_device_features_vk(const VkPhysicalDevice physical_devi
         device_extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
         device_extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
         device_extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-        device_extensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
     }
 
     uint32_t extensionCount;
@@ -63,6 +77,18 @@ static bool device_check_device_features_vk(const VkPhysicalDevice physical_devi
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, availableExtensions.data());
+
+    VkPhysicalDeviceProperties physical_device_properties{};
+    vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
+    bool has_local_read_extension = false;
+    for (const auto& extension : availableExtensions) {
+        if (std::string(extension.extensionName) == VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME) {
+            has_local_read_extension = true;
+            break;
+        }
+    }
+    if (has_local_read_extension || physical_device_properties.apiVersion < VK_API_VERSION_1_4)
+        device_extensions.push_back(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
 
     std::set<std::string> requiredExtensions(device_extensions.begin(), device_extensions.end());
 
@@ -80,6 +106,11 @@ static bool device_check_device_features_vk(const VkPhysicalDevice physical_devi
 
     if (device_check_heap_table_features_vk(physical_device) == false) {
 		std::cout << "Descriptor heap feature not supported." << std::endl;
+        return false;
+    }
+
+    if (device_check_dynamic_rendering_local_read_vk(physical_device) == false) {
+        std::cout << "Dynamic rendering local read feature not supported." << std::endl;
         return false;
     }
 
@@ -235,10 +266,15 @@ static VkDevice device_create_logical_device_vk(const VkInstance instance, const
     heapFeatures.pNext = &untypedPointersFeatures;
     heapFeatures.descriptorHeap = VK_TRUE;
 
+    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR local_read_features{};
+    local_read_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+    local_read_features.pNext = &heapFeatures;
+    local_read_features.dynamicRenderingLocalRead = VK_TRUE;
+
     // Características Consolidadas de Vulkan 1.3 -> apunta a Descriptor Heaps
     VkPhysicalDeviceVulkan13Features features13{};
     features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    features13.pNext = &heapFeatures;
+    features13.pNext = &local_read_features;
     features13.synchronization2 = VK_TRUE;      // Sincronización moderna (vkQueueSubmit2)
     features13.dynamicRendering = VK_TRUE;      // Renderizado dinámico sin RenderPasses extensos
 
@@ -250,10 +286,28 @@ static VkDevice device_create_logical_device_vk(const VkInstance instance, const
     features12.bufferDeviceAddress = VK_TRUE;   // <--- ¡AQUÍ SE ACTIVA BDA AHORA SEGURO!
     features12.runtimeDescriptorArray = VK_TRUE;
 
+    // Ray tracing features -> apuntan a Vulkan 1.2
+    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features{};
+    ray_query_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    ray_query_features.pNext = &features12;
+    ray_query_features.rayQuery = VK_TRUE;
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline_features{};
+    ray_tracing_pipeline_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    ray_tracing_pipeline_features.pNext = &ray_query_features;
+    ray_tracing_pipeline_features.rayTracingPipeline = VK_TRUE;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features{};
+    acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    acceleration_structure_features.pNext = &ray_tracing_pipeline_features;
+    acceleration_structure_features.accelerationStructure = VK_TRUE;
+
     // Estructura Contenedora Principal -> apunta al inicio de las versiones consolidadas (Vulkan 1.2)
     VkPhysicalDeviceFeatures2 deviceFeatures2{};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    deviceFeatures2.pNext = &features12;
+    deviceFeatures2.pNext = (device_features & device_features_raytracing)
+        ? static_cast<void*>(&acceleration_structure_features)
+        : static_cast<void*>(&features12);
 
     // --- FIN DE LA CADENA ---
 
@@ -300,7 +354,7 @@ RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
 	VK_DEVICE* vk_device = new VK_DEVICE();
 	vk_device->set_handle(device);
 	vk_device->physical_device = physical_device;
-	vk_device->queue_family_index[queue_type_graphics] = graphics_queue_family_index;
+    vk_device->queue_family_index[queue_type_graphics] = graphics_queue_family_index;
 	vk_device->queue_family_index[queue_type_compute] = compute_queue_family_index;
 	vk_device->queue_family_index[queue_type_copy] = copy_queue_family_index;
 	vk_device->mappeable_gpu_memory = check_device_mappeable_gpu_memory_vk(physical_device);

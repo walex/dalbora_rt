@@ -3,7 +3,7 @@
 // D3D12_DESCRIPTOR_RANGE -> VkDescriptorSetLayoutBinding
 // ID3D12RootSignature -> VkPipelineLayout
 
-void calculate_max_descriptor_layout_properties_vk(VkPhysicalDevice physical_device, size_t* slots_stride_out, 
+void vk_calculate_max_descriptor_layout_properties(VkPhysicalDevice physical_device, size_t* slots_stride_out,
 	size_t* slot_alignment_out) {
 
 	ASSERT_PTR(slots_stride_out);
@@ -94,7 +94,7 @@ RHI_MEMORY_DESCRIPTOR* memory_resource_descriptor_table_vk(const VK_DEVICE* cons
 	
 	size_t slot_alignment = 0;
 	size_t slot_stride = 0;
-	calculate_max_descriptor_layout_properties_vk(device_impl->physical_device, &slot_stride, &slot_alignment);
+	vk_calculate_max_descriptor_layout_properties(device_impl->physical_device, &slot_stride, &slot_alignment);
 	size_t max_mem_size = (slot_stride * slots_count) + heap_props.minResourceHeapReservedRange;
 
 	VkBufferCreateInfo heapInfo{};
@@ -390,16 +390,15 @@ void vk_memory_resource_write_constant_buffer_view_descriptor(const VK_DEVICE* c
 }
 
 void vk_memory_resource_write_acceleration_structure_descriptor(const VK_DEVICE* const device_impl,	const RHI_MEMORY_DESCRIPTOR_SLOT* const slot,
-	const VkAccelerationStructureKHR* const acceleration_structure) {
+	const VkAccelerationStructureKHR acceleration_structure) {
 	ASSERT_PTR(device_impl);
 	ASSERT_PTR(slot);
-	ASSERT_PTR(acceleration_structure);
 	ASSERT_EXPR((slot->cpu_handle % slot->descriptor_alignment) == 0);
 
 	// 1. Obtener la dirección física de la estructura de aceleración en VRAM
 	VkAccelerationStructureDeviceAddressInfoKHR address_info{};
 	address_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-	address_info.accelerationStructure = *acceleration_structure;
+	address_info.accelerationStructure = acceleration_structure;
 
 	const VkDeviceAddress as_device_address = vkGetAccelerationStructureDeviceAddressKHR(*device_impl, &address_info);
 	ASSERT_EXPR(as_device_address != 0);

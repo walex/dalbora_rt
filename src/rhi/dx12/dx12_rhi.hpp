@@ -229,6 +229,7 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[buffer_type_count] = {
 
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_raw
 	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_bvh
+	D3D12_RESOURCE_DIMENSION_BUFFER,	// buffer_type_sbt
 	// image buffers
 	D3D12_RESOURCE_DIMENSION_TEXTURE1D, // buffer_type_image_1d
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D, // buffer_type_image_2d

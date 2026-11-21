@@ -45,6 +45,12 @@ RHI_PIPELINE_LAYOUT* vk_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC* c
 			read_only_shader_registers_count += descriptor.shader_register_max;
 			resource_heap_slot += descriptor.shader_register_max;
 			break;
+		case shader_view_type_bvh_buffer:
+			range_type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+			if (read_only_shader_registers_count == 0) read_only_heap_start = resource_heap_slot;
+			read_only_shader_registers_count += descriptor.shader_register_max;
+			resource_heap_slot += descriptor.shader_register_max;
+			break;
 		case shader_view_type_rw_texture_buffer:
 			range_type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			if (rw_texture_shader_registers_count == 0) rw_texture_heap_start = resource_heap_slot;

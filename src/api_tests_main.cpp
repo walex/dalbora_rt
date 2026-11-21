@@ -16,10 +16,10 @@ void test_api()
 	// test_raster_triangle();
 
 	// raster textured triangle
-    test_raster_textured_triangle();
+   // test_raster_textured_triangle();
 
 	// rt triangle
-	// test_rt_triangle();
+	test_rt_triangle();
 
 	// end rhi
 	rhi_end();

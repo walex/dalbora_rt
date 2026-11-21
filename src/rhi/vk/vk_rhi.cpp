@@ -11,6 +11,8 @@
 #include "vk_buffers.hpp"
 #include "vk_texture_2d.hpp"
 #include  "vk_sampler.hpp"
+#include "vk_rt_pipeline.hpp"
+#include "vk_rt_bvh.hpp"
 
 VkInstance create_vk_instance() {
 
@@ -86,12 +88,15 @@ void vk_rhi_init() {
     rhi_command_buffer_create = &vk_command_buffer_create;
     rhi_command_buffer_record = &vk_command_buffer_record;
 	rhi_command_buffer_draw_triangle_list = &vk_command_buffer_draw_triangle_list;
+    rhi_command_buffer_ray_trace = &vk_command_buffer_ray_trace;
+    rhi_command_buffer_copy_texture = &vk_command_buffer_copy_texture;
 
     // render pass
     rhi_render_pass_create = &vk_render_pass_create;
+    rhi_render_pass_execute_rt_mode = &vk_render_pass_execute_rt_mode;
     rhi_render_pass_execute_raster_mode = &vk_render_pass_execute_raster_mode;
 
-    // pipeline
+    // raster pipeline
     rhi_pipeline_layout_create = &vk_pipeline_layout_create;
 	rhi_raster_pipeline_create = &vk_raster_pipeline_create;
 
@@ -114,12 +119,16 @@ void vk_rhi_init() {
     rhi_buffers_update_view = &vk_buffers_update_view;
 
     rhi_sampler_create = &vk_sampler_create;
-
     rhi_texture_2d_gpu_upload = &vk_texture_2d_gpu_upload;
-
-   rhi_texture_2d_create = &vk_texture_2d_create;
-   // rhi_sampler_create = &vk_sampler_create;
-
+    rhi_texture_2d_create = &vk_texture_2d_create;
+   
+    // rt
+    rhi_rt_bvh_create = &vk_rt_bvh_create;
+    rhi_rt_bvh_build_geometry_instances = &vk_rt_bvh_build_geometry_instances;
+    rhi_rt_bvh_update_geometry_instances = &vk_rt_bvh_update_geometry_instances;
+    rhi_rt_pipeline_create_sbt = &vk_rt_pipeline_create_sbt;
+    rhi_rt_pipeline_create = &vk_rt_pipeline_create;
+    
 }
 
 void vk_rhi_end() {

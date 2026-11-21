@@ -56,6 +56,7 @@ enum buffer_type
 
 	buffer_type_raw = 0,
 	buffer_type_bvh,
+	buffer_type_sbt,
 	// image buffers
 	buffer_type_image_1d,
 	buffer_type_image_2d,
@@ -98,6 +99,7 @@ enum resource_flags {
 	resource_flags_shader_read_write = 0x1,
 	resource_flags_render_target = 0x2,
 	resource_flags_texture_sampling = 0x4,
+	resource_flags_rt_as = 0x8
 };
 
 enum fence_flags

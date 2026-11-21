@@ -20,6 +20,8 @@ void vk_memory_resource_write_uniform_buffer_descriptor(const VK_DEVICE* const d
 void vk_memory_resource_write_constant_buffer_view_descriptor(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot,
 	const VkDescriptorBufferInfo* const cbv_view_info);
 void vk_memory_resource_write_acceleration_structure_descriptor(const VK_DEVICE* const device_impl, const RHI_MEMORY_DESCRIPTOR_SLOT* const slot,
-	const VkAccelerationStructureKHR* const acceleration_structure);
+	const VkAccelerationStructureKHR acceleration_structure);
 
+void vk_calculate_max_descriptor_layout_properties(VkPhysicalDevice physical_device, size_t* slots_stride_out,
+	size_t* slot_alignment_out);
 #endif

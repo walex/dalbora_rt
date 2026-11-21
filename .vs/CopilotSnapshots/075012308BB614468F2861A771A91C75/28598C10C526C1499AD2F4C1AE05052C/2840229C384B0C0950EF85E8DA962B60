@@ -1,0 +1,331 @@
+﻿#include "vk_device.hpp"
+#include "vk_command_queue.hpp"
+#include "vk_heap.hpp"
+
+static bool device_check_heap_table_features_vk(const VkPhysicalDevice physical_device) {
+	VkPhysicalDeviceDescriptorHeapFeaturesEXT heapFeatures{};
+	heapFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
+	VkPhysicalDeviceFeatures2 deviceFeatures2{};
+	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	deviceFeatures2.pNext = &heapFeatures;
+	vkGetPhysicalDeviceFeatures2(physical_device, &deviceFeatures2);
+	return heapFeatures.descriptorHeap;
+}
+
+static bool device_check_ray_tracing_features_vk(const VkPhysicalDevice physical_device) {
+    
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+    accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+
+    VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
+    rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    rayQueryFeatures.pNext = &accelerationStructureFeatures;
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{};
+    rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    rayTracingPipelineFeatures.pNext = &rayQueryFeatures;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures2{};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.pNext = &rayTracingPipelineFeatures; // Encadenamos la lista de RT
+
+    vkGetPhysicalDeviceFeatures2(physical_device, &deviceFeatures2);
+
+    return accelerationStructureFeatures.accelerationStructure &&
+        rayTracingPipelineFeatures.rayTracingPipeline &&
+        rayQueryFeatures.rayQuery;
+}
+
+static bool check_device_mappeable_gpu_memory_vk(VkPhysicalDevice physical_device) {
+    
+    return vk_memory_resource_find_memory_type(physical_device, UINT32_MAX,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) >= 0;
+}
+
+static bool device_check_device_features_vk(const VkPhysicalDevice physical_device, const size_t features,
+    std::vector<const char*>& device_extensions) {
+
+    device_extensions = {
+        // swap chain extension
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_KHR_SHADER_UNTYPED_POINTERS_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME
+    };
+
+    auto feats = features;
+    if (feats & device_features_raytracing) {
+        device_extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+        device_extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+        device_extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+        device_extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        device_extensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+    }
+
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtensions(device_extensions.begin(), device_extensions.end());
+
+    for (const auto& extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    if (requiredExtensions.empty() == false) {
+        std::cout << "Extensions not supported:" << std::endl;
+        for (const auto& missing : requiredExtensions) {
+            std::cout << " - " << missing << std::endl;
+        }
+        return false;
+    }
+
+    if (device_check_heap_table_features_vk(physical_device) == false) {
+		std::cout << "Descriptor heap feature not supported." << std::endl;
+        return false;
+    }
+
+    if ((feats & device_features_raytracing)
+        && device_check_ray_tracing_features_vk(physical_device) == false) {
+		
+        std::cout << "Ray tracing features not supported." << std::endl;
+        return false;
+    }
+    feats ^= device_features_raytracing;
+
+    if (feats & device_features_mappeable_gpu_memory && 
+        check_device_mappeable_gpu_memory_vk(physical_device) == false) {
+        std::cout << "Mappable GPU memory not supported." << std::endl;
+        return false;
+    }
+
+    feats ^= device_features_mappeable_gpu_memory;
+
+    if (feats & device_features_dedicated_gpu) {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(physical_device, &deviceProperties);
+		if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+			std::cout << "Dedicated GPU required but not found." << std::endl;
+			return false;
+		}
+    }
+    feats ^= device_features_dedicated_gpu;
+
+    return true;    
+}
+
+static void device_get_command_queue_family_indices_vk(const VkPhysicalDevice physical_device, uint32_t& graphics_family_index,
+    uint32_t& compute_family_index, uint32_t& copy_family_index) {
+
+	graphics_family_index = -1;
+	compute_family_index = -1;
+	copy_family_index = -1;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, queueFamilies.data());
+
+    for (uint32_t i = 0; i < queueFamilyCount; i++) {
+
+        if (graphics_family_index == -1 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            graphics_family_index = i;
+        }
+       
+        if (compute_family_index == -1 && queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+            compute_family_index = i;
+        }
+
+        if (copy_family_index == -1 && (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+            !(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+            !(queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+            copy_family_index   = i;
+            break;
+        }
+
+        if (graphics_family_index != -1 && compute_family_index != -1 
+            && copy_family_index != -1) {
+            break;
+        }
+    }
+
+    if (copy_family_index == -1) {
+        copy_family_index = graphics_family_index;
+    }
+}
+
+static VkDevice device_create_logical_device_vk(const VkInstance instance, const uint32_t graphics_queue_count,
+    const uint32_t compute_queue_count, const uint32_t copy_queue_count, const unsigned long long device_features,
+    VkPhysicalDevice* physical_device_out = nullptr, uint32_t* graphics_queue_family_index_out = nullptr,
+    uint32_t* compute_queue_family_index_out = nullptr, uint32_t* copy_queue_family_index_out = nullptr) {
+
+    uint32_t device_count = 0;
+    vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+    std::vector<VkPhysicalDevice> devices(device_count);
+    vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
+
+    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    std::vector<const char*> device_extensions;
+    uint32_t graphics_queue_family_index = -1;
+    uint32_t compute_queue_family_index = -1;
+    uint32_t copy_family_index = -1;
+    for (const auto& pdev : devices) {
+
+        device_extensions.clear();
+        if (device_check_device_features_vk(pdev, device_features, device_extensions) == true) {
+
+            physical_device = pdev;
+            break;
+        }
+    }
+
+    if (physical_device == VK_NULL_HANDLE) {
+        throw std::runtime_error("compatible physical device not found");
+    }
+
+    device_get_command_queue_family_indices_vk(physical_device, graphics_queue_family_index,
+        compute_queue_family_index, copy_family_index);
+
+    if (graphics_queue_count > 0 && graphics_queue_family_index_out != nullptr && graphics_queue_family_index == -1) {
+        throw std::runtime_error("compatible graphics queue family not found.");
+    }
+    if (compute_queue_count > 0 && compute_queue_family_index_out != nullptr && compute_queue_family_index == -1) {
+        throw std::runtime_error("compatible compute queue family not found.");
+    }
+    if (copy_queue_count > 0 && copy_queue_family_index_out != nullptr && copy_family_index == -1) {
+        throw std::runtime_error("compatible copy queue family not found.");
+    }
+
+    std::vector<VkDeviceQueueCreateInfo> v_queue_create_info;
+
+    std::set<uint32_t> unique_families;
+    if (graphics_queue_family_index != -1) unique_families.insert(graphics_queue_family_index);
+    if (compute_queue_family_index != -1) unique_families.insert(compute_queue_family_index);
+    if (copy_family_index != -1)          unique_families.insert(copy_family_index);
+
+    std::vector<float> queuePriorities(16, 1.0f);
+
+    for (uint32_t family_index : unique_families) {
+
+        uint32_t total_queue_count = 0;
+
+        if (family_index == graphics_queue_family_index) total_queue_count += graphics_queue_count;
+        if (family_index == compute_queue_family_index)  total_queue_count += compute_queue_count;
+        if (family_index == copy_family_index)           total_queue_count += copy_queue_count;
+
+        VkDeviceQueueCreateInfo queue_create_info{};
+        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_info.queueFamilyIndex = family_index;
+        queue_create_info.queueCount = total_queue_count;
+        queue_create_info.pQueuePriorities = queuePriorities.data();
+
+        v_queue_create_info.push_back(queue_create_info);
+    }
+
+    // --- ENLACE CORRECTO DE LA CADENA PNEXT ---
+
+   // Base de la cadena: Punteros No Tipados (Untyped Pointers)
+    VkPhysicalDeviceShaderUntypedPointersFeaturesKHR untypedPointersFeatures{};
+    untypedPointersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR;
+    untypedPointersFeatures.pNext = nullptr; // <--- Ahora este es el fin seguro de la cadena
+    untypedPointersFeatures.shaderUntypedPointers = VK_TRUE;
+
+    // Descriptores en Heap -> apunta a Untyped Pointers
+    VkPhysicalDeviceDescriptorHeapFeaturesEXT heapFeatures{};
+    heapFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
+    heapFeatures.pNext = &untypedPointersFeatures;
+    heapFeatures.descriptorHeap = VK_TRUE;
+
+    // Características Consolidadas de Vulkan 1.3 -> apunta a Descriptor Heaps
+    VkPhysicalDeviceVulkan13Features features13{};
+    features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    features13.pNext = &heapFeatures;
+    features13.synchronization2 = VK_TRUE;      // Sincronización moderna (vkQueueSubmit2)
+    features13.dynamicRendering = VK_TRUE;      // Renderizado dinámico sin RenderPasses extensos
+
+    // Características Consolidadas de Vulkan 1.2 -> apunta a Vulkan 1.3
+    VkPhysicalDeviceVulkan12Features features12{};
+    features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    features12.pNext = &features13;
+    features12.timelineSemaphore = VK_TRUE;     // Sincronización por Timeline Semaphores nativa
+    features12.bufferDeviceAddress = VK_TRUE;   // <--- ¡AQUÍ SE ACTIVA BDA AHORA SEGURO!
+    features12.runtimeDescriptorArray = VK_TRUE;
+
+    // Ray tracing features -> apuntan a Vulkan 1.2
+    VkPhysicalDeviceRayQueryFeaturesKHR ray_query_features{};
+    ray_query_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    ray_query_features.pNext = &features12;
+    ray_query_features.rayQuery = VK_TRUE;
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline_features{};
+    ray_tracing_pipeline_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    ray_tracing_pipeline_features.pNext = &ray_query_features;
+    ray_tracing_pipeline_features.rayTracingPipeline = VK_TRUE;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features{};
+    acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    acceleration_structure_features.pNext = &ray_tracing_pipeline_features;
+    acceleration_structure_features.accelerationStructure = VK_TRUE;
+
+    // Estructura Contenedora Principal -> apunta al inicio de las versiones consolidadas (Vulkan 1.2)
+    VkPhysicalDeviceFeatures2 deviceFeatures2{};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.pNext = (device_features & device_features_raytracing)
+        ? static_cast<void*>(&acceleration_structure_features)
+        : static_cast<void*>(&features12);
+
+    // --- FIN DE LA CADENA ---
+
+    VkDeviceCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    create_info.pQueueCreateInfos = v_queue_create_info.data();
+    create_info.queueCreateInfoCount = static_cast<uint32_t>(v_queue_create_info.size());
+    create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
+    create_info.ppEnabledExtensionNames = device_extensions.data();
+    create_info.pNext = &deviceFeatures2; // Pasamos el contenedor inicial
+
+    VkDevice device;
+    if (vkCreateDevice(physical_device, &create_info, nullptr, &device) != VK_SUCCESS) {
+        throw std::runtime_error("Error creating logical device!");
+    }
+
+    if (physical_device_out != nullptr)
+        *physical_device_out = physical_device;
+    if (graphics_queue_family_index_out != nullptr)
+        *graphics_queue_family_index_out = graphics_queue_family_index;
+    if (compute_queue_family_index_out != nullptr)
+        *compute_queue_family_index_out = compute_queue_family_index;
+    if (copy_queue_family_index_out != nullptr)
+        *copy_queue_family_index_out = copy_family_index;
+    return device;
+}
+
+RHI_DEVICE* vk_device_create(const RHI_DEVICE_DESC* const desc) {
+	
+    ASSERT_PTR(desc);
+    ASSERT_PTR(desc->app_instance);
+    
+	VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+	uint32_t graphics_queue_family_index = -1;
+	uint32_t compute_queue_family_index = -1;
+    uint32_t copy_queue_family_index = -1;
+
+    VkDevice device = device_create_logical_device_vk(static_cast<VkInstance>(desc->app_instance), desc->graphics_queue_count,
+        desc->compute_queue_count, desc->copy_queue_count, desc->features, 
+        &physical_device, &graphics_queue_family_index,
+        &compute_queue_family_index, &copy_queue_family_index);
+    ASSERT_PTR(device);
+
+	VK_DEVICE* vk_device = new VK_DEVICE();
+	vk_device->set_handle(device);
+	vk_device->physical_device = physical_device;
+	vk_device->queue_family_index[queue_type_graphics] = graphics_queue_family_index;
+	vk_device->queue_family_index[queue_type_compute] = compute_queue_family_index;
+	vk_device->queue_family_index[queue_type_copy] = copy_queue_family_index;
+	vk_device->mappeable_gpu_memory = check_device_mappeable_gpu_memory_vk(physical_device);
+    return vk_device;
+}

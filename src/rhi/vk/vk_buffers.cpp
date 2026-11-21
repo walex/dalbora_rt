@@ -86,7 +86,7 @@ static RHI_VIEW* create_view_from_tlas_vk(const RHI_VIEW_DESC* const desc, const
 	ASSERT_PTR(desc->device);
 	ASSERT_PTR(slot);
 
-	VkAccelerationStructureKHR bvh = *static_cast<const VK_BUFFER*>(desc->buffer);
+	VkAccelerationStructureKHR bvh = *static_cast<const VK_BVH_BUFFER*>(desc->buffer);
 
 	VK_AGNOSTIC_BUFFER_VIEW* result = new VK_AGNOSTIC_BUFFER_VIEW();
 	ASSERT_PTR(result);
@@ -94,7 +94,7 @@ static RHI_VIEW* create_view_from_tlas_vk(const RHI_VIEW_DESC* const desc, const
 	result->offset = 0;
 	result->range = desc->buffer->length;
 
-	vk_memory_resource_write_acceleration_structure_descriptor(*static_cast<VK_DEVICE*>(desc->device), slot, &bvh);
+	vk_memory_resource_write_acceleration_structure_descriptor(static_cast<VK_DEVICE*>(desc->device), slot, bvh);
 
 	return result;
 }
@@ -123,17 +123,19 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 		usage_flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 	else if (buffer_type == buffer_type_raw) {
-		usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+	}
+	else if (buffer_type == buffer_type_sbt) {
+		usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+		| VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
 	}
 	else if (buffer_type >= buffer_type_count) {
 		ASSERT_EXPR(false, "Invalid buffer type.");
 	}
-	if (desc->memory_type == buffer_memory_type_shared_rw
-		|| desc->memory_type == buffer_memory_type_shared_read_only) {
-		//memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-	}
-	else {
-		//memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	if ((desc->resource_flags & resource_flags_rt_as) != 0) {
+		usage_flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
 	if ((desc->resource_flags & resource_flags_shader_read_write
 		) == resource_flags_shader_read_write) {
@@ -278,6 +280,7 @@ static T* buffers_create_vk(const RHI_BUFFER_DESC* const desc) {
 	desc_2d.width = desc->length;
 	desc_2d.height = 1;
 	desc_2d.stride = desc->stride;
+	desc_2d.resource_flags = desc->resource_flags;
 	return buffers_create_2d_vk<T>(&desc_2d);
 }
 
@@ -570,6 +573,7 @@ RHI_BUFFER* vk_buffers_create_indices(const RHI_INDEX_BUFFER_DESC* const desc) {
 	ib_desc.format = desc->format;
 	ib_desc.mips = 1;
 	ib_desc.stride = desc->stride;
+	ib_desc.resource_flags = desc->resource_flags;
 	return buffers_create_vk<VK_BUFFER>(&ib_desc);
 }
 
@@ -586,6 +590,7 @@ RHI_BUFFER* vk_buffers_create_vertices(const RHI_VERTEX_BUFFER_DESC* const desc)
 	vb_desc.format = desc->format;
 	vb_desc.mips = 1;
 	vb_desc.stride = desc->stride;
+	vb_desc.resource_flags = desc->resource_flags;
 	return buffers_create_vk<VK_BUFFER>(&vb_desc);
 }
 

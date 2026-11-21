@@ -62,11 +62,10 @@ void dx12_rhi_init()
 	rhi_render_pass_execute_raster_mode = &dx12_render_pass_execute_raster_mode;
 	rhi_render_pass_execute_rt_mode = &dx12_render_pass_execute_rt_mode;
 
-	// pipeline
+	// raster pipeline
 	rhi_pipeline_layout_create = &dx12_pipeline_layout_create;
 	rhi_raster_pipeline_create = &dx12_raster_pipeline_create;
-	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
-
+	
 	// buffers
 	rhi_buffers_create_raw = &dx12_buffers_create_linear;
 	rhi_buffers_create_vertices = &dx12_buffers_create_vertices;
@@ -90,12 +89,12 @@ void dx12_rhi_init()
 	rhi_texture_2d_gpu_upload = &dx12_texture_2d_gpu_upload;
 	rhi_texture_2d_create = &dx12_texture_2d_create;
 	
-	
 	// rt
 	rhi_rt_bvh_create = &dx12_rt_bvh_create;
 	rhi_rt_bvh_build_geometry_instances = &dx12_rt_bvh_build_geometry_instances;
 	rhi_rt_bvh_update_geometry_instances = &dx12_rt_bvh_update_geometry_instances;
 	rhi_rt_pipeline_create_sbt = &dx12_rt_pipeline_create_sbt;
+	rhi_rt_pipeline_create = &dx12_rt_pipeline_create;
 
 	
 }

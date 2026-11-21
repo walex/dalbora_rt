@@ -40,6 +40,8 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> bvh_descriptor_slot;
 	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> render_target_descriptor_slot;
 	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> camera_constant_buffer_descriptor_slot;
+	RHI_COMMAND_BUFFER* command_buffer_ptr = nullptr;
+	RHI_DEVICE* device_ptr = nullptr;
 
 	float4x4 rotation_matrix = float4x4::Identity();
 
@@ -71,6 +73,9 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 		RHI_COMMAND_BUFFER& command_buffer, RHI_SWAP_CHAIN& swap_chain, 
 		RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count])
 		{
+			command_buffer_ptr = &command_buffer;
+			device_ptr = &dev;
+
 			RhiMemoryTable& resources_memory_descriptor = get_buffers_memory_table();
 
 			swap_chain_ptr = &swap_chain;
@@ -79,8 +84,8 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			tx_desc.device = &dev;
 			tx_desc.memory_type = buffer_memory_type_gpu_read_only;
 			tx_desc.type = buffer_type_image_2d;
-			tx_desc.width = 800;
-			tx_desc.height = 600;
+			tx_desc.width = swap_chain.buffer_width;
+			tx_desc.height = swap_chain.buffer_height;
 			tx_desc.format = resource_format_R8G8B8A8_norm;
 			tx_desc.mips = 1;
 			tx_desc.resource_flags = resource_flags_shader_read_write | resource_flags_render_target;
@@ -88,10 +93,14 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			
 			// compile shaders
 			std::string rt_file = std::filesystem::path(shaders_folder / "simple_rt.hlsl").string();
+			int flags = byte_code_format_input_hlsl;
+			if (rhi_get_device_type() == rhi_device_type_vulkan) {
+				flags |= byte_code_format_output_spirv;
+			}
 
-			auto ray_gen_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "RayGen", "lib_6_6", byte_code_format_input_hlsl);
-			auto miss_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "Miss", "lib_6_6", byte_code_format_input_hlsl);
-			auto closest_hit_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), shaders_folder.string().c_str(), "ClosestHit", "lib_6_6", byte_code_format_input_hlsl);
+			auto ray_gen_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), "RayGen", "lib_6_6", shaders_folder.string().c_str(), static_cast<byte_code_format>(flags));
+			auto miss_shader = rhi_hlsl_compiler_compile(rt_file.c_str(), "Miss", "lib_6_6", shaders_folder.string().c_str(), static_cast<byte_code_format>(flags));
+			auto closest_hit_shader = rhi_hlsl_compiler_compile(rt_file.c_str(),  "ClosestHit", "lib_6_6", shaders_folder.string().c_str(), static_cast<byte_code_format>(flags));
 
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
 			pl_desc.device = &dev;
@@ -165,6 +174,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			vb_desc.format = resource_format_float3;
 			vb_desc.memory_type = buffer_memory_type_gpu_read_only;
 			vb_desc.type = buffer_type_raw;
+			vb_desc.resource_flags |= resource_flags_rt_as;
 			vertex_buffer.reset(rhi_buffers_create_vertices(&vb_desc));
 
 			RHI_INDEX_BUFFER_DESC ib_desc;
@@ -175,6 +185,7 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			ib_desc.format = resource_format_uint16;
 			ib_desc.memory_type = buffer_memory_type_gpu_read_only;
 			ib_desc.type = buffer_type_raw;
+			ib_desc.resource_flags |= resource_flags_rt_as;
 			index_buffer.reset(rhi_buffers_create_indices(&ib_desc));
 
 			// create shared memory for camera transforms
@@ -311,16 +322,13 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 
 			rt_render_pass->pipeline = pipeline.get();
 			
-		}
-		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
-
 			float dt = get_delta_time();
 			rotation_matrix = rotate_triangle(dt);
 			float* matrices[] = { reinterpret_cast<float*>(&rotation_matrix) };
 			RHI_RT_BVH_GEOMETRY_INSTANCE_DESC inst_desc;
 			RHI_RT_BVH_GEOMETRY_DESC tlas_desc;
-			tlas_desc.device = &dev;
-			tlas_desc.command_buffer = &command_buffer;
+			tlas_desc.device = device_ptr;
+			tlas_desc.command_buffer = command_buffer_ptr;
 			tlas_desc.instance_info = &inst_desc;
 			inst_desc.parent_bvh = bvh.get();
 			inst_desc.transforms = &matrices[0];
@@ -328,8 +336,14 @@ void test_rt_triangle(fptr_test_on_init UNUSED_PARAM(on_init),
 			tlas_desc.instance_info_count = 1;
 			tlas_desc.read_only = false;
 			tlas_desc.total_instances = 1;
-
 			rhi_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
+		}
+		, [&] (RHI_DEVICE& dev, RHI_RENDER_PASS& render_pass, RHI_COMMAND_BUFFER& command_buffer) {
+
+			
+			
+
+			//rhi_rt_bvh_update_geometry_instances(&tlas_desc, bvh_instances.get());
 
 			// draw
 			memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCBRT));

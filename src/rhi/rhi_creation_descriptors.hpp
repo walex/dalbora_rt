@@ -137,7 +137,7 @@ struct RHI_RT_HIT_GROUP_DESC {
 
 struct RHI_RT_PIPELINE_DESC  {
 	RHI_DEVICE* device = nullptr;;
-	RHI_PIPELINE_LAYOUT* layout = nullptr;;
+	RHI_PIPELINE_LAYOUT* layout = nullptr;
 	RHI_RT_HIT_GROUP_DESC hit_groups[MAX_HIT_GROUPS];
 	size_t hit_group_count = 0;
 	RHI_RT_SHADER_UNIT_DESC miss_shaders[MAX_MISS_GROUPS];

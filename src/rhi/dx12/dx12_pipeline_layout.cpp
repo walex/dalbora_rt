@@ -26,6 +26,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 		const RHI_SHADER_DESCRIPTOR_DESC& descriptor = desc->descriptors[i];
 		D3D12_DESCRIPTOR_RANGE_TYPE range_type;
 		switch (descriptor.shader_view_type) {
+		case shader_view_type_bvh_buffer:
 		case shader_view_type_read_only_buffer:
 			read_only_shader_registers_count += descriptor.shader_register_max;
 			range_type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;

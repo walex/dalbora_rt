@@ -1,1 +1,307 @@
 #include "vk_rt_pipeline.hpp"
+#include "vk_buffers.hpp"
+#include "vk_heap.hpp"
+
+
+static VkShaderModule create_shader_module_vk(const VkDevice device, const RHI_COMPILED_SHADER_BUFFER* const blob) {
+
+	VkShaderModuleCreateInfo create_info{};
+	create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	create_info.codeSize = blob->buffer_size;
+	create_info.pCode = reinterpret_cast<const uint32_t*>(blob->buffer);
+
+	VkShaderModule shader_module = VK_NULL_HANDLE;
+	ASSERT_EXPR(vkCreateShaderModule(device, &create_info, nullptr, &shader_module) == VK_SUCCESS);
+	return shader_module;
+}
+
+// adds a shader stage and returns its index
+static uint32_t add_stage_vk(std::vector<VkPipelineShaderStageCreateInfo>& stages,
+	std::vector<VkShaderModule>& modules,
+	const VkDevice device,
+	const RHI_RT_SHADER_UNIT_DESC& unit,
+	const VkShaderStageFlagBits stage_flag) {
+
+	VkShaderModule shader_module = create_shader_module_vk(device, unit.blob);
+	modules.push_back(shader_module);
+
+	VkPipelineShaderStageCreateInfo& stage = stages.emplace_back();
+	stage = {};
+	stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stage.stage = stage_flag;
+	stage.module = shader_module;
+	stage.pName = unit.name_id;
+	return static_cast<uint32_t>(stages.size() - 1);
+}
+
+static VkRayTracingShaderGroupCreateInfoKHR make_group_vk(const VkRayTracingShaderGroupTypeKHR type) {
+
+	VkRayTracingShaderGroupCreateInfoKHR group{};
+	group.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+	group.type = type;
+	group.generalShader = VK_SHADER_UNUSED_KHR;
+	group.closestHitShader = VK_SHADER_UNUSED_KHR;
+	group.anyHitShader = VK_SHADER_UNUSED_KHR;
+	group.intersectionShader = VK_SHADER_UNUSED_KHR;
+	return group;
+}
+
+RHI_RT_PIPELINE* vk_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc) {
+
+	ASSERT_PTR(desc);
+	ASSERT_PTR(desc->device);
+	ASSERT_PTR(desc->layout);
+
+	VK_DEVICE* vk_device = static_cast<VK_DEVICE*>(desc->device);
+	VkDevice i_device = *vk_device;
+
+	const size_t hit_group_max_elements = desc->hit_group_count;
+	const size_t ray_gen_max_elements = desc->ray_gen_count;
+	const size_t miss_max_elements = desc->miss_shader_count;
+	const size_t max_stages = (hit_group_max_elements * 3) + miss_max_elements + ray_gen_max_elements;
+
+	std::vector<VkPipelineShaderStageCreateInfo> stages;
+	stages.reserve(max_stages);
+	std::vector<VkShaderModule> modules;
+	modules.reserve(max_stages);
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> groups;
+	groups.reserve(ray_gen_max_elements + miss_max_elements + hit_group_max_elements);
+
+	// groups order must match shader_table order: ray gen, miss, hit groups
+	for (size_t i = 0; i < ray_gen_max_elements; i++) {
+		const RHI_RT_SHADER_UNIT_DESC& unit = desc->ray_gen[i];
+		ASSERT_PTR(unit.blob);
+		VkRayTracingShaderGroupCreateInfoKHR group = make_group_vk(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR);
+		group.generalShader = add_stage_vk(stages, modules, i_device, unit, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+		groups.push_back(group);
+	}
+
+	for (size_t i = 0; i < miss_max_elements; i++) {
+		const RHI_RT_SHADER_UNIT_DESC& unit = desc->miss_shaders[i];
+		ASSERT_PTR(unit.blob);
+		VkRayTracingShaderGroupCreateInfoKHR group = make_group_vk(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR);
+		group.generalShader = add_stage_vk(stages, modules, i_device, unit, VK_SHADER_STAGE_MISS_BIT_KHR);
+		groups.push_back(group);
+	}
+
+	for (size_t i = 0; i < hit_group_max_elements; i++) {
+		const RHI_RT_HIT_GROUP_DESC& hit_group = desc->hit_groups[i];
+		const bool has_intersection = hit_group.intersection.blob != nullptr;
+		VkRayTracingShaderGroupCreateInfoKHR group = make_group_vk(has_intersection
+			? VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR
+			: VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR);
+		if (hit_group.closest_hit.blob != nullptr)
+			group.closestHitShader = add_stage_vk(stages, modules, i_device, hit_group.closest_hit, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+		if (hit_group.any_hit.blob != nullptr)
+			group.anyHitShader = add_stage_vk(stages, modules, i_device, hit_group.any_hit, VK_SHADER_STAGE_ANY_HIT_BIT_KHR);
+		if (has_intersection)
+			group.intersectionShader = add_stage_vk(stages, modules, i_device, hit_group.intersection, VK_SHADER_STAGE_INTERSECTION_BIT_KHR);
+		groups.push_back(group);
+	}
+
+	size_t descriptor_stride = 0;
+	size_t descriptor_alignment = 0;
+	vk_calculate_max_descriptor_layout_properties(vk_device->physical_device, &descriptor_stride, &descriptor_alignment);
+	std::vector<VkDescriptorSetAndBindingMappingEXT> mappings;
+	auto add_mapping = [&](VkSpirvResourceTypeFlagsEXT resource_mask, size_t heap_start, size_t count) {
+		if (count == 0)
+			return;
+		VkDescriptorSetAndBindingMappingEXT& mapping = mappings.emplace_back();
+		mapping = {};
+		mapping.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT;
+		mapping.descriptorSet = 0;
+		mapping.firstBinding = 0;
+		mapping.bindingCount = static_cast<uint32_t>(count);
+		mapping.resourceMask = resource_mask;
+		mapping.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT;
+		mapping.sourceData.constantOffset.heapOffset = static_cast<uint32_t>(heap_start * descriptor_stride);
+		mapping.sourceData.constantOffset.heapArrayStride = static_cast<uint32_t>(descriptor_stride);
+	};
+	const RHI_PIPELINE_LAYOUT& layout = *desc->layout;
+	add_mapping(VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT,
+		layout.constant_heap_start, layout.constant_shader_registers_count);
+	add_mapping(VK_SPIRV_RESOURCE_TYPE_READ_ONLY_STORAGE_BUFFER_BIT_EXT | VK_SPIRV_RESOURCE_TYPE_ACCELERATION_STRUCTURE_BIT_EXT,
+		layout.read_only_heap_start, layout.read_only_shader_registers_count);
+	add_mapping(VK_SPIRV_RESOURCE_TYPE_READ_WRITE_STORAGE_BUFFER_BIT_EXT |
+		(layout.rw_texture_shader_registers_count == 0 ? VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT : 0),
+		layout.rw_heap_start, layout.rw_shader_registers_count);
+	add_mapping(VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT,
+		layout.read_only_texture_heap_start, layout.read_only_texture_shader_registers_count);
+	add_mapping(VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT,
+		layout.rw_texture_heap_start, layout.rw_texture_shader_registers_count);
+	add_mapping(VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT,
+		layout.sampler_heap_start, layout.sampler_shader_registers_count);
+
+	VkShaderDescriptorSetAndBindingMappingInfoEXT mapping_info{};
+	mapping_info.sType = VK_STRUCTURE_TYPE_SHADER_DESCRIPTOR_SET_AND_BINDING_MAPPING_INFO_EXT;
+	mapping_info.mappingCount = static_cast<uint32_t>(mappings.size());
+	mapping_info.pMappings = mappings.data();
+	if (!mappings.empty()) {
+		for (VkPipelineShaderStageCreateInfo& stage : stages)
+			stage.pNext = &mapping_info;
+	}
+
+	VkPipelineCreateFlags2CreateInfo heap_flags{};
+	heap_flags.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO;
+	heap_flags.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
+	VkRayTracingPipelineCreateInfoKHR pipeline_info{};
+	pipeline_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+	pipeline_info.stageCount = static_cast<uint32_t>(stages.size());
+	pipeline_info.pStages = stages.data();
+	pipeline_info.groupCount = static_cast<uint32_t>(groups.size());
+	pipeline_info.pGroups = groups.data();
+	pipeline_info.maxPipelineRayRecursionDepth = 1; // 1 for primary rays only (no bounces)
+	if (!mappings.empty())
+		pipeline_info.pNext = &heap_flags;
+	else
+		pipeline_info.layout = *static_cast<VK_PIPELINE_LAYOUT*>(desc->layout);
+
+	VkPipeline pipeline = VK_NULL_HANDLE;
+	const VkResult pipeline_result = vkCreateRayTracingPipelinesKHR(
+		i_device,
+		VK_NULL_HANDLE,
+		VK_NULL_HANDLE,
+		1,
+		&pipeline_info,
+		nullptr,
+		&pipeline);
+
+	for (VkShaderModule shader_module : modules)
+		vkDestroyShaderModule(i_device, shader_module, nullptr);
+
+	ASSERT_EXPR(pipeline_result == VK_SUCCESS);
+	ASSERT_EXPR(pipeline != VK_NULL_HANDLE);
+
+	// shader group handles
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR rt_properties{};
+	rt_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 properties2{};
+	properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	properties2.pNext = &rt_properties;
+	vkGetPhysicalDeviceProperties2(vk_device->physical_device, &properties2);
+
+	const uint32_t handle_size = rt_properties.shaderGroupHandleSize;
+	const uint32_t group_count = static_cast<uint32_t>(groups.size());
+
+	VK_RT_PIPELINE* pipeline_impl = new VK_RT_PIPELINE();
+	ASSERT_PTR(pipeline_impl);
+	pipeline_impl->parent_device = vk_device;
+	pipeline_impl->set_handle(pipeline);
+	pipeline_impl->layout = desc->layout;
+	pipeline_impl->group_handles.resize(static_cast<size_t>(handle_size) * group_count);
+
+	ASSERT_EXPR(vkGetRayTracingShaderGroupHandlesKHR(
+		i_device,
+		pipeline,
+		0,
+		group_count,
+		pipeline_impl->group_handles.size(),
+		pipeline_impl->group_handles.data()) == VK_SUCCESS);
+
+	pipeline_impl->shader_table.reserve(group_count);
+	uint32_t group_index = 0;
+	auto add_entry = [&](const char* const name_id) {
+		RHI_SHADER_TABLE_ENTRY& ste = pipeline_impl->shader_table.emplace_back();
+		ste.shader_id = pipeline_impl->group_handles.data() + static_cast<size_t>(group_index++) * handle_size;
+		ste.name = name_id;
+	};
+
+	for (size_t i = 0; i < ray_gen_max_elements; i++)
+		add_entry(desc->ray_gen[i].name_id);
+	for (size_t i = 0; i < miss_max_elements; i++)
+		add_entry(desc->miss_shaders[i].name_id);
+	for (size_t i = 0; i < hit_group_max_elements; i++)
+		add_entry(desc->hit_groups[i].name_id);
+
+	return pipeline_impl;
+}
+
+
+RHI_SBT_TABLE* vk_rt_pipeline_create_sbt(const RHI_DEVICE* const device, const RHI_RT_SBT_DESC* const desc, const RHI_RT_PIPELINE* const pipeline) {
+
+	ASSERT_PTR(device);
+	ASSERT_PTR(desc);
+	ASSERT_PTR(pipeline);
+	ASSERT_EXPR(pipeline->shader_table.size() > 0);
+
+	const VK_DEVICE* vk_device = static_cast<const VK_DEVICE*>(device);
+
+	const size_t hit_group_max_elements = desc->hit_group_count;
+	const size_t ray_gen_max_elements = desc->ray_gen_count;
+	const size_t miss_max_elements = desc->miss_shader_count;
+
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR rt_properties{};
+	rt_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 properties2{};
+	properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	properties2.pNext = &rt_properties;
+	vkGetPhysicalDeviceProperties2(vk_device->physical_device, &properties2);
+
+	auto align_up = [](const size_t value, const size_t alignment) {
+		return (value + alignment - 1) / alignment * alignment;
+	};
+
+	const size_t shader_id_size = rt_properties.shaderGroupHandleSize;
+	const size_t record_size = align_up(shader_id_size, rt_properties.shaderGroupHandleAlignment);
+	const size_t table_alignment = rt_properties.shaderGroupBaseAlignment;
+	ASSERT_EXPR(ray_gen_max_elements > 0);
+	ASSERT_EXPR(record_size <= rt_properties.maxShaderGroupStride);
+
+	const size_t raygen_table_size = align_up(ray_gen_max_elements * record_size, table_alignment);
+	const size_t miss_table_size = align_up(miss_max_elements * record_size, table_alignment);
+	const size_t hitgroup_table_size = align_up(hit_group_max_elements * record_size, table_alignment);
+
+	const size_t total_size = raygen_table_size + miss_table_size + hitgroup_table_size;
+
+	RHI_BUFFER_DESC buffer_desc;
+	buffer_desc.device = const_cast<RHI_DEVICE*>(device);
+	buffer_desc.length = total_size + table_alignment - 1;
+	buffer_desc.memory_type = buffer_memory_type_shared_rw;
+	buffer_desc.type = buffer_type_sbt;
+	buffer_desc.mips = 1;
+	buffer_desc.resource_flags |= resource_flags_rt_as;
+	std::unique_ptr<RHI_BUFFER> shared_buffer;
+	shared_buffer.reset(vk_buffers_create_linear(&buffer_desc));
+	ASSERT_PTR(shared_buffer);
+	VkBuffer vk_buffer = *static_cast<VK_BUFFER*>(shared_buffer.get());
+	ASSERT_EXPR(vk_buffer != VK_NULL_HANDLE);
+	VkBufferDeviceAddressInfo address_info{};
+	address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	address_info.buffer = vk_buffer;
+	const VkDeviceAddress buffer_address = vkGetBufferDeviceAddress(*vk_device, &address_info);
+	ASSERT_EXPR(buffer_address != 0);
+	const size_t ray_gen_offset = (table_alignment - buffer_address % table_alignment) % table_alignment;
+	const size_t miss_offset = ray_gen_offset + raygen_table_size;
+	const size_t hit_group_offset = miss_offset + miss_table_size;
+
+	uint8_t* mapped = static_cast<uint8_t*>(vk_buffers_map_open(shared_buffer.get(), 0, buffer_desc.length));
+	ASSERT_PTR(mapped);
+	memset(mapped, 0, buffer_desc.length);
+
+	std::map<std::string, RHI_VOID_PTR> shader_id_map;
+	for (size_t i = 0; i < pipeline->shader_table.size(); ++i)
+		shader_id_map[std::string(pipeline->shader_table[i].name)] = pipeline->shader_table[i].shader_id;
+
+	for (size_t i = 0; i < ray_gen_max_elements; ++i)
+		memcpy(mapped + ray_gen_offset + i * record_size, shader_id_map.at(desc->ray_gen_ids[i]), shader_id_size);
+	for (size_t i = 0; i < miss_max_elements; ++i)
+		memcpy(mapped + miss_offset + i * record_size, shader_id_map.at(desc->miss_ids[i]), shader_id_size);
+	for (size_t i = 0; i < hit_group_max_elements; ++i)
+		memcpy(mapped + hit_group_offset + i * record_size, shader_id_map.at(desc->hit_group_ids[i]), shader_id_size);
+
+	vk_buffers_map_close(shared_buffer.get(), 0, buffer_desc.length);
+
+	VK_SBT_TABLE* result = new VK_SBT_TABLE();
+	ASSERT_PTR(result);
+	result->parent_device = const_cast<VK_DEVICE*>(vk_device);
+	result->set_handle(vk_buffer);
+	result->storage = std::move(shared_buffer);
+	result->ray_gen_offset = ray_gen_offset;
+	result->miss_offset = miss_offset;
+	result->hit_group_offset = hit_group_offset;
+	result->ray_gen_size = ray_gen_max_elements * record_size;
+	result->miss_size = miss_max_elements * record_size;
+	result->hit_group_size = hit_group_max_elements * record_size;
+	result->record_size = record_size;
+	return result;
+}

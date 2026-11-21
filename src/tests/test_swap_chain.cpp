@@ -137,8 +137,7 @@ void test_swap_chain(fptr_test_on_init on_init
 				render_pass->render_target_view = views[swap_chain->current_image_index].get();
 				
 
-				if (on_before_draw)
-					on_before_draw(*render_pass);
+				
 
 				rhi_command_queue_execute(command_queue.get(), true, [&](
 					RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
@@ -146,6 +145,10 @@ void test_swap_chain(fptr_test_on_init on_init
 
 						rhi_command_buffer_record(command_buffer.get(),
 							[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
+
+								if (on_before_draw)
+									on_before_draw(*render_pass);
+
 								// begin pass
 								rhi_render_pass_execute_raster_mode(render_pass.get(), command_buffer.get(), [&] {
 

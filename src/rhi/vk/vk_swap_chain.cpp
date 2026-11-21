@@ -226,7 +226,11 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
     create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     create_info.imageExtent = VkExtent2D{ width, height};
     create_info.imageArrayLayers = 1;
-    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_2_STORAGE_BIT_KHR;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if ((surfaceCapabilities.supportedUsageFlags & create_info.imageUsage) != create_info.imageUsage)
+        throw std::runtime_error("Swap chain does not support required image usage flags");
+    if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+        create_info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -249,6 +253,7 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
     result->set_handle(swap_chain);
     result->parent_device = static_cast<VK_DEVICE*>(desc->device);
 	result->native_surface = surface;
+    result->image_usage = create_info.imageUsage;
 	result->buffer_width = width;
 	result->buffer_height = height;
     result->buffer_mip_count = 1;
@@ -310,7 +315,7 @@ uint32_t vk_swap_chain_get_current_buffer_id(const RHI_SWAP_CHAIN* const swap_ch
 
     ASSERT_EXPR(command_queue_impl->sync_objects_count < MAX_SYNC_OBJECTS);
 	command_queue_impl->sync_objects[command_queue_impl->sync_objects_count].semaphore = swap_chain_impl->next_image_sync[sem_index];
-	command_queue_impl->sync_objects[command_queue_impl->sync_objects_count].stage = pipeline_stage_all_graphics;
+    command_queue_impl->sync_objects[command_queue_impl->sync_objects_count].stage = pipeline_stage_all_commands;
 	command_queue_impl->sync_objects_count++;
 
     return image_index;
@@ -389,6 +394,7 @@ RHI_VIEW* vk_swap_chain_create_view(const RHI_DEVICE* const device, const RHI_SW
     texture->hw_length = totalUploadSize;
     texture->mip_maps = std::move(mips);
 	texture->parent_device = device_impl;
+    texture->image_usage = swap_chain_impl->image_usage;
 
     RHI_VIEW_DESC view_desc;
     view_desc.type = shader_view_type_render_target;
