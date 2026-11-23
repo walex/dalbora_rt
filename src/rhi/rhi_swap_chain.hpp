@@ -29,6 +29,8 @@ public:
 	void create_views(const RhiDevice& device, RhiMemoryTable* memory_descriptor);
 	RhiView get_next_render_target();
 	resource_format get_format();
+	size_t get_width() const;
+	size_t get_height() const;
 	void blit(RhiCommandBuffer& command_buffer, RhiTexture& image);
 	void present();
 private:

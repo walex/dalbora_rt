@@ -16,12 +16,17 @@ void RhiShaderProgramHLSL::create(const std::string& file_path,
 	std::filesystem::path shader_file(file_path);
 	std::string include_folder = shader_file.parent_path().string();//.append("include").string();
 
-	RHI_COMPILED_SHADER_BUFFER* shader_buffer = rhi_hlsl_compiler_compile(file_path.c_str(), entry_point.c_str(), library_name.c_str(),
-		include_folder.c_str(), format);
-	this->set_handle(shader_buffer);
+	this->set_handle(rhi_hlsl_compiler_compile(file_path.c_str(), entry_point.c_str(), library_name.c_str(),
+		include_folder.c_str(), format));
 }
 
-void RhiShaderProgramHLSL::from_bytecode(const uint8_t* const bytecode, const size_t size) {
+const char* RhiShaderProgramHLSL::get_entry_point() const {
+
+	return static_cast<RHI_COMPILED_SHADER_BUFFER*>(*this)->entry_point;
+}
+
+void RhiShaderProgramHLSL::from_bytecode(const uint8_t* const bytecode, const size_t size,
+	const std::string& entry_point) {
 	if (bytecode == nullptr || size == 0) {
 		throw std::runtime_error("Invalid bytecode pointer or size");
 	}
@@ -29,10 +34,11 @@ void RhiShaderProgramHLSL::from_bytecode(const uint8_t* const bytecode, const si
 	shader_buffer->buffer = new uint8_t[size];
 	memcpy(shader_buffer->buffer, bytecode, size);
 	shader_buffer->buffer_size = size;
+	strcpy_s(shader_buffer->entry_point, MAX_SHADER_UNIT_NAME_LENGTH, entry_point.c_str());
 	this->set_handle(shader_buffer);
 }
 
-void RhiShaderProgramHLSL::from_binary_file(const std::string& file_path) {
+void RhiShaderProgramHLSL::from_binary_file(const std::string& file_path, const std::string& entry_point) {
 	if (std::filesystem::exists(file_path) == false) {
 		throw std::runtime_error("Shader binary file not found at path: " + file_path);
 	}
@@ -46,7 +52,7 @@ void RhiShaderProgramHLSL::from_binary_file(const std::string& file_path) {
 	std::vector<uint8_t> bytecode(size);
 	bytecode_file.read(reinterpret_cast<char*>(bytecode.data()), size);
 	bytecode_file.close();
-	this->from_bytecode(bytecode.data(), size);
+	this->from_bytecode(bytecode.data(), size, entry_point);
 }
 
 void RhiShaderProgramHLSL::to_binary_file(const std::string& file_path) const {

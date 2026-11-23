@@ -243,8 +243,8 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			// create depth buffer
 			RHI_TEXTURE_2D_DESC db_desc;
 			db_desc.device = &device;
-			db_desc.width = 800;
-			db_desc.height = 600;
+			db_desc.width = swap_chain.buffer_width;
+			db_desc.height = swap_chain.buffer_height;
 			db_desc.format = resource_format_d24_norm_s8_uint;
 			db_desc.type = buffer_type_depth_stencil;
 			depth_buffer.reset(rhi_buffers_create_depth(&db_desc));
@@ -276,6 +276,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipe_desc.format = resource_format_R8G8B8A8_norm;
 			pipe_desc.depth_buffer_format = resource_format_d24_norm_s8_uint;
 			pipe_desc.vertex_stride = vertex_size;
+			pipe_desc.index_stride = sizeof(uint16_t);
 			pipe_desc.resources_memory_descriptor = memory_descriptor;
 			strcpy(pipe_desc.vertex_shader_entry_point, vs_entry_point);
 			strcpy(pipe_desc.pixel_shader_entry_point, ps_entry_point);
@@ -406,8 +407,8 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// compile shaders
 		{
-			const char* vs_entry_point = "VSMain";
-			const char* ps_entry_point = "PSMain";
+			const std::string vs_entry_point = "VSMain";
+			const std::string ps_entry_point = "PSMain";
 
 			RhiShaderProgramHLSL vertex_shader_tmp;
 			RhiShaderProgramHLSL pixel_shader_tmp;
@@ -424,8 +425,8 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 			vertex_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
 			pixel_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
 
-			vertex_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
-			pixel_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
+			vertex_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso", vs_entry_point);
+			pixel_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso", ps_entry_point);
 
 			// delete temporary shader files
 			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
@@ -444,6 +445,8 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		// setup pipeline
 		RhiRasterPipelineShaderPrograms shader_programs;
 		shader_programs.vertex_shader = &vertex_shader;
+		shader_programs.vertex_stride = unit_test.vertices_stride;
+		shader_programs.index_stride = unit_test.indices_stride;
 		shader_programs.pixel_shader = &pixel_shader;
 		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
 
@@ -453,7 +456,7 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// create pipeline
 		pipeline.create(device, pipeline_layout, 
-			shader_programs);
+			shader_programs, *get_buffers_memory_table());
 
 		// copy vertices to cpu visible memory
 		vertex_buffer.create(device, unit_test.vertices.size(), 

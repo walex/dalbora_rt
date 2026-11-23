@@ -14,10 +14,10 @@ public:
 	virtual ~RhiShaderProgramHLSL() = default;
 	void create(const std::string& file_path, const std::string& entry_point,
 		const std::string& library_name, byte_code_format format = byte_code_format_input_hlsl);
-	void from_bytecode(const uint8_t* const bytecode, const size_t size);
-	void from_binary_file(const std::string& file_path);
+	void from_bytecode(const uint8_t* const bytecode, const size_t size, const std::string& entry_point);
+	void from_binary_file(const std::string& file_path, const std::string& entry_point);
 	void to_binary_file(const std::string& file_path) const;
-
+	const char* get_entry_point() const;
 };
 
 #endif // __rhi_shader_program_hpp__

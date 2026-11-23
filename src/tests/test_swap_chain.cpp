@@ -202,17 +202,10 @@ void test_swap_chain(fptr_test_on_init on_init
 
 void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 	
-	
-	RHI_VIEWPORT vp;
-	vp.x = 0;
-	vp.y = 0;
-	vp.width = 800;
-	vp.height = 600;
-	vp.min_z = 0.0f;
-	vp.max_z = 1.0f;
 
 	__int64 device_features = device_features_none;
 	RhiUnitTestCallbacks unit_test_callbacks;
+	RHI_VIEWPORT vp;
 
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
@@ -252,6 +245,14 @@ void test_create_swap_chain_obj(RhiUnitTestCallbacks* callbacks) {
 
 		swap_chain.create(window, device, command_queue);
 		render_pass.create(device);
+
+		
+		vp.x = 0;
+		vp.y = 0;
+		vp.width = swap_chain.get_width();
+		vp.height = swap_chain.get_height();
+		vp.min_z = 0.0f;
+		vp.max_z = 1.0f;
 
 		if (create_descriptors == true) {
 			size_t resources_count = unit_test.constant_shader_registers_count + unit_test.read_only_shader_registers_count + unit_test.rw_shader_registers_count;

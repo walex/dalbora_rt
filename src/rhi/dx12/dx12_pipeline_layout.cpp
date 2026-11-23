@@ -96,7 +96,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 	Microsoft::WRL::ComPtr<ID3DBlob> error;
 	Microsoft::WRL::ComPtr<ID3DBlob> signature;
 
-	ASSERT_COM_SUCCESS(D3D12SerializeVersionedRootSignature(
+	ASSERT_HRESULT_SUCCESS(D3D12SerializeVersionedRootSignature(
 		&rootDesc,
 		&signature,
 		&error
@@ -104,7 +104,7 @@ RHI_PIPELINE_LAYOUT* dx12_pipeline_layout_create(const RHI_PIPELINE_LAYOUT_DESC*
 
 	ASSERT_PTR(signature);
 	ID3D12RootSignature* i_root_signature = nullptr;
-	ASSERT_COM_SUCCESS(i_device->CreateRootSignature(
+	ASSERT_HRESULT_SUCCESS(i_device->CreateRootSignature(
 		0,
 		signature->GetBufferPointer(),
 		signature->GetBufferSize(),

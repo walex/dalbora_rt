@@ -137,6 +137,7 @@ struct RHI_VIEW {
 	const RHI_MEMORY_DESCRIPTOR_SLOT* memory_descriptor = nullptr;
 };
 
+
 struct RHI_COMPILED_SHADER_BUFFER {
 	virtual ~RHI_COMPILED_SHADER_BUFFER() {
 		if (buffer) {
@@ -147,6 +148,7 @@ struct RHI_COMPILED_SHADER_BUFFER {
 	};
 	uint8_t* buffer = nullptr;
 	size_t buffer_size = 0;
+	char entry_point[MAX_SHADER_UNIT_NAME_LENGTH];
 };
 
 struct RHI_PIPELINE_LAYOUT {

@@ -237,12 +237,4 @@ constexpr D3D12_RESOURCE_DIMENSION dx12_buffer_type[buffer_type_count] = {
 	D3D12_RESOURCE_DIMENSION_TEXTURE2D,	// buffer_type_depth_stencil
 };
 
-
-
-#ifdef DEBUG
-	#define ASSERT_COM_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)
-#else
-	#define ASSERT_COM_SUCCESS(expr) expr
-#endif
-
 #endif

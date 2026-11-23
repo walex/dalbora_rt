@@ -38,7 +38,7 @@ RHI_COMMAND_QUEUE* dx12_command_queue_create(const RHI_COMMAND_QUEUE_DESC* const
 	qdesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	qdesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	qdesc.NodeMask = 0;
-	ASSERT_COM_SUCCESS(i_device->CreateCommandQueue(&qdesc, IID_PPV_ARGS(&i_cmd_queue)));
+	ASSERT_HRESULT_SUCCESS(i_device->CreateCommandQueue(&qdesc, IID_PPV_ARGS(&i_cmd_queue)));
 	ASSERT_PTR(i_cmd_queue);
 
 	RHI_FENCE_DESC fence_desc;

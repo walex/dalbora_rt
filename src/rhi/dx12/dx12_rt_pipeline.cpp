@@ -10,7 +10,7 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 	ID3D12Device* i_device_0 = *static_cast<DX_DEVICE*>(desc->device);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	ASSERT_COM_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_HRESULT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
 	ASSERT_PTR(i_device);
 
 	// root signature
@@ -176,14 +176,14 @@ RHI_RT_PIPELINE* dx12_rt_pipeline_create(const RHI_RT_PIPELINE_DESC* const desc)
 
 	ID3D12StateObject* i_state_object = nullptr;
 
-	ASSERT_COM_SUCCESS(i_device->CreateStateObject(
+	ASSERT_HRESULT_SUCCESS(i_device->CreateStateObject(
 		&pipelineDesc,
 		IID_PPV_ARGS(&i_state_object)
 	));
 	ASSERT_PTR(i_state_object);
 
 	Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> props;
-	ASSERT_COM_SUCCESS(i_state_object->QueryInterface(
+	ASSERT_HRESULT_SUCCESS(i_state_object->QueryInterface(
 		IID_PPV_ARGS(&props)
 	));
 	ASSERT_PTR(props);

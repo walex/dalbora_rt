@@ -189,6 +189,8 @@ inline void _assert_fail(const char* expr, const char* file, int line, const cha
 #define ASSERT_PTR(expr) ASSERT_EXPR(expr != nullptr, "Pointer is null")
 #define ASSERT_NULL(expr) ASSERT_EXPR(expr == nullptr, "Pointer is not null")
 
+#define ASSERT_HRESULT_SUCCESS(expr) ASSERT_EXPR(expr == S_OK)
+
 #define UNUSED_PARAM(a)
 
 #define STRINGIFY_EXT(X) #X

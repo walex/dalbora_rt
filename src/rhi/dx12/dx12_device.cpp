@@ -36,7 +36,7 @@ static void check_device_features_dx12(ID3D12Device* i_device, const __int64 fea
 
 	if (feats & device_features_dedicated_gpu) {
 		D3D12_FEATURE_DATA_ARCHITECTURE archCaps = {};
-		ASSERT_COM_SUCCESS(i_device->CheckFeatureSupport(
+		ASSERT_HRESULT_SUCCESS(i_device->CheckFeatureSupport(
 			D3D12_FEATURE_ARCHITECTURE,
 			&archCaps,
 			sizeof(archCaps)));
@@ -49,7 +49,7 @@ static void check_device_features_dx12(ID3D12Device* i_device, const __int64 fea
 
 	D3D12_FEATURE_DATA_SHADER_MODEL SM = {};
 	SM.HighestShaderModel = D3D_HIGHEST_SHADER_MODEL;
-	ASSERT_COM_SUCCESS(i_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM)));
+	ASSERT_HRESULT_SUCCESS(i_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &SM, sizeof(SM)));
 
 	if (SM.HighestShaderModel < static_cast<D3D_SHADER_MODEL>(shader_model)) {
 		throw std::exception("Device doesn't support requested Shader Model\n\n");
@@ -110,7 +110,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 	bool check_features = true;
 	if (desc->adapter_id != -1) {
 		// Try to get the adapter by index
-		ASSERT_COM_SUCCESS(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
+		ASSERT_HRESULT_SUCCESS(dx12_factory_get()->EnumAdapters1(desc->adapter_id, &chosenAdapter));
 		ASSERT_PTR(chosenAdapter);
 	}
 	else {
@@ -120,7 +120,7 @@ RHI_DEVICE* dx12_device_create(const RHI_DEVICE_DESC* const desc) {
 
 	// Create D3D12 device (request ID3D12Device). Try feature level 12_0.
 	ID3D12Device* i_device = nullptr;
-	ASSERT_COM_SUCCESS(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
+	ASSERT_HRESULT_SUCCESS(D3D12CreateDevice(chosenAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&i_device)));
 	ASSERT_PTR(i_device);
 	if (check_features == true) {
 

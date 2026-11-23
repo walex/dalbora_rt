@@ -15,7 +15,7 @@ heap_create_descriptor_dx12(const DX_DEVICE* const device_impl, const D3D12_DESC
 	heapDesc.NodeMask = 0;
 
 	ID3D12DescriptorHeap* i_heap = nullptr;
-	ASSERT_COM_SUCCESS(i_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&i_heap)));
+	ASSERT_HRESULT_SUCCESS(i_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&i_heap)));
 	ASSERT_PTR(i_heap);
 	return i_heap;
 }
@@ -125,7 +125,7 @@ bool dx12_memory_resource_check_type(const DX_DEVICE* const device_impl, const b
 		ID3D12Device* i_device = *device_impl;
 		ASSERT_PTR(i_device);
 		D3D12_FEATURE_DATA_D3D12_OPTIONS16 options16 = {};
-		ASSERT_COM_SUCCESS(i_device->CheckFeatureSupport(
+		ASSERT_HRESULT_SUCCESS(i_device->CheckFeatureSupport(
 			D3D12_FEATURE_D3D12_OPTIONS16,
 			&options16,
 			sizeof(options16)

@@ -1,6 +1,11 @@
 #ifndef __rhi_defs_h__
 #define __rhi_defs_h__
 
+#define MAX_SHADER_UNIT_NAME_LENGTH 64
+#define MAX_HIT_GROUPS 16
+#define MAX_MISS_GROUPS 16
+#define MAX_RAY_GEN_GROUPS 1
+
 enum rhi_api
 {
 	rhi_api_dx12

@@ -23,19 +23,30 @@ void RhiSwapChain::create(const RhiWindow& window, const RhiDevice& device,
 
 void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryTable* memory_descriptor) {
 
-	std::function<const RhiMemoryDescriptor*()> next_descriptor_slot = ([memory_descriptor]
-	() {
-		return (memory_descriptor)
-			? memory_descriptor->next_descriptor_ptr()
-			: nullptr;
-	});
+	ASSERT_PTR(memory_descriptor);
+
+	//std::function<const RhiMemoryDescriptor*()> next_descriptor_slot = ([memory_descriptor]
+	//() {
+	//	return (memory_descriptor)
+	//		? memory_descriptor->next_descriptor_ptr()
+	//		: nullptr;
+	//});
 
 	size_t count = static_cast<RHI_SWAP_CHAIN*>(*this)->buffers_count;
-	for (size_t buffer_id = 0; buffer_id < count; buffer_id++) {
+	
+	//for (size_t buffer_id = 0; buffer_id < count; buffer_id++) {
+	//	RhiMemoryDescriptor* next_descriptor_slot = memory_descriptor->next_descriptor_ptr();
+	//	RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device, *this, *next_descriptor_slot, this->get_format(), buffer_id);
+	//	m_views.emplace_back(view_ptr, true, next_descriptor_slot);
+	//}
+
+	for (size_t i = 0; i < count; i++) {
+
 		RhiMemoryDescriptor* next_descriptor_slot = memory_descriptor->next_descriptor_ptr();
-		RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device, *this, *next_descriptor_slot, this->get_format(), buffer_id);
+		RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device, *this, *next_descriptor_slot, this->get_format(), i);
 		m_views.emplace_back(view_ptr, true, next_descriptor_slot);
 	}
+
 }
 
 RhiView RhiSwapChain::get_next_render_target() {
@@ -47,6 +58,13 @@ RhiView RhiSwapChain::get_next_render_target() {
 
 resource_format RhiSwapChain::get_format() {
 	return static_cast<RHI_SWAP_CHAIN*>(*this)->format;
+}
+
+size_t RhiSwapChain::get_width() const {
+	return static_cast<RHI_SWAP_CHAIN*>(*this)->buffer_width;
+}
+size_t RhiSwapChain::get_height() const {
+	return static_cast<RHI_SWAP_CHAIN*>(*this)->buffer_height;
 }
 
 void RhiSwapChain::blit(RhiCommandBuffer& command_buffer, RhiTexture& image) {

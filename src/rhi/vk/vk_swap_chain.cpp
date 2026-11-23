@@ -241,6 +241,9 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
     create_info.clipped = VK_TRUE;
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
+    bool enable_vsync = desc->enable_vsync;
+    // TODO: implement vsync support
+
     VkSwapchainKHR swap_chain;
     if (vkCreateSwapchainKHR(*static_cast<VK_DEVICE*>(desc->device), &create_info, 
         nullptr, &swap_chain) != VK_SUCCESS) {
@@ -251,19 +254,24 @@ RHI_SWAP_CHAIN* vk_swap_chain_create(const RHI_SWAP_CHAIN_DESC* const desc) {
     VK_SWAP_CHAIN* result = new VK_SWAP_CHAIN();
     ASSERT_PTR(result);
     result->set_handle(swap_chain);
+    result->format = desc->color_format;
+    result->buffer_width = width;
+    result->buffer_height = height;
+    result->buffer_mip_count = 1;
+    result->vsync = enable_vsync;
+    result->is_full_screen = desc->is_full_screen;
+    result->buffers_count = desc->buffer_count;
+    result->command_queue = desc->command_queue;
+    result->current_image_index = 0;
+
     result->parent_device = static_cast<VK_DEVICE*>(desc->device);
 	result->native_surface = surface;
     result->image_usage = create_info.imageUsage;
-	result->buffer_width = width;
-	result->buffer_height = height;
-    result->buffer_mip_count = 1;
-	result->command_queue = desc->command_queue;
-	result->buffers_count = desc->buffer_count;
-    result->next_image_sync = new VkSemaphore[desc->buffer_count];
+	result->next_image_sync = new VkSemaphore[desc->buffer_count];
     result->render_complete_sync = new VkSemaphore[desc->buffer_count];
 	memcpy(result->next_image_sync, next_image_sync.data(), desc->buffer_count * sizeof(VkSemaphore));
     memcpy(result->render_complete_sync, render_complete_sync.data(), desc->buffer_count * sizeof(VkSemaphore));
-    result->current_image_index = 0;
+   
 
     return result;
 }

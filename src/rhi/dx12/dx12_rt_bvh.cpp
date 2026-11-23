@@ -16,11 +16,11 @@ RHI_RT_BVH* dx12_rt_bvh_create(const RHI_RT_BVH_DESC* const desc)
 	ASSERT_PTR(i_command_buffer_0);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	ASSERT_COM_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_HRESULT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
 	ASSERT_PTR(i_device);
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
-	ASSERT_COM_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_HRESULT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);
 
 	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geoemtries_desc(desc->count);
@@ -139,11 +139,11 @@ RHI_BUFFER* dx12_rt_bvh_build_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC*
 	ASSERT_PTR(i_command_buffer_0);
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> i_device;
-	ASSERT_COM_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
+	ASSERT_HRESULT_SUCCESS(i_device_0->QueryInterface(IID_PPV_ARGS(&i_device)));
 	ASSERT_PTR(i_device);	
 	
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
-	ASSERT_COM_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_HRESULT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);
 
 	// TLAS
@@ -240,7 +240,7 @@ void dx12_rt_bvh_update_geometry_instances(const RHI_RT_BVH_GEOMETRY_DESC* const
 	ASSERT_PTR(i_command_buffer_0);
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> i_command_buffer;
-	ASSERT_COM_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
+	ASSERT_HRESULT_SUCCESS(i_command_buffer_0->QueryInterface(IID_PPV_ARGS(&i_command_buffer)));
 	ASSERT_PTR(i_command_buffer);
 
 	DX_BVH_BUFFER* buffer_impl = static_cast<DX_BVH_BUFFER*>(buffer);

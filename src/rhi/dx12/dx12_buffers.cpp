@@ -68,7 +68,7 @@ static T* buffers_create_2d_dx12(const RHI_BUFFER_2D_DESC* const desc)
 		clear_value.get(),
 		IID_PPV_ARGS(&i_resource));
 
-	ASSERT_COM_SUCCESS(hr);
+	ASSERT_HRESULT_SUCCESS(hr);
 	ASSERT_PTR(i_resource);
 
 	T* buffer_impl = new T();
@@ -476,7 +476,7 @@ RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset
 		.End = offset+length};
 
 	RHI_VOID_PTR mapped = nullptr;	
-	ASSERT_COM_SUCCESS(i_buffer->Map(0, &range, &mapped));
+	ASSERT_HRESULT_SUCCESS(i_buffer->Map(0, &range, &mapped));
 	ASSERT_PTR(mapped);
 	
 	return mapped;

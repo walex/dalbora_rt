@@ -124,6 +124,7 @@ const byte_code_format format) {
 
     // 6. Extraer el código objeto (SPIR-V o DXIL binario) directamente de la RAM
     hr = pResult->GetOutput(DXC_OUT_OBJECT, __uuidof(IDxcBlob), (void**)&pShaderObject, nullptr);
+    ASSERT_HRESULT_SUCCESS(hr);
 
     //if (FAILED(hr)) {
     //
@@ -145,7 +146,9 @@ const byte_code_format format) {
     RHI_COMPILED_SHADER_BUFFER* result = new RHI_COMPILED_SHADER_BUFFER();
     ASSERT_PTR(result);
     result->buffer_size = pShaderObject->GetBufferSize();
-	if (pShaderObject->GetBufferPointer() && result->buffer_size > 0) {
+    strcpy_s(result->entry_point, MAX_SHADER_UNIT_NAME_LENGTH, entry_point);
+
+    if (pShaderObject->GetBufferPointer() && result->buffer_size > 0) {
         result->buffer = new uint8_t[pShaderObject->GetBufferSize()];
         ASSERT_PTR(result->buffer);
 		memcpy(result->buffer, pShaderObject->GetBufferPointer(), result->buffer_size);
