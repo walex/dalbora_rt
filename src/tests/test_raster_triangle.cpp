@@ -394,16 +394,27 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		unit_test.vertex_shader_file = shader_file.string();
 		unit_test.pixel_shader_file = shader_file.string();
 		
-		// save geometry buffers
-		unit_test.vertices.resize(sizeof(vertices));
-		memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
-		unit_test.vertices_stride = sizeof(vertices[0]);
 		unit_test.indices.resize(sizeof(indices));
 		memcpy(unit_test.indices.data(), &indices[0], sizeof(indices));
 		unit_test.indices_stride = sizeof(uint16_t);
 
-		if (callbacks)
+		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
+
+		if (callbacks) {
 			callbacks->on_init(unit_test);
+		}
+		else {
+			// save geometry buffers
+			unit_test.vertices.resize(sizeof(vertices));
+			memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
+			unit_test.vertices_stride = sizeof(vertices[0]);
+
+		// setup pipeline layout
+		// add layout descriptors ( order mathers )
+
+		pipeline_layout.set_shader_descriptors(shader_view_type_constant_buffer, 0, unit_test.constant_shader_registers_count);
+
+		}
 
 		// compile shaders
 		{
@@ -435,20 +446,13 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 		}
 
 
-		// setup pipeline layout
-		// add layout descriptors ( order mathers )
-
-		pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
-			0, unit_test.read_only_shader_registers_count,
-			0, unit_test.rw_shader_registers_count);
-
 		// setup pipeline
 		RhiRasterPipelineShaderPrograms shader_programs;
 		shader_programs.vertex_shader = &vertex_shader;
 		shader_programs.vertex_stride = unit_test.vertices_stride;
 		shader_programs.index_stride = unit_test.indices_stride;
 		shader_programs.pixel_shader = &pixel_shader;
-		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
+		
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, 
@@ -456,7 +460,8 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// create pipeline
 		pipeline.create(device, pipeline_layout, 
-			shader_programs, *get_buffers_memory_table());
+			shader_programs, *get_buffers_memory_table(),
+			static_cast<RHI_COMMAND_BUFFER*>(command_buffer)->sampler_memory_descriptor.get());
 
 		// copy vertices to cpu visible memory
 		vertex_buffer.create(device, unit_test.vertices.size(), 

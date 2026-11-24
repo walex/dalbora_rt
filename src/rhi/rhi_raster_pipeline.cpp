@@ -5,7 +5,8 @@ RhiRasterPipeline::RhiRasterPipeline(RHI_RASTER_PIPELINE* handle)
 : RhiPipeline<RHI_RASTER_PIPELINE>(handle){}
 
 void RhiRasterPipeline::create(const RhiDevice& device, const RhiPipelineLayout& layout,
-	const RhiRasterPipelineShaderPrograms& shader_programs, RHI_MEMORY_DESCRIPTOR& memory_descriptor) {
+	const RhiRasterPipelineShaderPrograms& shader_programs, RHI_MEMORY_DESCRIPTOR& memory_descriptor,
+	RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor) {
 		
 	RHI_RASTER_PIPELINE_DESC desc;
 	desc.device = device;
@@ -26,6 +27,7 @@ void RhiRasterPipeline::create(const RhiDevice& device, const RhiPipelineLayout&
 	desc.vertex_stride = shader_programs.vertex_stride;
 	desc.index_stride = shader_programs.index_stride;
 	desc.resources_memory_descriptor = &memory_descriptor;
+	desc.sampler_memory_descriptor = sampler_memory_descriptor;
 	this->set_handle(rhi_raster_pipeline_create(&desc));
 	
 	

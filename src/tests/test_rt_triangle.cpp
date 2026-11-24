@@ -458,9 +458,10 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// add layout descriptors
 
-		pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
-			0, unit_test.read_only_shader_registers_count,
-			0, unit_test.rw_shader_registers_count);
+		// --- FIX ---
+		//pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
+		//	0, unit_test.read_only_shader_registers_count,
+		//	0, unit_test.rw_shader_registers_count);
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);

@@ -68,6 +68,7 @@ struct RhiUnitTest {
 	size_t read_only_shader_registers_count = 0;
 	size_t rw_shader_registers_count = 0;
 	size_t constant_shader_registers_count = 0;
+	size_t read_only_texture_shader_registers_count = 0;
 };
 
 struct RhiUnitTestCallbacks {

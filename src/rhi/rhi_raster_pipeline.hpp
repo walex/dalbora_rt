@@ -23,14 +23,15 @@ class RhiPipelineLayout;
 class RhiRasterPipeline
 	: public RhiPipeline<RHI_RASTER_PIPELINE>
 	, public ICreateRhiObject<const RhiDevice&, const RhiPipelineLayout&,
-	const RhiRasterPipelineShaderPrograms&, RHI_MEMORY_DESCRIPTOR&> {
+	const RhiRasterPipelineShaderPrograms&, RHI_MEMORY_DESCRIPTOR&, RHI_MEMORY_DESCRIPTOR*> {
 public:
 
 	RhiRasterPipeline(RHI_RASTER_PIPELINE* handle = nullptr);
 	virtual ~RhiRasterPipeline() = default;
 
 	void create(const RhiDevice& device, const RhiPipelineLayout& layout,
-		const RhiRasterPipelineShaderPrograms& shader_programs, RHI_MEMORY_DESCRIPTOR& memory_descriptor);
+		const RhiRasterPipelineShaderPrograms& shader_programs, RHI_MEMORY_DESCRIPTOR& memory_descriptor,
+		RHI_MEMORY_DESCRIPTOR* sampler_memory_descriptor = nullptr);
 	std::vector<RHI_INPUT_LAYOUT_DESC>& get_input_descriptors() { return m_input_descriptors; }
 	void add_input_descriptor(const std::string& name, size_t offset, resource_format format);
 private:

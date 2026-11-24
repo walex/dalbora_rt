@@ -303,7 +303,9 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
             static_cast<size_t>(dds.GetMipCount()));
         texture_view = texture.new_read_only_view(device, get_buffers_memory_table().next_descriptor_ptr(1));
 
-        // add layout descriptor for samplers
+        // add layout descriptor for texture samplin
+        pipeline_layout.set_shader_descriptors(shader_view_type_constant_buffer, 0, unit_test.constant_shader_registers_count);
+        pipeline_layout.set_shader_descriptors(shader_view_type_read_only_texture_buffer, 0, 1);
         pipeline_layout.set_shader_sampler_descriptor_offset(0, 1);
 
         // add input descriptor
@@ -334,12 +336,13 @@ void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* UNUSED_PARAM(callba
         unit_test.vertex_shader_file = (shaders_path / "textured_triangle.hlsl").string();
         unit_test.pixel_shader_file = (shaders_path / "textured_triangle.hlsl").string();
 
-        // updata vertex and index buffer
+        // update vertex buffer
         unit_test.vertices.resize(sizeof(vertices));
         memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
         unit_test.vertices_stride = sizeof(vertices[0]);
 
 		command_buffer.set_sampler_memory_descriptor(get_samplers_memory_table());
+
     });
 
     unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,

@@ -114,10 +114,11 @@ void RayTraceScene::setup_shaders() {
 
 void RayTraceScene::setup_pipeline_layout(resource_format surface_format) {
 	
+	// ---------- FIX ------------
 	// add layout descriptors
-	m_pipeline_layout.set_shader_buffers_descriptor_offsets(0, m_resources_manager.get_constant_buffer_descriptor_size(),
-		0, m_resources_manager.get_read_only_buffer_descriptor_size(),
-		0, m_resources_manager.get_rw_buffer_descriptor_size());
+	//m_pipeline_layout.set_shader_buffers_descriptor_offsets(0, m_resources_manager.get_constant_buffer_descriptor_size(),
+	//	0, m_resources_manager.get_read_only_buffer_descriptor_size(),
+	//	0, m_resources_manager.get_rw_buffer_descriptor_size());
 
 	// create pipeline layout
 	m_pipeline_layout.create(m_resources_manager.get_device(), primitive_topology_triangle, surface_format, resource_format_d24_norm_s8_uint);
