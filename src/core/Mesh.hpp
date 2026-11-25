@@ -15,11 +15,11 @@ public:
 	void set_vertices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const RhiSharedBuffer& data, const size_t data_offset,
 		const size_t length, const size_t stride,
-		const resource_format format);
+		const resource_format format, const resource_flags flags = resource_flags_none);
 	void set_indices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const RhiSharedBuffer& src_buffer, const size_t data_offset,
 		const size_t length, const size_t stride,
-		const resource_format format);
+		const resource_format format, const resource_flags flags = resource_flags_none);
 	void set_normals(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		const RhiSharedBuffer& src_buffer, const size_t data_offset,
 		const size_t length, const size_t stride,
@@ -46,7 +46,7 @@ protected:
 	void upload_data(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 		std::unique_ptr<RhiGPUBuffer>& src_buffer, const RhiSharedBuffer& src_data,
 		const size_t src_buffer_offset, const size_t length,
-		const size_t stride, const resource_format format);
+		const size_t stride, const resource_format format, const resource_flags flags = resource_flags_none);
 private:
 	size_t m_material_id;
 	std::unique_ptr<RhiGPUBuffer> vertex_buffer;

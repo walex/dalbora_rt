@@ -16,8 +16,6 @@ struct alignas(256) _CameraData
 	float pad1;
 };
 
-static constexpr float image_aspect = 800.0f / 600.0f;
-
 struct alignas(256) GeomrtryInstance {
 
 	uint vertex_resource_id;
@@ -79,7 +77,6 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 		unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
-			RhiWindow& window = unit_test.window;
 			RhiDevice& device = unit_test.device;
 			RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 			RhiSwapChain& swap_chain = unit_test.swap_chain;
@@ -90,7 +87,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 			resources_manager->create_descriptor_tables(constant_shaders, read_only_shaders, rw_shaders);
 
 			// create swap chain views
-			swap_chain.create_views(device, resources_manager->get_rtv_memory_descriptor());
+			//swap_chain.create_views(device, resources_manager->get_rtv_memory_descriptor());
 
 			// set command buffer memory descriptor
 			command_buffer.set_buffers_memory_descriptor(*resources_manager);
@@ -100,7 +97,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 
 			// create render target
 			render_target.create(device, swap_chain.get_format(),
-				window.get_width(), window.get_height());
+				swap_chain.get_width(), swap_chain.get_height());
 
 			if (callbacks)
 				callbacks->on_init(unit_test);
@@ -145,7 +142,7 @@ void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks) {
 				float4(0.0f, 1.0f, 0.0f, 0.0f);
 			camera_matrices.tan_half_fov =
 				0.78f;
-			camera_matrices.aspect = image_aspect;
+			camera_matrices.aspect = static_cast<float>(swap_chain.get_width()) / static_cast<float>(swap_chain.get_height());
 
 			// view render_target (GPU read write)
 			render_target_view = render_target.new_view(device, resources_manager->get_rw_buffer_descriptor_slot());

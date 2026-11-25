@@ -479,7 +479,7 @@ RHI_VOID_PTR dx12_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset
 	ASSERT_HRESULT_SUCCESS(i_buffer->Map(0, &range, &mapped));
 	ASSERT_PTR(mapped);
 	
-	return mapped;
+	return static_cast<uint8_t*>(mapped) + offset;
 }
 
 void dx12_buffers_map_close(RHI_BUFFER* const buffer, const size_t offset,
@@ -491,7 +491,7 @@ void dx12_buffers_map_close(RHI_BUFFER* const buffer, const size_t offset,
 	ID3D12Resource* i_buffer = *static_cast<const DX_BUFFER*>(buffer);
 	D3D12_RANGE range{
 		.Begin = offset,
-		.End = length };
+		.End = offset + length };
 	i_buffer->Unmap(0, &range);
 }
 

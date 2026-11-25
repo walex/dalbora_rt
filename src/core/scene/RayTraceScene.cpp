@@ -12,6 +12,7 @@ static const std::string k_closest_hit_entry_point = "RT_ClosestHit";
 RayTraceScene::RayTraceScene(ResourceManager& rm, const resource_format surface_format)
  : Scene(rm) {
 
+	this->m_geometry_resource_flags = resource_flags_rt_as;
 	this->m_blas_buffers.reserve(300);
 	this->m_tlas_transforms.reserve(300);
 
@@ -102,23 +103,30 @@ void RayTraceScene::setup_shaders() {
 	std::string miss_shader_file = shader_path.string();
 	std::string closest_hit_shader_file = shader_path.string();
 
+
+	byte_code_format bc_format = byte_code_format_input_hlsl;
+	if (rhi_get_device_type() == rhi_device_type_vulkan) {
+		int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_output_spirv);
+		bc_format = static_cast<byte_code_format>(flag);
+	}
+
 	// compile shaders
 	m_ray_gen_shader.create(ray_gen_shader_file,
-		k_ray_gen_entry_point, "lib_6_8");
+		k_ray_gen_entry_point, "lib_6_8", bc_format);
 	m_miss_shader.create(miss_shader_file,
-		k_miss_entry_point, "lib_6_8");
+		k_miss_entry_point, "lib_6_8", bc_format);
 	m_closest_hit_shader.create(closest_hit_shader_file,
-		k_closest_hit_entry_point, "lib_6_8");
+		k_closest_hit_entry_point, "lib_6_8", bc_format);
 
 }
 
 void RayTraceScene::setup_pipeline_layout(resource_format surface_format) {
 	
-	// ---------- FIX ------------
-	// add layout descriptors
-	//m_pipeline_layout.set_shader_buffers_descriptor_offsets(0, m_resources_manager.get_constant_buffer_descriptor_size(),
-	//	0, m_resources_manager.get_read_only_buffer_descriptor_size(),
-	//	0, m_resources_manager.get_rw_buffer_descriptor_size());
+
+	m_pipeline_layout.set_shader_descriptors(shader_view_type_constant_buffer, 0, m_resources_manager.get_constant_buffer_descriptor_size());
+	m_pipeline_layout.set_shader_descriptors(shader_view_type_read_only_buffer, 0, m_resources_manager.get_read_only_buffer_descriptor_size());
+	m_pipeline_layout.set_shader_descriptors(shader_view_type_rw_buffer, 0, m_resources_manager.get_rw_buffer_descriptor_size());
+
 
 	// create pipeline layout
 	m_pipeline_layout.create(m_resources_manager.get_device(), primitive_topology_triangle, surface_format, resource_format_d24_norm_s8_uint);

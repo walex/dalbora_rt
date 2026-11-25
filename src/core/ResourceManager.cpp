@@ -20,11 +20,9 @@ void ResourceManager::create_descriptor_tables(const size_t constants_buffers_si
 	m_read_only_buffers_size = read_only_buffers_size;
 	m_rw_buffers_size = rw_buffers_size;
 
-	if (rhi_get_device_type() == rhi_device_type_dx12) {
-		// create rtv memory descriptors (dx12 only)
-		m_rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(m_device, memory_descriptor_type_rtv,
-			RTV_HEAP_DESCRIPTORS_COUNT);
-	}
+	// Swap-chain views require descriptor slots on both DX12 and Vulkan.
+	m_rtv_memory_descriptors = std::make_unique<RhiMemoryTable>(m_device, memory_descriptor_type_rtv,
+		RTV_HEAP_DESCRIPTORS_COUNT);
 }
 
 RhiMemoryDescriptor* ResourceManager::get_read_only_buffer_descriptor_slot() {

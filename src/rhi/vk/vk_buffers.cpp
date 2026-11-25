@@ -1,5 +1,7 @@
 #include "vk_buffers.hpp"
 #include "vk_heap.hpp"
+#include <stdexcept>
+#include <string>
 
 static uint32_t find_memory_type_index(VkPhysicalDevice physical_device, uint32_t type_filter, VkMemoryPropertyFlags properties)
 {
@@ -124,7 +126,8 @@ static T* buffers_create_2d_vk(const RHI_BUFFER_2D_DESC* const desc)
 	}
 	else if (buffer_type == buffer_type_raw) {
 		usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+			VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	}
 	else if (buffer_type == buffer_type_sbt) {
 		usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
@@ -701,9 +704,9 @@ RHI_VOID_PTR vk_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset,
 	ASSERT_PTR(buffer_handle);
 	ASSERT_PTR(buffer_handle->parent_device);
 	ASSERT_PTR(buffer_handle->memory_pool);
-	void* data;
+	void* data = nullptr;
 
-	vkMapMemory(
+	VkResult result = vkMapMemory(
 		*buffer_handle->parent_device,
 		*buffer_handle->memory_pool,
 		offset,
@@ -711,6 +714,8 @@ RHI_VOID_PTR vk_buffers_map_open(RHI_BUFFER* const buffer, const size_t offset,
 		0,
 		&data
 	);
+	if (result != VK_SUCCESS)
+		throw std::runtime_error("Failed to map Vulkan buffer memory: VkResult " + std::to_string(result));
 	return data;
 }
 

@@ -158,6 +158,10 @@ const uint8_t* get_mesh_buffer(const tinygltf::Model& model, const tinygltf::Pri
 	const std::string& attribute, size_t& length,
 	size_t& stride, resource_format& format) {
 
+	length = 0;
+	stride = 0;
+	format = resource_format_none;
+
 	int accessor_index;
 	if (attribute == "__indices__") {
 		if (primitive.indices < 0)

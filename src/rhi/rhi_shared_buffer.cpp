@@ -44,8 +44,16 @@ void RhiSharedBuffer::unmap(const RhiSharedBufferMap& map_info) {
 
 void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_t offset) {
 
+	const size_t capacity = get_length();
+	if (offset > capacity || length > capacity - offset)
+		throw std::out_of_range("Shared buffer copy exceeds buffer capacity");
+	if (length == 0)
+		return;
+	if (data == nullptr)
+		throw std::invalid_argument("Shared buffer copy source is null");
+
 	auto v_map_info = this->map(offset, length);
-	memcpy(v_map_info.get_data() + offset, data, length);
+	memcpy(v_map_info.get_data(), data, length);
 }
 
 void RhiSharedBufferGPU::create(const RhiDevice& device, const size_t length, 

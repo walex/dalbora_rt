@@ -36,9 +36,8 @@ std::unique_ptr<BaseCamera> create_camera(ResourceManager& resource_manager, flo
 	return camera;
 }
 
-void test_rt_scene() {
+void test_rt_scene_obj() {
 	
-	std::unique_ptr<ResourceManager> resources_manager;
 	{
 		// bindless table for buffers
 		constexpr size_t read_only_shader_count = 800;
@@ -49,9 +48,9 @@ void test_rt_scene() {
 
 		RhiWindow window;
 		RhiDevice device;
-		RhiSwapChain swap_chain;
-
+		std::unique_ptr<ResourceManager> resources_manager;
 		std::unique_ptr<RayTracingRenderer> renderer;
+		RhiSwapChain swap_chain;
 		std::unique_ptr<RayTraceScene> scene;
 		std::unique_ptr<BaseCamera> camera;
 
@@ -59,19 +58,14 @@ void test_rt_scene() {
 		RHI_WINDOW_CALLBACKS window_callbacks;
 		window_callbacks.on_init = ([&](RHI_WINDOW* const wnd) {
 
-			// view port
-			view_port.x = 0;
-			view_port.y = 0;
-			view_port.width = static_cast<float>(window.get_width());
-			view_port.height = static_cast<float>(window.get_height());
-			view_port.min_z = 0.0f;
-			view_port.max_z = 1.0f;
-
 			// create device
 			RHI_DEVICE_DESC device_desc;
 			device_desc.features |= device_features_raytracing;
 			device_desc.shader_model = hlsl_shader_model_6_8;
 			device_desc.app_instance = rhi_get_app_instance();
+			device_desc.graphics_queue_count = 1;
+			device_desc.compute_queue_count = 1;
+			device_desc.copy_queue_count = 1;
 			device.create(device_desc);
 
 			// create resource manager
@@ -87,8 +81,7 @@ void test_rt_scene() {
 
 			// create renderer
 			resource_format surface_format = resource_format_R8G8B8A8_norm;
-			renderer = std::make_unique<RayTracingRenderer>(*resources_manager, surface_format,
-				window.get_width(), window.get_height());
+			renderer = std::make_unique<RayTracingRenderer>(*resources_manager);
 
 			// create swap chain
 			bool enable_vertical_sync;
@@ -100,6 +93,17 @@ void test_rt_scene() {
 			constexpr size_t swap_chain_buffers_count = 3;
 			swap_chain = renderer->create_swap_chain(window, swap_chain_buffers_count,
 				surface_format, enable_vertical_sync);
+			const size_t surface_width = swap_chain.get_width();
+			const size_t surface_height = swap_chain.get_height();
+			ASSERT_EXPR(surface_width > 0 && surface_height > 0, "Swap-chain dimensions must be nonzero");
+			renderer->create_surface(surface_format, surface_width, surface_height);
+
+			view_port.x = 0;
+			view_port.y = 0;
+			view_port.width = static_cast<float>(surface_width);
+			view_port.height = static_cast<float>(surface_height);
+			view_port.min_z = 0.0f;
+			view_port.max_z = 1.0f;
 
 			// load scene from file
 			std::filesystem::path model_3d_folder = get_executable_folder("test_3d_models");
@@ -114,7 +118,7 @@ void test_rt_scene() {
 			// create camera
 			float3 bb_min = scene->get_bb_min();
 			float3 bb_max = scene->get_bb_max();
-			float aspect = static_cast<float>(window.get_width()) / static_cast<float>(window.get_height());
+			float aspect = static_cast<float>(surface_width) / static_cast<float>(surface_height);
 			camera = create_camera(*resources_manager, bb_min, bb_max, aspect);
 			scene->set_camera(camera.get());
 			});

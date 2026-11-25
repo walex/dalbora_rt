@@ -4,33 +4,33 @@
 void Mesh::upload_data(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	std::unique_ptr<RhiGPUBuffer>& dest_buffer, const RhiSharedBuffer& src_buffer,
 	const size_t src_buffer_offset, const size_t length,
-	const size_t stride, const resource_format format) {
+	const size_t stride, const resource_format format, const resource_flags flags) {
 
 	dest_buffer = std::make_unique<RhiGPUBuffer>();
-	dest_buffer->create(device, length, stride, format);
+	dest_buffer->create(device, length, stride, format, flags);
 	dest_buffer->upload(command_buffer, src_buffer, src_buffer_offset, 0, length);
 }
 
 void Mesh::set_vertices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const RhiSharedBuffer& src_buffer, const size_t data_offset,
 	const size_t length, const size_t stride,
-	const resource_format format) {
+	const resource_format format, resource_flags flags) {
 
 	this->upload_data(device, command_buffer,
 		this->vertex_buffer, src_buffer,
 		data_offset, length,
-		stride, format);
+		stride, format, flags);
 }
 
 void Mesh::set_indices(const RhiDevice& device, RhiCommandBuffer& command_buffer,
 	const RhiSharedBuffer& src_buffer, const size_t data_offset,
 	const size_t length, const size_t stride,
-	const resource_format format) {
+	const resource_format format, const resource_flags flags) {
 
 	this->upload_data(device, command_buffer,
 		this->index_buffere, src_buffer,
 		data_offset, length,
-		stride, format);
+		stride, format, flags);
 }
 
 void Mesh::set_normals(const RhiDevice& device, RhiCommandBuffer& command_buffer,

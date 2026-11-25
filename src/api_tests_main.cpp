@@ -29,6 +29,7 @@ void test_api()
 void test_objects() {
 
 	// init rhi
+	//rhi_init(rhi_device_type_dx12);
 	rhi_init(rhi_device_type_vulkan);
 
 	//test_create_window_obj();
@@ -39,11 +40,11 @@ void test_objects() {
 
 	//test_raster_textured_triangle_obj();
 
-	test_rt_triangle_obj();
+	//test_rt_triangle_obj();
 	
 	//test_rt_mesh_obj();
 
-	//test_rt_scene();
+	test_rt_scene_obj();
 
 	// end rhi
 	rhi_end();

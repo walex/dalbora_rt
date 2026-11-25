@@ -98,6 +98,6 @@ void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_raster_textured_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks = nullptr);
 void test_rt_mesh_obj(RhiUnitTestCallbacks* callbacks = nullptr);
-void test_rt_scene();
+void test_rt_scene_obj();
 
 #endif

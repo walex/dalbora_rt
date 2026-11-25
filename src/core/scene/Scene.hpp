@@ -70,6 +70,7 @@ public:
 	virtual void draw(Renderer& render, RhiView& surface_view, const RHI_VIEWPORT& viewport);
 protected:
 	size_t m_max_size = 0;
+	resource_flags m_geometry_resource_flags = resource_flags_none;
 	float3 m_bb_min, m_bb_max;
 	SceneNode m_root_node;
 	RhiSharedBuffer m_tmp_buffer;

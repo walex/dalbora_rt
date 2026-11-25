@@ -42,30 +42,31 @@ void Scene::on_geometry_attrib_loaded(RhiCommandBuffer& command_buffer,
 	const uint8_t* const data, const size_t length,
 	const size_t stride, const resource_format format) {
 
-	// copy vertices from shared memory to gpu only memory
-	if (data != nullptr) {
-		m_tmp_buffer.copy(data, length, tmp_buffer_offset);
-		if (attr == "POSITION") {
-			mesh.set_vertices(m_resources_manager.get_device(), command_buffer,
-				m_tmp_buffer, tmp_buffer_offset,
-				length, stride, format);
-		}
-		else if (attr == "NORMAL") {
-			mesh.set_normals(m_resources_manager.get_device(), command_buffer,
-				m_tmp_buffer, tmp_buffer_offset,
-				length, stride, format);
-		}
-		else if (attr == "TEXCOORD_0") {
-			mesh.set_uvs(m_resources_manager.get_device(), command_buffer,
-				m_tmp_buffer, tmp_buffer_offset,
-				length, stride, format);
-		}
-		else if (attr == "__indices__") {
+	if (data == nullptr)
+		return;
 
-			mesh.set_indices(m_resources_manager.get_device(), command_buffer,
-				m_tmp_buffer, tmp_buffer_offset,
-				length, stride, format);
-		}
+	// copy vertices from shared memory to gpu only memory
+m_tmp_buffer.copy(data, length, tmp_buffer_offset);
+	if (attr == "POSITION") {
+		mesh.set_vertices(m_resources_manager.get_device(), command_buffer,
+			m_tmp_buffer, tmp_buffer_offset,
+			length, stride, format, m_geometry_resource_flags);
+	}
+	else if (attr == "NORMAL") {
+		mesh.set_normals(m_resources_manager.get_device(), command_buffer,
+			m_tmp_buffer, tmp_buffer_offset,
+			length, stride, format);
+	}
+	else if (attr == "TEXCOORD_0") {
+		mesh.set_uvs(m_resources_manager.get_device(), command_buffer,
+			m_tmp_buffer, tmp_buffer_offset,
+			length, stride, format);
+	}
+	else if (attr == "__indices__") {
+
+		mesh.set_indices(m_resources_manager.get_device(), command_buffer,
+			m_tmp_buffer, tmp_buffer_offset,
+			length, stride, format, m_geometry_resource_flags);
 	}
 	tmp_buffer_offset += length;
 }
