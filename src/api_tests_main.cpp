@@ -13,7 +13,7 @@ void test_api()
 	//test_swap_chain();
 
 	// raster triangle
-	 test_raster_triangle();
+	// test_raster_triangle();
 
 	// raster textured triangle
     // test_raster_textured_triangle();
@@ -37,9 +37,9 @@ void test_objects() {
 
 	//test_raster_triangle_obj();
 
-	test_raster_textured_triangle_obj();
+	//test_raster_textured_triangle_obj();
 
-	//test_rt_triangle_obj();
+	test_rt_triangle_obj();
 	
 	//test_rt_mesh_obj();
 

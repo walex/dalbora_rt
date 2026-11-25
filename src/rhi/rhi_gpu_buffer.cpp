@@ -11,7 +11,8 @@ RhiGPUBuffer::RhiGPUBuffer(RHI_BUFFER* handle, buffer_memory_type type)
 }
 
 void RhiGPUBuffer::create(const RhiDevice& device, const size_t length,
-	const size_t stride, resource_format format) {
+	const size_t stride, const resource_format format,
+	const resource_flags resource_flags) {
 
 	RHI_BUFFER_DESC desc;
 	desc.device = device;
@@ -21,6 +22,7 @@ void RhiGPUBuffer::create(const RhiDevice& device, const size_t length,
 	desc.format = format;
 	desc.mips = 1;
 	desc.stride = stride;
+	desc.resource_flags = resource_flags;
 	this->set_handle(rhi_buffers_create_raw(&desc));
 }
 

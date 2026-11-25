@@ -14,7 +14,8 @@ RhiSharedBuffer::RhiSharedBuffer(RHI_BUFFER* handle, buffer_memory_type type)
 resource_format RhiSharedBuffer::get_format() { return static_cast<RHI_BUFFER*>(*this)->format; }
 
 void RhiSharedBuffer::create(const RhiDevice& device, const size_t length, 
-	const size_t stride, const resource_format format) {
+	const size_t stride, const resource_format format,
+	resource_flags resource_flags) {
 
 	RHI_BUFFER_DESC desc;
 	desc.device = device;
@@ -24,6 +25,7 @@ void RhiSharedBuffer::create(const RhiDevice& device, const size_t length,
 	desc.format = format;
 	desc.stride = stride;
 	desc.mips = 1;
+	desc.resource_flags = resource_flags;
 	this->set_handle(rhi_buffers_create_raw(&desc));
 }
 
@@ -46,7 +48,9 @@ void RhiSharedBuffer::copy(const uint8_t* data, const size_t length, const size_
 	memcpy(v_map_info.get_data() + offset, data, length);
 }
 
-void RhiSharedBufferGPU::create(const RhiDevice& device, const size_t length, const size_t stride, const resource_format format) {
+void RhiSharedBufferGPU::create(const RhiDevice& device, const size_t length, 
+	const size_t stride, const resource_format format,
+	const resource_flags resource_flags) {
 	RHI_BUFFER_DESC desc;
 	desc.device = device;
 	desc.length = length;
@@ -55,5 +59,6 @@ void RhiSharedBufferGPU::create(const RhiDevice& device, const size_t length, co
 	desc.format = format;
 	desc.stride = stride;
 	desc.mips = 1;
+	desc.resource_flags = resource_flags;
 	this->set_handle(rhi_buffers_create_raw(&desc));
 }

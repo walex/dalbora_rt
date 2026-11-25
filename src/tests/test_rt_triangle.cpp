@@ -418,7 +418,6 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 	RhiUnitTestCallbacks unit_test_callbacks;
 	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
 
-		RhiWindow& window = unit_test.window;
 		RhiDevice& device = unit_test.device;
 		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
 		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
@@ -443,25 +442,29 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// create render target
 		render_target.create(device, swap_chain.get_format(),
-			window.get_width(), window.get_height());
+			swap_chain.get_width(), swap_chain.get_height());
+		camera_matrices.aspect = static_cast<float>(swap_chain.get_width()) / static_cast<float>(swap_chain.get_height());
 
 		if (callbacks)
 			callbacks->on_init(unit_test);
 
+		byte_code_format bc_format = byte_code_format_input_hlsl;
+		if (rhi_get_device_type() == rhi_device_type_vulkan) {
+			int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_output_spirv);
+			bc_format = static_cast<byte_code_format>(flag);
+		}
 		// compile shaders
 		ray_gen_shader.create(unit_test.ray_gen_shader_file,
-			"RayGen", "lib_6_6");
+			"RayGen", "lib_6_6", bc_format);
 		miss_shader.create(unit_test.miss_shader_file,
-			"Miss", "lib_6_6");
+			"Miss", "lib_6_6", bc_format);
 		closest_hit_shader.create(unit_test.closest_hit_shader_file,
-			"ClosestHit", "lib_6_6");
+			"ClosestHit", "lib_6_6", bc_format);
 
 		// add layout descriptors
-
-		// --- FIX ---
-		//pipeline_layout.set_shader_buffers_descriptor_offsets(0, unit_test.constant_shader_registers_count,
-		//	0, unit_test.read_only_shader_registers_count,
-		//	0, unit_test.rw_shader_registers_count);
+		pipeline_layout.set_shader_descriptors(shader_view_type_constant_buffer, 0, unit_test.constant_shader_registers_count);
+		pipeline_layout.set_shader_descriptors(shader_view_type_read_only_buffer, 0, unit_test.read_only_shader_registers_count);
+		pipeline_layout.set_shader_descriptors(shader_view_type_rw_buffer, 0, unit_test.rw_shader_registers_count);
 
 		// create pipeline layout
 		pipeline_layout.create(device, primitive_topology_triangle, swap_chain.get_format(), resource_format_d24_norm_s8_uint);
@@ -503,7 +506,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// copy vertices to cpu visible memory
 		RhiSharedBuffer shared_vertex_buffer;
-		vertex_buffer.create(device, unit_test.vertices.size(), unit_test.vertices_stride, resource_format_float3);
+		vertex_buffer.create(device, unit_test.vertices.size(), unit_test.vertices_stride, resource_format_float3, resource_flags_rt_as);
 		shared_vertex_buffer.create(device, unit_test.vertices.size());
 		{
 			auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
@@ -512,7 +515,7 @@ void test_rt_triangle_obj(RhiUnitTestCallbacks* callbacks) {
 
 		// copy indices to cpu visible memory
 		RhiSharedBuffer shared_index_buffer;
-		index_buffer.create(device, unit_test.indices.size(), unit_test.indices_stride, resource_format_uint16);
+		index_buffer.create(device, unit_test.indices.size(), unit_test.indices_stride, resource_format_uint16, resource_flags_rt_as);
 		shared_index_buffer.create(device, unit_test.indices.size());
 		{
 			auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());

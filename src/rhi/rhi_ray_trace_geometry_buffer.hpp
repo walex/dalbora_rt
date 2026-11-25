@@ -26,7 +26,8 @@ public:
 	RhiView new_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
 private:
 	void create(const RhiDevice& device, const size_t length,
-		const size_t stride, const resource_format format = resource_format_none) override {}
+		const size_t stride, const resource_format format = resource_format_none,
+		const resource_flags resource_flags = resource_flags_none) override {}
 };
 
 class RhiRayTraceGeometryBuffer 

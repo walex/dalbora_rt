@@ -184,7 +184,7 @@ inline void _assert_fail(const char* expr, const char* file, int line, const cha
 
 #define ASSERT_EXPR(expr, ...) \
     do { \
-        if (!(expr)) _assert_fail(#expr, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+        if (!(expr)) _assert_fail(#expr, __FILE__, __LINE__, __func__, ""##__VA_ARGS__); \
     } while(0)
 #define ASSERT_PTR(expr) ASSERT_EXPR(expr != nullptr, "Pointer is null")
 #define ASSERT_NULL(expr) ASSERT_EXPR(expr == nullptr, "Pointer is not null")

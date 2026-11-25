@@ -14,8 +14,9 @@ public:
 
 	RhiGPUBuffer(RHI_BUFFER* handle = nullptr, buffer_memory_type type = buffer_memory_type_default);
 	virtual ~RhiGPUBuffer() = default;
-	virtual void create(const RhiDevice& device, const size_t length, 
-		const size_t stride, const resource_format format = resource_format_none);
+	virtual void create(const RhiDevice& device, const size_t length,
+		const size_t stride, const resource_format format = resource_format_none,
+		const resource_flags resource_flags = resource_flags_none);
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb);
 	virtual void upload(const RhiCommandBuffer& command_buffer, const RhiSharedBuffer& sb,
 		const size_t ofsset_src, const size_t offset_dest, const size_t length);

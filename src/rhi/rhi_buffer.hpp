@@ -8,7 +8,7 @@ class RhiDevice;
 class RhiMemoryTable;
 class RhiMemoryDescriptor;
 class RhiBuffer: public ICreateRhiObject<const RhiDevice&, const size_t,
-	const size_t, const resource_format >
+	const size_t, const resource_format, const resource_flags>
 	, public RhiImpl<RHI_BUFFER> {
 
 public:
@@ -17,7 +17,8 @@ public:
 	RhiBuffer(RHI_BUFFER* handle = nullptr) : RhiImpl<RHI_BUFFER>(handle) {}
 	virtual ~RhiBuffer() = default;
 	virtual void create(const RhiDevice& device, const size_t length,
-		const size_t stride, const resource_format format = resource_format_none) {}
+		const size_t stride, const resource_format format = resource_format_none, 
+		const resource_flags resource_flags = resource_flags_none) {}
 	resource_format get_format() const  { return static_cast<RHI_BUFFER*>(*this)->format; }
 	buffer_type get_type() const { return static_cast<RHI_BUFFER*>(*this)->type; }
 	size_t get_length() const { return static_cast<RHI_BUFFER*>(*this)->length; }

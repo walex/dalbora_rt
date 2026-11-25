@@ -5,7 +5,7 @@ RhiDepthBuffer::RhiDepthBuffer(RHI_BUFFER* handle)
 	: RhiGPUBuffer(handle) {}
 
 void RhiDepthBuffer::create(const RhiDevice& device, const size_t width, 
-	const size_t height, resource_format format) {
+	const size_t height, resource_format format, const resource_flags flags) {
 
 	RHI_TEXTURE_2D_DESC desc;
 	desc.device = device;
@@ -13,6 +13,7 @@ void RhiDepthBuffer::create(const RhiDevice& device, const size_t width,
 	desc.height = height;
 	desc.format = format;
 	desc.type = buffer_type_depth_stencil;
+	desc.resource_flags = flags;
 	this->set_handle(rhi_buffers_create_depth(&desc));
 }
 
