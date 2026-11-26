@@ -7,7 +7,7 @@
 class RhiDevice;
 class RhiSharedBuffer;
 class RhiCommandBuffer;
-class RhiMemoryTable;
+class RhiMemoryDescriptors;
 class RhiGPUBuffer: public RhiBuffer {
 public:
 	IMPLEMENT_MOVABLE_CLASS(RhiGPUBuffer);

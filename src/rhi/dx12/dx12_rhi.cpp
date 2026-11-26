@@ -101,6 +101,8 @@ void dx12_rhi_init()
 
 void dx12_rhi_end()
 {
+
+	dx12_factory_destroy();
 }
 
 RHI_APP_INSTANCE dx12_rhi_get_app_instance() {

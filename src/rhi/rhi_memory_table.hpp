@@ -17,18 +17,18 @@
 #define SAMPLER_DESCRIPTORS_COUNT 128
 
 class RhiDevice;
-class RhiMemoryDescriptor;
-class RhiMemoryTable
+class RhiMemoryDescriptorSlot;
+class RhiMemoryDescriptors
 	: public ICreateRhiObject<const RhiDevice&, const memory_descriptor_type,
 	const size_t>
 	, public RhiImpl<RHI_MEMORY_DESCRIPTOR> {
 public:
-	RhiMemoryTable(const RhiDevice& device, const memory_descriptor_type type,
+	RhiMemoryDescriptors(const RhiDevice& device, const memory_descriptor_type type,
 		const size_t descriptors_count, const std::vector<size_t>& slot_group_group_offsets = {});
-	virtual ~RhiMemoryTable();
+	virtual ~RhiMemoryDescriptors();
 	void next_descriptor_ptr(RHI_MEMORY_DESCRIPTOR_SLOT** slot, const size_t group_index = 0);
-	RhiMemoryDescriptor* next_descriptor_ptr(size_t group_index = 0);
-	std::unique_ptr<RhiMemoryDescriptor> next_descriptor(size_t group_index = 0);
+	RhiMemoryDescriptorSlot* next_descriptor_ptr(size_t group_index = 0);
+	std::unique_ptr<RhiMemoryDescriptorSlot> next_descriptor(size_t group_index = 0);
 	void restore_descriptor_slot(const size_t slot_id, const size_t group_index);
 	operator RHI_MEMORY_DESCRIPTOR* () {
 		return this->get_handle();
@@ -43,18 +43,18 @@ private:
 	std::mutex m_descriptor_group_mutex;
 };
 
-class RhiMemoryDescriptor
+class RhiMemoryDescriptorSlot
 	: public RhiImpl<RHI_MEMORY_DESCRIPTOR_SLOT> {
 	
 public:
-	IMPLEMENT_MOVABLE_CLASS(RhiMemoryDescriptor);
-	RhiMemoryDescriptor(RHI_MEMORY_DESCRIPTOR_SLOT* handle, RhiMemoryTable& table, size_t group_index) 
+	IMPLEMENT_MOVABLE_CLASS(RhiMemoryDescriptorSlot);
+	RhiMemoryDescriptorSlot(RHI_MEMORY_DESCRIPTOR_SLOT* handle, RhiMemoryDescriptors& table, size_t group_index) 
 		: RhiImpl<RHI_MEMORY_DESCRIPTOR_SLOT>(handle, true), m_table(table), m_group_index(group_index) {}
-	virtual ~RhiMemoryDescriptor() {
+	virtual ~RhiMemoryDescriptorSlot() {
 		m_table.restore_descriptor_slot(reinterpret_cast<RHI_MEMORY_DESCRIPTOR_SLOT*>(this)->slot_id, m_group_index);
 	}
 private:
-	RhiMemoryTable& m_table;
+	RhiMemoryDescriptors& m_table;
 	size_t m_group_index;
 };
 

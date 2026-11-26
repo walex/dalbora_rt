@@ -2,7 +2,7 @@
 #include "rhi.hpp"
 
 RhiView::RhiView(RHI_VIEW* handle, const bool ownership,
-	RhiMemoryDescriptor* memory_descriptor_slot) 
+	RhiMemoryDescriptorSlot* memory_descriptor_slot) 
 	: RhiImpl<RHI_VIEW>(handle, ownership) {
 	
 	if (handle != nullptr && ownership == true 
@@ -14,7 +14,7 @@ RhiView::RhiView(RHI_VIEW* handle, const bool ownership,
 }
 
 void RhiView::create(const RhiDevice& device, const RhiBuffer& buffer,
-	const RhiMemoryDescriptor* memory_descriptor_slot, const shader_view_type type,
+	const RhiMemoryDescriptorSlot* memory_descriptor_slot, const shader_view_type type,
 	const resource_format format, const size_t mip_maps_count) {
 	
 	RHI_VIEW_DESC desc;

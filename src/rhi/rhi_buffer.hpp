@@ -5,8 +5,8 @@
 #include "rhi_view.hpp"
 
 class RhiDevice;
-class RhiMemoryTable;
-class RhiMemoryDescriptor;
+class RhiMemoryDescriptors;
+class RhiMemoryDescriptorSlot;
 class RhiBuffer: public ICreateRhiObject<const RhiDevice&, const size_t,
 	const size_t, const resource_format, const resource_flags>
 	, public RhiImpl<RHI_BUFFER> {
@@ -24,7 +24,7 @@ public:
 	size_t get_length() const { return static_cast<RHI_BUFFER*>(*this)->length; }
 	size_t get_stride() const  { return static_cast<RHI_BUFFER*>(*this)->stride; }
 	RhiView new_view(const RhiDevice& device, const shader_view_type shader_type,
-		const RhiMemoryDescriptor* descriptor_table);
+		const RhiMemoryDescriptorSlot* descriptor_table);
 };
 
 #endif // __rhi_buffer_hpp__

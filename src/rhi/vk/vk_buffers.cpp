@@ -53,6 +53,7 @@ static RHI_VIEW* create_view_from_image_view_vk(const RHI_VIEW_DESC* const desc,
 	VK_IMAGE_VIEW* result = new VK_IMAGE_VIEW();
 	ASSERT_PTR(result);
 	result->set_handle(image_view);
+	result->parent_device = static_cast<VK_DEVICE*>(desc->device);
 	result->buffer = desc->buffer;
 	result->type = desc->type;
 	result->format = desc->format;

@@ -1,11 +1,14 @@
 #include "dalbora_rt_api.hpp"
-#include "test_api.hpp"
+void test_raster_triangle();
+void test_raster_textured_triangle();
+void test_rt_triangle();
 
 void test_api()
 {
 	// init rhi
+	//rhi_init(rhi_device_type_dx12);
 	rhi_init(rhi_device_type_vulkan);
-
+	
 	// simple platform windows creation
 	//test_create_window();
 
@@ -13,7 +16,7 @@ void test_api()
 	//test_swap_chain();
 
 	// raster triangle
-	// test_raster_triangle();
+	//test_raster_triangle();
 
 	// raster textured triangle
     // test_raster_textured_triangle();
@@ -44,7 +47,7 @@ void test_objects() {
 	
 	//test_rt_mesh_obj();
 
-	test_rt_scene_obj();
+	//test_rt_scene_obj();
 
 	// end rhi
 	rhi_end();
@@ -53,8 +56,8 @@ void test_objects() {
 int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 {
 
-	//test_api();
-	test_objects();
+	test_api();
+	//test_objects();
 
 	return 0;
 }

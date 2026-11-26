@@ -23,8 +23,8 @@ public:
 	void draw_triangle_list(RhiGPUBuffer& vertex_buffer, RhiGPUBuffer* index_buffer = nullptr);
 	void ray_trace(RhiRenderTarget& render_target, const RhiShaderBindingTable& sbt);
 
-	void set_buffers_memory_descriptor(RhiMemoryTable& resources_memory);
-	void set_sampler_memory_descriptor(RhiMemoryTable& sampler_memory);
+	void set_buffers_memory_descriptor(RhiMemoryDescriptors& resources_memory);
+	void set_sampler_memory_descriptor(RhiMemoryDescriptors& sampler_memory);
 };
 
 #endif // __rhi_command_buffer_hpp__

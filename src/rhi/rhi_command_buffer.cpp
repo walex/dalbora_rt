@@ -17,11 +17,11 @@ void RhiCommandBuffer::create(const RhiDevice& device, const RhiCommandQueue& co
 	this->set_handle(rhi_command_buffer_create(&command_buffer_desc));
 }
 
-void RhiCommandBuffer::set_buffers_memory_descriptor(RhiMemoryTable& resources_memory) {
+void RhiCommandBuffer::set_buffers_memory_descriptor(RhiMemoryDescriptors& resources_memory) {
 	static_cast<RHI_COMMAND_BUFFER*>(*this)->buffer_memory_descriptor = resources_memory;
 }
 
-void RhiCommandBuffer::set_sampler_memory_descriptor(RhiMemoryTable& sampler_memory) {
+void RhiCommandBuffer::set_sampler_memory_descriptor(RhiMemoryDescriptors& sampler_memory) {
 	static_cast<RHI_COMMAND_BUFFER*>(*this)->sampler_memory_descriptor = sampler_memory;
 }
 

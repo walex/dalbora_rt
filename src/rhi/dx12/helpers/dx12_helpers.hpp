@@ -8,6 +8,11 @@
 #include <dxcapi.h>
 #include <wrl.h>
 
+#if defined(DEBUG)
+#include <dxgidebug.h>
+#pragma comment(lib, "dxguid.lib")
+#endif
+
 resource_format dx12_helpers_resource_format_from_dxgi_format(const DXGI_FORMAT format);
 void dx12_helpers_copy_4x4Matrix_to_rt_instance(const float* const* transforms, const size_t instance_count,
     D3D12_GPU_VIRTUAL_ADDRESS gpu_mem, ID3D12Resource* i_buffer,

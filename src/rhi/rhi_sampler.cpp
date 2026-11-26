@@ -3,7 +3,7 @@
 
 RhiSampler::RhiSampler(RHI_SAMPLER* handle) : RhiImpl<RHI_SAMPLER>(handle) {}
 
-void RhiSampler::create(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor) {
+void RhiSampler::create(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor) {
 	
 	RHI_SAMPLER_DESC desc;
 	desc.device = device;

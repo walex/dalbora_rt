@@ -5,7 +5,7 @@
 #include "rhi_view.hpp"
 #include "rhi_memory_table.hpp"
 class RhiDevice;
-class RhiMemoryTable;
+class RhiMemoryDescriptors;
 class RhiRenderTarget
     : public RhiTexture
     , public ICreateRhiObject<const RhiDevice&, const resource_format,
@@ -16,10 +16,10 @@ public:
 	virtual ~RhiRenderTarget() = default;
     void create(const RhiDevice& device, const resource_format format,
         const size_t width, const size_t height);
-    RhiView new_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot);
+    RhiView new_view(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor_slot);
 private:
-    virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) override;
-    virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) override  ;
+    virtual RhiView new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor_slot) override;
+    virtual RhiView new_rw_view(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor_slot) override  ;
 };
 
 #endif // __rhi_render_target_hpp__

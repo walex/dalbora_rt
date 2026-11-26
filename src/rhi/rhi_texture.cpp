@@ -25,11 +25,11 @@ void RhiTexture::create(const RhiDevice& device, const resource_format format,
     this->set_handle(rhi_texture_2d_create(&desc));
 }
 
-RhiView RhiTexture::new_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) {
+RhiView RhiTexture::new_view(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor_slot) {
     return RhiTexture::new_read_only_view(device, memory_descriptor_slot);
 }
 
-RhiView RhiTexture::new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) {
+RhiView RhiTexture::new_read_only_view(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor_slot) {
 
     RhiView view;
     RhiBuffer buffer(dynamic_cast<RHI_BUFFER*>(static_cast<RHI_TEXTURE_2D*>(*this)));
@@ -39,7 +39,7 @@ RhiView RhiTexture::new_read_only_view(const RhiDevice& device, const RhiMemoryD
     return view;
 }
 
-RhiView RhiTexture::new_rw_view(const RhiDevice& device, const RhiMemoryDescriptor* memory_descriptor_slot) {
+RhiView RhiTexture::new_rw_view(const RhiDevice& device, const RhiMemoryDescriptorSlot* memory_descriptor_slot) {
     RhiView view;
     RhiBuffer buffer(dynamic_cast<RHI_BUFFER*>(static_cast<RHI_TEXTURE_2D*>(*this)));
     view.create(device, buffer, memory_descriptor_slot,

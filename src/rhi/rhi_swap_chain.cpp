@@ -21,7 +21,7 @@ void RhiSwapChain::create(const RhiWindow& window, const RhiDevice& device,
 	m_views.reserve(buffers_count);
 }
 
-void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryTable* memory_descriptor) {
+void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryDescriptors* memory_descriptor) {
 
 	ASSERT_PTR(memory_descriptor);
 
@@ -42,7 +42,7 @@ void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryTable* memory_
 
 	for (size_t i = 0; i < count; i++) {
 
-		RhiMemoryDescriptor* next_descriptor_slot = memory_descriptor->next_descriptor_ptr();
+		RhiMemoryDescriptorSlot* next_descriptor_slot = memory_descriptor->next_descriptor_ptr();
 		RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device, *this, *next_descriptor_slot, this->get_format(), i);
 		m_views.emplace_back(view_ptr, true, next_descriptor_slot);
 	}

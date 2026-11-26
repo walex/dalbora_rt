@@ -7,7 +7,7 @@
 
 class RhiDevice;
 class RhiView;
-class RhiMemoryTable;
+class RhiMemoryDescriptors;
 class RhiSharedBuffer: public RhiBuffer {
 
 public:

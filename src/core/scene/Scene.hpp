@@ -33,7 +33,7 @@ struct SCENE_LOAD_CALLBACKS {
 
 class Renderer;
 class BaseCamera;
-class RhiMemoryTable;
+class RhiMemoryDescriptors;
 class ResourceManager;
 class Scene: public SCENE_LOAD_CALLBACKS {
 public:

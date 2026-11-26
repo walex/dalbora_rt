@@ -102,11 +102,11 @@ const byte_code_format format) {
         if (pUtils) pUtils->Release();
         if (pCompiler) pCompiler->Release();
         throw std::exception("Shader compiler invocation call failed");
-    }
+    } 
 
     // 5. Verificar errores de compilación
     pResult->GetOutput(DXC_OUT_ERRORS, __uuidof(IDxcBlobUtf8), (void**)&pErrors, nullptr);
-    if (pErrors && pErrors->GetStringLength() > 0) {
+    if (pErrors) {
        
         HRESULT status;
         pResult->GetStatus(&status);

@@ -1,7 +1,5 @@
-#include "test_api.hpp"
-#include "dx12_rhi.hpp"
-
-#ifdef TEST_RASTER_TRIANGLE
+#include "rhi.hpp"
+#include "test_api_helpers.hpp"
 
 static constexpr float image_aspect = 800.0f / 600.0f;
 static constexpr float x = 0.5f;
@@ -20,45 +18,149 @@ static uint16_t indices[] =
 };
 static constexpr unsigned int index_count = sizeof(indices) / sizeof(uint16_t);
 
-void test_raster_triangle(fptr_test_on_init on_init,
-						  fptr_test_on_draw on_draw,
-						  fptr_test_on_end UNUSED_PARAM(on_end),
-						  fptr_test_on_layout on_layout,
-						  fptr_test_on_configure_device on_configure_device)
-{
+// memory descriptors
+static std::unique_ptr<RhiMemoryDescriptors> buffers_memory_table;
+static std::unique_ptr<RhiMemoryDescriptors> rtv_memory_table;
+static std::unique_ptr<RhiMemoryDescriptors> dsv_memory_table;
+static std::unique_ptr<RhiMemoryDescriptors> samplers_memory_table;
 
-	std::unique_ptr<RHI_RASTER_PIPELINE> pipeline;
-	std::unique_ptr<RHI_BUFFER> depth_buffer;
-	std::unique_ptr<RHI_VIEW> depth_buffer_view;
-	std::unique_ptr<RHI_BUFFER> vertex_buffer;
-	std::unique_ptr<RHI_BUFFER> index_buffer;
-	std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_layout;
-	std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
-	std::unique_ptr<RHI_BUFFER> shared_object_constant_buffer;
-	std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
-	std::unique_ptr<RHI_VIEW> object_constant_buffer_view;
-	std::vector<RHI_BUFFER*> constants_buffer_array;
-	std::unique_ptr<RHI_COMMAND_QUEUE> copy_command_queue;
-	std::unique_ptr<RHI_COMMAND_BUFFER> copy_command_buffer;
-	RHI_VOID_PTR camera_constant_buffer_ptr;
-	RHI_VOID_PTR object_constant_buffer_ptr;
+static RhiMemoryDescriptors& get_buffers_memory_descriptors() {
+	return *buffers_memory_table;
+}
+static RhiMemoryDescriptors& get_rtv_memory_descriptors() {
+	return *rtv_memory_table;
+}
+static RhiMemoryDescriptors& get_dsv_memory_descriptors() {
+	return *dsv_memory_table;
+}
+static RhiMemoryDescriptors& get_samplers_memory_descriptors() {
+	return *samplers_memory_table;
+}
 
-	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> camera_descriptor_slot;
-	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> object_descriptor_slot;
-	std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> depth_descriptor_slot;
+static void set_samplers_memory_descriptors(std::unique_ptr<RhiMemoryDescriptors> table) {
+	samplers_memory_table.reset(table.release());
+}
 
-	CameraCB camera;
-	ObjectCB triangle_transforms;
-	get_transforms(image_aspect, triangle_transforms.world, camera.view, camera.projection);	
+void memory_descriptors_init(RHI_DEVICE* device) {
 
-	const std::filesystem::path shaders_folder = get_executable_folder("shaders");
+	RhiDevice device_obj(device);
 
-	test_swap_chain([&](RHI_DEVICE &device, RHI_COMMAND_QUEUE &command_queue,
-						RHI_COMMAND_BUFFER &command_buffer, RHI_SWAP_CHAIN& swap_chain, 
-						RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count])
-					{
-			
-			RhiMemoryTable& memory_descriptor = get_buffers_memory_table();
+	std::vector<size_t> slot_group_start_indices = { 5, 5, 5 };
+	buffers_memory_table = std::make_unique<RhiMemoryDescriptors>(device_obj, memory_descriptor_type_buffer,
+		BUFFERS_DESCRIPTORS_COUNT, slot_group_start_indices);
+	samplers_memory_table = std::make_unique<RhiMemoryDescriptors>(device_obj, memory_descriptor_type_sampler,
+		SAMPLER_DESCRIPTORS_COUNT);
+	rtv_memory_table = std::make_unique<RhiMemoryDescriptors>(device_obj, memory_descriptor_type_rtv,
+		RTV_HEAP_DESCRIPTORS_COUNT);
+	dsv_memory_table = std::make_unique<RhiMemoryDescriptors>(device_obj, memory_descriptor_type_dsv,
+		DSV_DESCRIPTORS_COUNT);
+}
+
+void test_raster_triangle() {
+
+	constexpr size_t MAX_COMMAND_ALLOCATORS = 8;
+
+	std::unique_ptr<RHI_DEVICE> device;
+	{
+		std::unique_ptr<RHI_COMMAND_QUEUE> command_queue;
+		std::unique_ptr<RHI_SWAP_CHAIN> swap_chain;
+		std::unique_ptr<RHI_COMMAND_BUFFER> command_buffer;
+		std::unique_ptr<RHI_RENDER_PASS> render_pass;
+		std::vector<std::unique_ptr<RHI_VIEW>> views;
+		std::vector<std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT>> views_slots;
+		RHI_COMMAND_ALLOCATOR_POOL* command_allocator_pool[queue_type_count];
+
+		std::unique_ptr<RHI_RASTER_PIPELINE> pipeline;
+		std::unique_ptr<RHI_BUFFER> depth_buffer;
+		std::unique_ptr<RHI_VIEW> depth_buffer_view;
+		std::unique_ptr<RHI_BUFFER> vertex_buffer;
+		std::unique_ptr<RHI_BUFFER> index_buffer;
+		std::unique_ptr<RHI_PIPELINE_LAYOUT> pipeline_layout;
+		std::unique_ptr<RHI_BUFFER> shared_camera_constant_buffer;
+		std::unique_ptr<RHI_BUFFER> shared_object_constant_buffer;
+		std::unique_ptr<RHI_VIEW> camera_constant_buffer_view;
+		std::unique_ptr<RHI_VIEW> object_constant_buffer_view;
+		std::vector<RHI_BUFFER*> constants_buffer_array;
+		std::unique_ptr<RHI_COMMAND_QUEUE> copy_command_queue;
+		std::unique_ptr<RHI_COMMAND_BUFFER> copy_command_buffer;
+		RHI_VOID_PTR camera_constant_buffer_ptr;
+		RHI_VOID_PTR object_constant_buffer_ptr;
+
+		std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> camera_descriptor_slot;
+		std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> object_descriptor_slot;
+		std::unique_ptr<RHI_MEMORY_DESCRIPTOR_SLOT> depth_descriptor_slot;
+
+		CameraCB camera;
+		ObjectCB triangle_transforms;
+		get_transforms(image_aspect, triangle_transforms.world, camera.view, camera.projection);	
+
+		const std::filesystem::path shaders_folder = get_executable_folder("shaders");
+
+		std::shared_ptr<RHI_WINDOW_CALLBACKS> callbacks = std::make_shared<RHI_WINDOW_CALLBACKS>();
+
+		callbacks.get()->on_init = ([&](RHI_WINDOW* const window) {
+
+			RHI_DEVICE_DESC device_desc;
+			device_desc.adapter_id = -1;
+			device_desc.features = device_features_none;
+			device_desc.app_instance = rhi_get_app_instance();
+			device_desc.graphics_queue_count = 1;
+			device_desc.compute_queue_count = 1;
+			device_desc.copy_queue_count = 1;
+			device.reset(rhi_create_device(&device_desc));
+
+			memory_descriptors_init(device.get());
+
+			command_allocator_pool[queue_type_graphics] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_graphics);
+			command_allocator_pool[queue_type_compute] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_compute);
+			command_allocator_pool[queue_type_copy] = rhi_command_allocator_pool_create(device.get(), MAX_COMMAND_ALLOCATORS, queue_type_copy);
+
+			RHI_COMMAND_QUEUE_DESC queue_desc;
+			queue_desc.device = device.get();
+			queue_desc.type = queue_type_graphics;
+			command_queue.reset(rhi_command_queue_create(&queue_desc));
+
+			RHI_SWAP_CHAIN_DESC swap_chain_desc;
+			swap_chain_desc.device = device.get();
+			swap_chain_desc.command_queue = command_queue.get();
+			swap_chain_desc.window = window;
+			swap_chain_desc.width = 800;
+			swap_chain_desc.height = 600;
+			swap_chain_desc.enable_vsync = false;
+			swap_chain_desc.is_full_screen = false;
+			swap_chain_desc.buffer_count = 3;
+			swap_chain_desc.color_format = resource_format_R8G8B8A8_norm;
+			swap_chain.reset(rhi_swap_chain_create(&swap_chain_desc));
+
+			for (size_t i = 0; i < swap_chain_desc.buffer_count; i++) {
+
+				views_slots.emplace_back(*get_rtv_memory_descriptors().next_descriptor_ptr());
+				RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device.get(), swap_chain.get(), views_slots.back().get(), swap_chain_desc.color_format, i);
+				views.push_back(std::unique_ptr<RHI_VIEW>(view_ptr));
+			}
+
+			RHI_COMMAND_BUFFER_DESC command_buffer_desc;
+			command_buffer_desc.device = device.get();
+			command_buffer_desc.command_queue = command_queue.get();
+			command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[queue_type_graphics]);
+			command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
+			command_buffer->buffer_memory_descriptor = get_buffers_memory_descriptors();
+
+			RHI_VIEWPORT vp;
+			vp.x = 0;
+			vp.y = 0;
+			vp.width = swap_chain->buffer_width;
+			vp.height = swap_chain->buffer_height;
+			vp.min_z = 0.0f;
+			vp.max_z = 1.0f;
+
+			RHI_RENDER_PASS_DESC render_pass_desc;
+			render_pass_desc.device = device.get();
+			render_pass.reset(rhi_render_pass_create(&render_pass_desc));
+			render_pass->view_port = vp;
+
+
+			RhiMemoryDescriptors& memory_descriptor = get_buffers_memory_descriptors();
 
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> vertex_shader;
 			std::unique_ptr<RHI_COMPILED_SHADER_BUFFER> pixel_shader;
@@ -67,7 +169,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			// create layout for pipeline
 			RHI_PIPELINE_LAYOUT_DESC pl_desc;
-			pl_desc.device = &device;
+			pl_desc.device = device.get();
 
 			// add constant buffer descriptors for camera and object transforms;
 			RHI_SHADER_DESCRIPTOR_DESC& cb_desc = pl_desc.descriptors[pl_desc.descriptor_count++];
@@ -83,22 +185,15 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			size_t vertex_size;
 			void* vertices_ptr;
 
-			if (on_layout) {
-				on_layout(pl_desc, input_layouts, 
-					vs_file, ps_file, 
-					vertex_size, &vertices_ptr);
-			}
-			else {
-				vs_file = "simple_triangle.hlsl";
-				ps_file = "simple_triangle.hlsl";
-				vertex_size = sizeof(Vertex);
-				vertices_ptr = &vertices[0];
+			vs_file = "simple_triangle.hlsl";
+			ps_file = "simple_triangle.hlsl";
+			vertex_size = sizeof(Vertex);
+			vertices_ptr = &vertices[0];
 
-				RHI_INPUT_LAYOUT_DESC& desc_pos = input_layouts.emplace_back();
-				strcpy_s(desc_pos.name, "POSITION");
-				desc_pos.format = resource_format_float3;
-				desc_pos.offset = 0;
-			}
+			RHI_INPUT_LAYOUT_DESC& desc_pos = input_layouts.emplace_back();
+			strcpy_s(desc_pos.name, "POSITION");
+			desc_pos.format = resource_format_float3;
+			desc_pos.offset = 0;
 			 
 			vs_file = std::filesystem::path(shaders_folder / vs_file).string();
 			ps_file = std::filesystem::path(shaders_folder / ps_file).string();
@@ -119,7 +214,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			// create geometry buffers
 			RHI_VERTEX_BUFFER_DESC vb_desc;
-			vb_desc.device = &device;
+			vb_desc.device = device.get();
 			vb_desc.count = vertex_count;
 			vb_desc.length = vertex_count * vertex_size;
 			vb_desc.stride = vertex_size;
@@ -129,7 +224,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			vertex_buffer.reset(rhi_buffers_create_vertices(&vb_desc));
 			
 			RHI_INDEX_BUFFER_DESC ib_desc;
-			ib_desc.device = &device;
+			ib_desc.device = device.get();
 			ib_desc.count = index_count;
 			ib_desc.length = sizeof(uint16_t) * index_count;
 			ib_desc.stride = sizeof(uint16_t);
@@ -140,7 +235,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			
 			// create shared memory for camera transforms
 			RHI_BUFFER_DESC shared_camera_buffer_desc;
-			shared_camera_buffer_desc.device = &device;
+			shared_camera_buffer_desc.device = device.get();
 			shared_camera_buffer_desc.length = sizeof(CameraCB);
 			shared_camera_buffer_desc.memory_type = buffer_memory_type_shared_rw;
 			shared_camera_buffer_desc.type = buffer_type_raw;
@@ -149,7 +244,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			
 			// camera constant buffer view
 			RHI_VIEW_DESC camera_cb_view_desc;
-			camera_cb_view_desc.device = &device;
+			camera_cb_view_desc.device = device.get();
 			camera_cb_view_desc.buffer = shared_camera_constant_buffer.get();
 			camera_cb_view_desc.type = shader_view_type_constant_buffer;
 
@@ -163,7 +258,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			
 			// create shared memory for object transforms
 			RHI_BUFFER_DESC shared_object_buffer_desc;
-			shared_object_buffer_desc.device = &device;
+			shared_object_buffer_desc.device = device.get();
 			shared_object_buffer_desc.length = sizeof(ObjectCB);
 			shared_object_buffer_desc.memory_type = buffer_memory_type_shared_rw;
 			shared_object_buffer_desc.type = buffer_type_raw;
@@ -172,7 +267,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 
 			// object constant buffer view
 			RHI_VIEW_DESC object_cb_view_desc;
-			object_cb_view_desc.device = &device;
+			object_cb_view_desc.device = device.get();
 			object_cb_view_desc.buffer = shared_object_constant_buffer.get();
 			object_cb_view_desc.type = shader_view_type_constant_buffer;
 
@@ -190,74 +285,32 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			constants_buffer_array = {shared_camera_constant_buffer.get(), shared_object_constant_buffer.get()};
 
 			// create copy command queue and buffer
-			RHI_COMMAND_QUEUE_DESC queue_desc; 
-			queue_desc.device = &device;
 			queue_desc.type = queue_type_copy;
 			copy_command_queue.reset(rhi_command_queue_create(&queue_desc));
 
-			RHI_COMMAND_BUFFER_DESC command_buffer_desc;
-			command_buffer_desc.device = &device;
 			command_buffer_desc.command_queue = copy_command_queue.get();
 			command_buffer_desc.command_allocator = rhi_command_allocator_pool_acquire(command_allocator_pool[copy_command_queue->type]);
 			copy_command_buffer.reset(rhi_command_buffer_create(&command_buffer_desc));
 
-			// upload buffers
-			rhi_command_queue_execute(copy_command_queue.get(), true,
-				[&](RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
-					std::vector<RHI_COMMAND_BUFFER *>* command_buffer_list) {
-
-				rhi_command_buffer_record(copy_command_buffer.get(),
-				[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
-
-					// cpu bridge buffer uploading
-					{
-						RHI_BUFFER_DESC shared_buffer_desc;
-						shared_buffer_desc.device = &device;
-						shared_buffer_desc.length = vb_desc.length;
-						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-						shared_buffer_desc.type = buffer_type_raw;
-						shared_buffer_desc.mips = 1;						
-						shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
-						rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
-						rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_vertex_buffer.get(), vertex_buffer.get());
-					}
-
-					// cpu bridge buffer uploading
-					{
-						RHI_BUFFER_DESC shared_buffer_desc;
-						shared_buffer_desc.device = &device;
-						shared_buffer_desc.length = ib_desc.length;
-						shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
-						shared_buffer_desc.type = buffer_type_raw;
-						shared_buffer_desc.mips = 1;						
-						shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
-						rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
-						rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_index_buffer.get(), index_buffer.get());
-					}
-
-				});
-
-				command_buffer_list->push_back(copy_command_buffer.get()); 
-			});
 
 			// create depth buffer
 			RHI_TEXTURE_2D_DESC db_desc;
-			db_desc.device = &device;
-			db_desc.width = swap_chain.buffer_width;
-			db_desc.height = swap_chain.buffer_height;
+			db_desc.device = device.get();
+			db_desc.width = swap_chain->buffer_width;
+			db_desc.height = swap_chain->buffer_height;
 			db_desc.format = resource_format_d24_norm_s8_uint;
 			db_desc.type = buffer_type_depth_stencil;
 			depth_buffer.reset(rhi_buffers_create_depth(&db_desc));
 
 			// depth view
 			RHI_VIEW_DESC db_view_desc;
-			db_view_desc.device = &device;
+			db_view_desc.device = device.get();
 			db_view_desc.buffer = depth_buffer.get();
 			db_view_desc.type = shader_view_type_depth_stencil_target;
 			db_view_desc.format = db_desc.format;
 
 			slot = nullptr;
-			get_dsv_memory_table().next_descriptor_ptr(&slot);
+			get_dsv_memory_descriptors().next_descriptor_ptr(&slot);
 			ASSERT_PTR(slot);
 			depth_descriptor_slot.reset(slot);
 
@@ -266,7 +319,7 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			
 			// create pipeline
 			RHI_RASTER_PIPELINE_DESC pipe_desc;
-			pipe_desc.device = &device;
+			pipe_desc.device = device.get();
 			pipe_desc.layout = pipeline_layout.get();
 			pipe_desc.input_layouts_desc_count = input_layouts.size();
 			memcpy(&pipe_desc.input_layouts_desc[0], input_layouts.data(), input_layouts.size() * sizeof(RHI_INPUT_LAYOUT_DESC));
@@ -280,277 +333,347 @@ void test_raster_triangle(fptr_test_on_init on_init,
 			pipe_desc.resources_memory_descriptor = memory_descriptor;
 			strcpy(pipe_desc.vertex_shader_entry_point, vs_entry_point);
 			strcpy(pipe_desc.pixel_shader_entry_point, ps_entry_point);
-			
-		
-			// on init
-			if (on_init)
-				on_init(device, command_queue, command_buffer, swap_chain, command_allocator_pool);
-			
-			pipe_desc.sampler_memory_descriptor.reset(command_buffer.sampler_memory_descriptor.get());
+			pipe_desc.sampler_memory_descriptor.reset(command_buffer->sampler_memory_descriptor.get());
 			pipeline.reset(rhi_raster_pipeline_create(&pipe_desc));
 
-			},
+			// upload buffers
+			rhi_command_queue_execute(copy_command_queue.get(), true,
+				[&](RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
+					std::vector<RHI_COMMAND_BUFFER*>* command_buffer_list) {
 
-			[&](RHI_RENDER_PASS &render_pass)
-			{
-				// on before draw
-				render_pass.depth_buffer_view = depth_buffer_view.get();
-				render_pass.pipeline = pipeline.get();
-			},
-			[&](RHI_DEVICE& device, RHI_RENDER_PASS& render_pass,
-				RHI_COMMAND_BUFFER &command_buffer)
-			{
-				// on draw
+						rhi_command_buffer_record(copy_command_buffer.get(),
+							[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
 
-				float dt = get_delta_time();
-				triangle_transforms.world = rotate_triangle(dt);
+								// cpu bridge buffer uploading
+								{
+									RHI_BUFFER_DESC shared_buffer_desc;
+									shared_buffer_desc.device = device.get();
+									shared_buffer_desc.length = vb_desc.length;
+									shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
+									shared_buffer_desc.type = buffer_type_raw;
+									shared_buffer_desc.mips = 1;
+									shared_vertex_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+									rhi_buffers_map_write(shared_vertex_buffer.get(), vertices_ptr, 0, shared_buffer_desc.length);
+									rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_vertex_buffer.get(), vertex_buffer.get());
+								}
 
-				// upload shaders constants
-				memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCB));
-				memcpy(object_constant_buffer_ptr, &triangle_transforms, sizeof(ObjectCB));
+								// cpu bridge buffer uploading
+								{
+									RHI_BUFFER_DESC shared_buffer_desc;
+									shared_buffer_desc.device = device.get();
+									shared_buffer_desc.length = ib_desc.length;
+									shared_buffer_desc.memory_type = buffer_memory_type_shared_rw;
+									shared_buffer_desc.type = buffer_type_raw;
+									shared_buffer_desc.mips = 1;
+									shared_index_buffer.reset(rhi_buffers_create_raw(&shared_buffer_desc));
+									rhi_buffers_map_write(shared_index_buffer.get(), &indices[0], 0, shared_buffer_desc.length);
+									rhi_buffers_gpu_upload(copy_command_buffer.get(), shared_index_buffer.get(), index_buffer.get());
+								}
 
-				if (on_draw)
-					on_draw(device, render_pass, command_buffer);
-				rhi_command_buffer_draw_triangle_list(&command_buffer, vertex_buffer.get(), index_buffer.get());
-			},
-			[&](RHI_RENDER_PASS &UNUSED_PARAM(render_pass), RHI_SWAP_CHAIN& UNUSED_PARAM(swap_chain), RHI_COMMAND_BUFFER& UNUSED_PARAM(command_buffer))
-			{
-				// on after draw
-			},
-			[&](RHI_DEVICE &UNUSED_PARAM(device))
-			{
-				// if (on_end)
-				//	on_end(device);
+							});
 
-				// on end
-				rhi_buffers_map_close(shared_camera_constant_buffer.get(), 0, sizeof(CameraCB));
-				rhi_buffers_map_close(shared_object_constant_buffer.get(), 0, sizeof(ObjectCB));
-				}, 
-				[&](RHI_DEVICE_DESC& desc)
-				{
-					if (on_configure_device)
-						on_configure_device(desc);
+						command_buffer_list->push_back(copy_command_buffer.get());
 				});
-	return;
-}
-
-void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
-
-	RhiShaderProgramHLSL vertex_shader;
-	RhiShaderProgramHLSL pixel_shader;
-	std::vector<uint8_t> bytecode_vs;
-	std::vector<uint8_t> bytecode_ps;
-	RhiGPUBuffer vertex_buffer;
-	RhiGPUBuffer index_buffer;
-	RhiDepthBuffer depth_buffer;
-	RhiSharedBuffer camera_transforms;
-	RhiSharedBuffer object_transforms;
-	RhiView camera_transform_view;
-	RhiView object_transform_view;
-	RhiView depth_buffer_view;
-	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
-	std::unique_ptr<RhiSharedBufferMap> object_constant_buffer_map;
-
-	CameraCB camera;
-	ObjectCB triangle_transforms;
-	get_transforms(image_aspect, triangle_transforms.world, camera.view, camera.projection);
-
-	RhiUnitTestCallbacks unit_test_callbacks;
-	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
-
-		if (callbacks)
-			callbacks->on_device_config(device_desc);
-	});
-
-	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,
-		size_t& read_only_shader_registers_count, size_t& rw_shader_registers_count) {
-	
-		constant_shader_registers_count = 2;
-		read_only_shader_registers_count = 0;
-		rw_shader_registers_count = 0;
-		
-		if (callbacks)
-			return callbacks->on_memory_descriptor_config(constant_shader_registers_count, read_only_shader_registers_count, 
-				rw_shader_registers_count);
-		return true;
-	});
-
-	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
-
-		RhiWindow& window = unit_test.window;
-		RhiDevice& device = unit_test.device;
-		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
-		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
-		RhiSwapChain& swap_chain = unit_test.swap_chain;
-		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
-		RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
-
-		RhiSharedBuffer shared_vertex_buffer;
-		RhiSharedBuffer shared_index_buffer;	
-
-		// setup shaders
-		const std::filesystem::path shaders_path = get_executable_folder("shaders");
-		const std::filesystem::path shader_file = shaders_path / "simple_triangle.hlsl";
-		unit_test.vertex_shader_file = shader_file.string();
-		unit_test.pixel_shader_file = shader_file.string();
-		
-		unit_test.indices.resize(sizeof(indices));
-		memcpy(unit_test.indices.data(), &indices[0], sizeof(indices));
-		unit_test.indices_stride = sizeof(uint16_t);
-
-		pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
-
-		if (callbacks) {
-			callbacks->on_init(unit_test);
-		}
-		else {
-			// save geometry buffers
-			unit_test.vertices.resize(sizeof(vertices));
-			memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
-			unit_test.vertices_stride = sizeof(vertices[0]);
-
-		// setup pipeline layout
-		// add layout descriptors ( order mathers )
-
-		pipeline_layout.set_shader_descriptors(shader_view_type_constant_buffer, 0, unit_test.constant_shader_registers_count);
-
-		}
-
-		// compile shaders
-		{
-			const std::string vs_entry_point = "VSMain";
-			const std::string ps_entry_point = "PSMain";
-
-			RhiShaderProgramHLSL vertex_shader_tmp;
-			RhiShaderProgramHLSL pixel_shader_tmp;
-			byte_code_format bc_format = byte_code_format_input_hlsl;
-			if (rhi_get_device_type() == rhi_device_type_vulkan) {
-				int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_output_spirv);
-				bc_format = static_cast<byte_code_format>(flag);
-			}
-			vertex_shader_tmp.create(unit_test.vertex_shader_file,
-				vs_entry_point, "vs_6_0", bc_format);
-			pixel_shader_tmp.create(unit_test.pixel_shader_file,
-				ps_entry_point, "ps_6_0", bc_format);
-			
-			vertex_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
-			pixel_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
-
-			vertex_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso", vs_entry_point);
-			pixel_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso", ps_entry_point);
-
-			// delete temporary shader files
-			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
-			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
-
-		}
-
-
-		// setup pipeline
-		RhiRasterPipelineShaderPrograms shader_programs;
-		shader_programs.vertex_shader = &vertex_shader;
-		shader_programs.vertex_stride = unit_test.vertices_stride;
-		shader_programs.index_stride = unit_test.indices_stride;
-		shader_programs.pixel_shader = &pixel_shader;
-		
-
-		// create pipeline layout
-		pipeline_layout.create(device, primitive_topology_triangle, 
-			swap_chain.get_format(), resource_format_d24_norm_s8_uint);
-
-		// create pipeline
-		pipeline.create(device, pipeline_layout, 
-			shader_programs, *get_buffers_memory_table(),
-			static_cast<RHI_COMMAND_BUFFER*>(command_buffer)->sampler_memory_descriptor.get());
-
-		// copy vertices to cpu visible memory
-		vertex_buffer.create(device, unit_test.vertices.size(), 
-			unit_test.vertices_stride, resource_format_float3);
-		shared_vertex_buffer.create(device, unit_test.vertices.size());
-		{
-			auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
-			memcpy(v_map_info.get_data(), unit_test.vertices.data(), 
-				v_map_info.get_length());
-		}
-
-		// copy indices to cpu visible memory
-		index_buffer.create(device, unit_test.indices.size(), 
-			unit_test.indices_stride, resource_format_uint16);
-		shared_index_buffer.create(device, unit_test.indices.size());
-		{
-			auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
-			memcpy(i_map_info.get_data(), unit_test.indices.data(),
-				i_map_info.get_length());
-		}
-
-		// upload vertices e indices data to gpu only memory
-		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
-				
-			command_buffer.record([&] {
-
-				vertex_buffer.upload(command_buffer, shared_vertex_buffer);
-				index_buffer.upload(command_buffer, shared_index_buffer);
 			});
-			
-			list.add_command_buffer(command_buffer);
+
+		callbacks.get()->on_idle = ([&](const RHI_WINDOW* UNUSED_PARAM(window)) {
+
+			swap_chain->current_image_index = rhi_swap_chain_get_current_buffer_id(swap_chain.get());
+			command_buffer->rtv_memory_descriptor = get_rtv_memory_descriptors();
+			command_buffer->dsv_memory_descriptor = get_dsv_memory_descriptors();
+			render_pass->render_target_view = views[swap_chain->current_image_index].get();
+			render_pass->depth_buffer_view = depth_buffer_view.get();
+			render_pass->pipeline = pipeline.get();
+
+			rhi_command_queue_execute(command_queue.get(), true, [&](
+				RHI_VOID_PTR UNUSED_PARAM(native_command_queue_impl),
+				std::vector<RHI_COMMAND_BUFFER*>* const command_buffer_list) {
+
+					rhi_command_buffer_record(command_buffer.get(),
+						[&](RHI_VOID_PTR UNUSED_PARAM(native_command_buffer_impl)) {
+
+							// begin pass
+							rhi_render_pass_execute_raster_mode(render_pass.get(), command_buffer.get(), [&] {
+
+								render_pass->depth_buffer_view = depth_buffer_view.get();
+								render_pass->pipeline = pipeline.get();
+								float dt = get_delta_time();
+								triangle_transforms.world = rotate_triangle(dt);
+								
+								// upload shaders constants
+								memcpy(camera_constant_buffer_ptr, &camera, sizeof(CameraCB));
+								memcpy(object_constant_buffer_ptr, &triangle_transforms, sizeof(ObjectCB));
+								
+								rhi_command_buffer_draw_triangle_list(command_buffer.get(), vertex_buffer.get(), index_buffer.get());
+
+							});
+						});
+					command_buffer_list->push_back(command_buffer.get());
+				});
+
+			// present
+			rhi_swap_chain_present(swap_chain.get());
 		});
-
-		// create depth buffers
-		depth_buffer.create(device, window.get_width(), 
-			window.get_height(), resource_format_d24_norm_s8_uint);
-
-		// create camera transform buffer
-		camera_transforms.create(device, sizeof(CameraCB));
-
-		// create triangle transform buffer
-		object_transforms.create(device, sizeof(ObjectCB));
-
-		// views
-		depth_buffer_view = depth_buffer.new_view(device, shader_view_type_depth_stencil_target,
-			get_dsv_memory_table().next_descriptor_ptr());
-
-		// add views for transform buffers for shader visibility
-		// creation order is related with shader constant buffer registers ids
-		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, 
-			get_buffers_memory_table().next_descriptor_ptr());		// cb reg 0
-		object_transform_view = object_transforms.new_view(device, shader_view_type_constant_buffer, 
-			get_buffers_memory_table().next_descriptor_ptr());	// cb reg 1
-
-		// map constant buffers
-		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0,
-			sizeof(CameraCB));
-		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms, 0, 
-			sizeof(ObjectCB));
 		
-		// set depth buffer to render pass
-		unit_test.raster_render_pass.set_depth_buffer(depth_buffer_view);
-		// set pipeline to render pass
-		unit_test.raster_render_pass.set_pipeline(pipeline);
-	});
+		// setup window
+		RHI_WINDOW_DESC window_desc;
+		window_desc.full_screen = false;
+		window_desc.width = 800;
+		window_desc.height = 600;
+		const char* title = "pbr test for create window";
+		window_desc.title = const_cast<char*>(title);
+		window_desc.callbacks = callbacks.get();
 
-	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
+		// create window
+		std::unique_ptr<RHI_WINDOW> window(rhi_create_window(&window_desc));
 
-		float dt = get_delta_time();
-		triangle_transforms.world = rotate_triangle(dt);
+		// main loop
+		rhi_window_main_loop(window.get());
 
-		// upload shaders constants
-		memcpy(camera_constant_buffer_map->get_data(), &camera, 
-			sizeof(CameraCB));
-		memcpy(object_constant_buffer_map->get_data(), &triangle_transforms,
-			sizeof(ObjectCB));
-		unit_test.command_buffer.draw_triangle_list(vertex_buffer, &index_buffer);
-		
+		// release objects in order
 
-		if (callbacks)
-			callbacks->on_draw(unit_test);
-	});
+		RHI_COMMAND_ALLOCATOR* command_allocator = command_buffer->command_allocator;
 
-	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
-			
-		if (callbacks)
-			callbacks->on_end(unit_test);
-	});
+		command_buffer.reset();
+		command_queue.reset();
+		render_pass.reset();
 
-	test_create_swap_chain_obj(&unit_test_callbacks);
+		rhi_command_allocator_pool_release(command_allocator_pool[queue_type_graphics], command_allocator);
+		rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_graphics]);
+		rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_compute]);
+		rhi_command_allocator_pool_clean(command_allocator_pool[queue_type_copy]);
+		delete command_allocator_pool[queue_type_graphics];
+		delete command_allocator_pool[queue_type_compute];
+		delete command_allocator_pool[queue_type_copy];
+		swap_chain.reset();
+
+		buffers_memory_table.reset();
+		rtv_memory_table.reset();
+		dsv_memory_table.reset();
+		samplers_memory_table.reset();
+	}
 }
-#endif
+
+
+//
+//void test_raster_triangle_obj(RhiUnitTestCallbacks* callbacks) {
+//
+//	RhiShaderProgramHLSL vertex_shader;
+//	RhiShaderProgramHLSL pixel_shader;
+//	std::vector<uint8_t> bytecode_vs;
+//	std::vector<uint8_t> bytecode_ps;
+//	RhiGPUBuffer vertex_buffer;
+//	RhiGPUBuffer index_buffer;
+//	RhiDepthBuffer depth_buffer;
+//	RhiSharedBuffer camera_transforms;
+//	RhiSharedBuffer object_transforms;
+//	RhiView camera_transform_view;
+//	RhiView object_transform_view;
+//	RhiView depth_buffer_view;
+//	std::unique_ptr<RhiSharedBufferMap> camera_constant_buffer_map;
+//	std::unique_ptr<RhiSharedBufferMap> object_constant_buffer_map;
+//
+//	CameraCB camera;
+//	ObjectCB triangle_transforms;
+//	get_transforms(image_aspect, triangle_transforms.world, camera.view, camera.projection);
+//
+//	RhiUnitTestCallbacks unit_test_callbacks;
+//	unit_test_callbacks.on_device_config = ([&](RHI_DEVICE_DESC& device_desc) {
+//
+//		if (callbacks)
+//			callbacks->on_device_config(device_desc);
+//	});
+//
+//	unit_test_callbacks.on_memory_descriptor_config = ([&](size_t& constant_shader_registers_count,
+//		size_t& read_only_shader_registers_count, size_t& rw_shader_registers_count) {
+//	
+//		constant_shader_registers_count = 2;
+//		read_only_shader_registers_count = 0;
+//		rw_shader_registers_count = 0;
+//		
+//		if (callbacks)
+//			return callbacks->on_memory_descriptor_config(constant_shader_registers_count, read_only_shader_registers_count, 
+//				rw_shader_registers_count);
+//		return true;
+//	});
+//
+//	unit_test_callbacks.on_init = ([&](RhiUnitTest& unit_test) {
+//
+//		RhiWindow& window = unit_test.window;
+//		RhiDevice& device = unit_test.device;
+//		RhiGraphicsCommandQueue& command_queue = unit_test.command_queue;
+//		RhiCommandBuffer& command_buffer = unit_test.command_buffer;
+//		RhiSwapChain& swap_chain = unit_test.swap_chain;
+//		RhiPipelineLayout& pipeline_layout = unit_test.pipeline_layout;
+//		RhiRasterPipeline& pipeline = unit_test.raster_pipeline;
+//
+//		RhiSharedBuffer shared_vertex_buffer;
+//		RhiSharedBuffer shared_index_buffer;	
+//
+//		// setup shaders
+//		const std::filesystem::path shaders_path = get_executable_folder("shaders");
+//		const std::filesystem::path shader_file = shaders_path / "simple_triangle.hlsl";
+//		unit_test.vertex_shader_file = shader_file.string();
+//		unit_test.pixel_shader_file = shader_file.string();
+//		
+//		unit_test.indices.resize(sizeof(indices));
+//		memcpy(unit_test.indices.data(), &indices[0], sizeof(indices));
+//		unit_test.indices_stride = sizeof(uint16_t);
+//
+//
+//		if (callbacks) {
+//			callbacks->on_init(unit_test);
+//		}
+//		else {
+//
+//			pipeline.add_input_descriptor("POSITION", 0, resource_format_float3);
+//
+//			// save geometry buffers
+//			unit_test.vertices.resize(sizeof(vertices));
+//			memcpy(unit_test.vertices.data(), &vertices[0], sizeof(vertices));
+//			unit_test.vertices_stride = sizeof(vertices[0]);
+//
+//		// setup pipeline layout
+//		// add layout descriptors ( order mathers )
+//
+//		pipeline_layout.set_shader_descriptors(shader_view_type_constant_buffer, 0, unit_test.constant_shader_registers_count);
+//
+//		}
+//
+//		// compile shaders
+//		{
+//			const std::string vs_entry_point = "VSMain";
+//			const std::string ps_entry_point = "PSMain";
+//
+//			RhiShaderProgramHLSL vertex_shader_tmp;
+//			RhiShaderProgramHLSL pixel_shader_tmp;
+//			byte_code_format bc_format = byte_code_format_input_hlsl;
+//			if (rhi_get_device_type() == rhi_device_type_vulkan) {
+//				int flag = static_cast<int>(bc_format) | static_cast<int>(byte_code_format_output_spirv);
+//				bc_format = static_cast<byte_code_format>(flag);
+//			}
+//			vertex_shader_tmp.create(unit_test.vertex_shader_file,
+//				vs_entry_point, "vs_6_0", bc_format);
+//			pixel_shader_tmp.create(unit_test.pixel_shader_file,
+//				ps_entry_point, "ps_6_0", bc_format);
+//			
+//			vertex_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
+//			pixel_shader_tmp.to_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
+//
+//			vertex_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso", vs_entry_point);
+//			pixel_shader.from_binary_file("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso", ps_entry_point);
+//
+//			// delete temporary shader files
+//			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_vs.cso");
+//			std::filesystem::remove("C:\\Users\\wadrw.MSI\\Documents\\temp\\simple_triangle_ps.cso");
+//
+//		}
+//
+//
+//		// setup pipeline
+//		RhiRasterPipelineShaderPrograms shader_programs;
+//		shader_programs.vertex_shader = &vertex_shader;
+//		shader_programs.vertex_stride = unit_test.vertices_stride;
+//		shader_programs.index_stride = unit_test.indices_stride;
+//		shader_programs.pixel_shader = &pixel_shader;
+//		
+//
+//		// create pipeline layout
+//		pipeline_layout.create(device, primitive_topology_triangle, 
+//			swap_chain.get_format(), resource_format_d24_norm_s8_uint);
+//
+//		// create pipeline
+//		pipeline.create(device, pipeline_layout, 
+//			shader_programs, *get_buffers_memory_table(),
+//			static_cast<RHI_COMMAND_BUFFER*>(command_buffer)->sampler_memory_descriptor.get());
+//
+//		// copy vertices to cpu visible memory
+//		vertex_buffer.create(device, unit_test.vertices.size(), 
+//			unit_test.vertices_stride, resource_format_float3);
+//		shared_vertex_buffer.create(device, unit_test.vertices.size());
+//		{
+//			auto v_map_info = shared_vertex_buffer.map(0, unit_test.vertices.size());
+//			memcpy(v_map_info.get_data(), unit_test.vertices.data(), 
+//				v_map_info.get_length());
+//		}
+//
+//		// copy indices to cpu visible memory
+//		index_buffer.create(device, unit_test.indices.size(), 
+//			unit_test.indices_stride, resource_format_uint16);
+//		shared_index_buffer.create(device, unit_test.indices.size());
+//		{
+//			auto i_map_info = shared_index_buffer.map(0, unit_test.indices.size());
+//			memcpy(i_map_info.get_data(), unit_test.indices.data(),
+//				i_map_info.get_length());
+//		}
+//
+//		// upload vertices e indices data to gpu only memory
+//		command_queue.sync_exec([&](RhiCommandQueueBufferList& list) {
+//				
+//			command_buffer.record([&] {
+//
+//				vertex_buffer.upload(command_buffer, shared_vertex_buffer);
+//				index_buffer.upload(command_buffer, shared_index_buffer);
+//			});
+//			
+//			list.add_command_buffer(command_buffer);
+//		});
+//
+//		// create depth buffers
+//		depth_buffer.create(device, window.get_width(), 
+//			window.get_height(), resource_format_d24_norm_s8_uint);
+//
+//		// create camera transform buffer
+//		camera_transforms.create(device, sizeof(CameraCB));
+//
+//		// create triangle transform buffer
+//		object_transforms.create(device, sizeof(ObjectCB));
+//
+//		// views
+//		depth_buffer_view = depth_buffer.new_view(device, shader_view_type_depth_stencil_target,
+//			get_dsv_memory_table().next_descriptor_ptr());
+//
+//		// add views for transform buffers for shader visibility
+//		// creation order is related with shader constant buffer registers ids
+//		camera_transform_view = camera_transforms.new_view(device, shader_view_type_constant_buffer, 
+//			get_buffers_memory_table().next_descriptor_ptr());		// cb reg 0
+//		object_transform_view = object_transforms.new_view(device, shader_view_type_constant_buffer, 
+//			get_buffers_memory_table().next_descriptor_ptr());	// cb reg 1
+//
+//		// map constant buffers
+//		camera_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(camera_transforms, 0,
+//			sizeof(CameraCB));
+//		object_constant_buffer_map = std::make_unique<RhiSharedBufferMap>(object_transforms, 0, 
+//			sizeof(ObjectCB));
+//		
+//		// set depth buffer to render pass
+//		unit_test.raster_render_pass.set_depth_buffer(depth_buffer_view);
+//		// set pipeline to render pass
+//		unit_test.raster_render_pass.set_pipeline(pipeline);
+//	});
+//
+//	unit_test_callbacks.on_draw = ([&](RhiUnitTest& unit_test) {
+//
+//		float dt = get_delta_time();
+//		triangle_transforms.world = rotate_triangle(dt);
+//
+//		// upload shaders constants
+//		memcpy(camera_constant_buffer_map->get_data(), &camera, 
+//			sizeof(CameraCB));
+//		memcpy(object_constant_buffer_map->get_data(), &triangle_transforms,
+//			sizeof(ObjectCB));
+//		unit_test.command_buffer.draw_triangle_list(vertex_buffer, &index_buffer);
+//		
+//
+//		if (callbacks)
+//			callbacks->on_draw(unit_test);
+//	});
+//
+//	unit_test_callbacks.on_end = ([&](RhiUnitTest& unit_test) {
+//			
+//		if (callbacks)
+//			callbacks->on_end(unit_test);
+//	});
+//
+//	test_create_swap_chain_obj(&unit_test_callbacks);
+//}

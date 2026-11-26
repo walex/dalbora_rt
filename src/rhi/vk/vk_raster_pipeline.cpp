@@ -557,6 +557,7 @@ RHI_RASTER_PIPELINE* vk_raster_pipeline_create(const RHI_RASTER_PIPELINE_DESC* c
 
     result->layout =
         desc->layout;
-
+	result->parent_device =
+		static_cast<VK_DEVICE*>(desc->device);
     return result;
 }
