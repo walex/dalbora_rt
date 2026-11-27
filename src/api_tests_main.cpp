@@ -2,12 +2,14 @@
 void test_raster_triangle();
 void test_raster_textured_triangle();
 void test_rt_triangle();
+void test_raster_triangle_obj();
+void test_raster_textured_triangle_obj();
 
 void test_api()
 {
 	// init rhi
-	//rhi_init(rhi_device_type_dx12);
-	rhi_init(rhi_device_type_vulkan);
+	rhi_init(rhi_device_type_dx12);
+	//rhi_init(rhi_device_type_vulkan);
 	
 	// simple platform windows creation
 	//test_create_window();
@@ -32,16 +34,16 @@ void test_api()
 void test_objects() {
 
 	// init rhi
-	//rhi_init(rhi_device_type_dx12);
-	rhi_init(rhi_device_type_vulkan);
+	rhi_init(rhi_device_type_dx12);
+	//rhi_init(rhi_device_type_vulkan);
 
 	//test_create_window_obj();
 
 	// test_create_swap_chain_obj();
 
-	//test_raster_triangle_obj();
+	// test_raster_triangle_obj();
 
-	//test_raster_textured_triangle_obj();
+	test_raster_textured_triangle_obj();
 
 	//test_rt_triangle_obj();
 	
@@ -56,8 +58,8 @@ void test_objects() {
 int main(int UNUSED_PARAM(argc), char *UNUSED_PARAM(argv[]))
 {
 
-	test_api();
-	//test_objects();
+	//test_api();
+	test_objects();
 
 	return 0;
 }

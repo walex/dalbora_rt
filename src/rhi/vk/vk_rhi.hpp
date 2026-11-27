@@ -75,6 +75,9 @@ struct VK_MEMORY_DESCRIPTOR
 	: public RHI_MEMORY_DESCRIPTOR
 	, public VK_NON_DISPATCHABLE_HANDLE<VkBuffer> {
 
+	size_t reserved_range = 0;
+	size_t reserved_offset = 0;
+
 	~VK_MEMORY_DESCRIPTOR() {
 		this->release();
 	}

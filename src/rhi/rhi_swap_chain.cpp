@@ -21,28 +21,15 @@ void RhiSwapChain::create(const RhiWindow& window, const RhiDevice& device,
 	m_views.reserve(buffers_count);
 }
 
-void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryDescriptors* memory_descriptor) {
+void RhiSwapChain::create_views(const RhiDevice& device, RhiMemoryDescriptors& memory_descriptor) {
 
 	ASSERT_PTR(memory_descriptor);
 
-	//std::function<const RhiMemoryDescriptor*()> next_descriptor_slot = ([memory_descriptor]
-	//() {
-	//	return (memory_descriptor)
-	//		? memory_descriptor->next_descriptor_ptr()
-	//		: nullptr;
-	//});
-
 	size_t count = static_cast<RHI_SWAP_CHAIN*>(*this)->buffers_count;
 	
-	//for (size_t buffer_id = 0; buffer_id < count; buffer_id++) {
-	//	RhiMemoryDescriptor* next_descriptor_slot = memory_descriptor->next_descriptor_ptr();
-	//	RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device, *this, *next_descriptor_slot, this->get_format(), buffer_id);
-	//	m_views.emplace_back(view_ptr, true, next_descriptor_slot);
-	//}
-
 	for (size_t i = 0; i < count; i++) {
 
-		RhiMemoryDescriptorSlot* next_descriptor_slot = memory_descriptor->next_descriptor_ptr();
+		RhiMemoryDescriptorSlot* next_descriptor_slot = memory_descriptor.next_descriptor_ptr();
 		RHI_VIEW* view_ptr = rhi_swap_chain_create_view(device, *this, *next_descriptor_slot, this->get_format(), i);
 		m_views.emplace_back(view_ptr, true, next_descriptor_slot);
 	}

@@ -26,7 +26,7 @@ public:
 		const RhiCommandQueue& command_queue,
 		const size_t buffers_count = 3, resource_format format = resource_format_R8G8B8A8_norm,
 		bool enable_vertical_sync = false, bool full_screen = false) override;
-	void create_views(const RhiDevice& device, RhiMemoryDescriptors* memory_descriptor);
+	void create_views(const RhiDevice& device, RhiMemoryDescriptors& memory_descriptor);
 	RhiView get_next_render_target();
 	resource_format get_format();
 	size_t get_width() const;

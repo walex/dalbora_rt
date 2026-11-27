@@ -29,21 +29,23 @@ void vk_render_pass_execute_rt_mode(const RHI_RENDER_PASS* const render_pass, RH
 	ASSERT_EXPR(command_buffer_impl->handle != VK_NULL_HANDLE);
 	ASSERT_EXPR(pipeline_impl->handle != VK_NULL_HANDLE);
 
+	VK_MEMORY_DESCRIPTOR* buffer_memory_descriptor = static_cast<VK_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor.get());
 	VkBindHeapInfoEXT resource_bind_info{};
 	resource_bind_info.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
-	resource_bind_info.heapRange.address = command_buffer_impl->buffer_memory_descriptor->gpu_handle;
-	resource_bind_info.heapRange.size = command_buffer_impl->buffer_memory_descriptor->descriptor_capacity;
-	resource_bind_info.reservedRangeSize = command_buffer_impl->buffer_memory_descriptor->reserved_range;
-	resource_bind_info.reservedRangeOffset = command_buffer_impl->buffer_memory_descriptor->reserved_offset;
+	resource_bind_info.heapRange.address = buffer_memory_descriptor->gpu_handle;
+	resource_bind_info.heapRange.size = buffer_memory_descriptor->descriptor_capacity;
+	resource_bind_info.reservedRangeSize = buffer_memory_descriptor->reserved_range;
+	resource_bind_info.reservedRangeOffset = buffer_memory_descriptor->reserved_offset;
 	vkCmdBindResourceHeapEXT(*command_buffer_impl, &resource_bind_info);
 
 	if (command_buffer_impl->sampler_memory_descriptor) {
+		VK_MEMORY_DESCRIPTOR* sampler_memory_descriptor = static_cast<VK_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor.get());
 		VkBindHeapInfoEXT sampler_bind_info{};
 		sampler_bind_info.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
-		sampler_bind_info.heapRange.address = command_buffer_impl->sampler_memory_descriptor->gpu_handle;
-		sampler_bind_info.heapRange.size = command_buffer_impl->sampler_memory_descriptor->descriptor_capacity;
-		sampler_bind_info.reservedRangeSize = command_buffer_impl->sampler_memory_descriptor->reserved_range;
-		sampler_bind_info.reservedRangeOffset = command_buffer_impl->sampler_memory_descriptor->reserved_offset;
+		sampler_bind_info.heapRange.address = sampler_memory_descriptor->gpu_handle;
+		sampler_bind_info.heapRange.size = sampler_memory_descriptor->descriptor_capacity;
+		sampler_bind_info.reservedRangeSize = sampler_memory_descriptor->reserved_range;
+		sampler_bind_info.reservedRangeOffset = sampler_memory_descriptor->reserved_offset;
 		vkCmdBindSamplerHeapEXT(*command_buffer_impl, &sampler_bind_info);
 	}
 
@@ -80,6 +82,7 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 	UINT heap_count = 0;
 	if (command_buffer_impl->buffer_memory_descriptor) {
 
+		VK_MEMORY_DESCRIPTOR* buffer_memory_descriptor = static_cast<VK_MEMORY_DESCRIPTOR*>(command_buffer_impl->buffer_memory_descriptor.get());
 		VkDescriptorBufferBindingInfoEXT& bindingInfo = command_buffer_impl->heaps[heap_count];
 
 		// 1. Configurar la información de enlace para el Heap de Recursos
@@ -92,8 +95,8 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 		resourceBindInfo.heapRange.size = command_buffer_impl->buffer_memory_descriptor->descriptor_capacity;
 
 		// El área reservada por el driver (estos límites los consultas previamente de las propiedades físicas)
-		resourceBindInfo.reservedRangeSize = command_buffer_impl->buffer_memory_descriptor->reserved_range;     // Tamaño reservado
-		resourceBindInfo.reservedRangeOffset = command_buffer_impl->buffer_memory_descriptor->reserved_offset;
+		resourceBindInfo.reservedRangeSize = buffer_memory_descriptor->reserved_range;     // Tamaño reservado
+		resourceBindInfo.reservedRangeOffset = buffer_memory_descriptor->reserved_offset;
 
 		// 2. Vincular el heap de recursos al command buffer
 		vkCmdBindResourceHeapEXT(*command_buffer_impl, &resourceBindInfo);
@@ -101,12 +104,13 @@ void vk_render_pass_execute_raster_mode(const RHI_RENDER_PASS* const render_pass
 	}
 
 	if (command_buffer_impl->sampler_memory_descriptor) {
+		VK_MEMORY_DESCRIPTOR* sampler_memory_descriptor = static_cast<VK_MEMORY_DESCRIPTOR*>(command_buffer_impl->sampler_memory_descriptor.get());
 		VkBindHeapInfoEXT samplerBindInfo{};
 		samplerBindInfo.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
-		samplerBindInfo.heapRange.address = command_buffer_impl->sampler_memory_descriptor->gpu_handle;
-		samplerBindInfo.heapRange.size = command_buffer_impl->sampler_memory_descriptor->descriptor_capacity;
-		samplerBindInfo.reservedRangeSize = command_buffer_impl->sampler_memory_descriptor->reserved_range;
-		samplerBindInfo.reservedRangeOffset = command_buffer_impl->sampler_memory_descriptor->reserved_offset;
+		samplerBindInfo.heapRange.address = sampler_memory_descriptor->gpu_handle;
+		samplerBindInfo.heapRange.size = sampler_memory_descriptor->descriptor_capacity;
+		samplerBindInfo.reservedRangeSize = sampler_memory_descriptor->reserved_range;
+		samplerBindInfo.reservedRangeOffset = sampler_memory_descriptor->reserved_offset;
 
 		vkCmdBindSamplerHeapEXT(*command_buffer_impl, &samplerBindInfo);
 		heap_count++;

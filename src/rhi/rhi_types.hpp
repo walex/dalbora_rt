@@ -47,8 +47,6 @@ struct RHI_MEMORY_DESCRIPTOR {
 	size_t descriptor_alignment = 0;
 	uint64_t cpu_handle = 0;
 	uint64_t gpu_handle = 0;
-	size_t reserved_range = 0;
-	size_t reserved_offset = 0;
 };
 
 struct RHI_MEMORY_DESCRIPTOR_SLOT: public RHI_MEMORY_DESCRIPTOR {

@@ -18,8 +18,8 @@ public:
 	size_t get_read_only_buffer_descriptor_size();
 	size_t get_rw_buffer_descriptor_size();
 	operator RhiMemoryDescriptors& () const { return *m_buffers_memory_descriptors; }
-	RhiMemoryDescriptors* get_rtv_memory_descriptor() { return m_rtv_memory_descriptors.get(); }
-	RhiMemoryDescriptors* get_buffers_memory_descriptor() { return m_buffers_memory_descriptors.get(); }
+	RhiMemoryDescriptors& get_rtv_memory_descriptor() { return *m_rtv_memory_descriptors; }
+	RhiMemoryDescriptors& get_buffers_memory_descriptor() { return *m_buffers_memory_descriptors; }
 private:
 	std::unique_ptr<RhiMemoryDescriptors> m_buffers_memory_descriptors;
 	std::unique_ptr<RhiMemoryDescriptors> m_rtv_memory_descriptors;
