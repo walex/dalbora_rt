@@ -1,3 +1,4 @@
+#define TINYDDSLOADER_IMPLEMENTATION
 #include "tiny_dds_loader.hpp"
 
 void copy_bc1_image_data_with_mips(tinyddsloader::DDSFile& dds, const RHI_TEXTURE_MIPS* const mips,

@@ -127,7 +127,7 @@ void test_raster_textured_triangle_obj() {
 		vp.max_z = 1.0f;
 
 		constexpr size_t constant_shader_registers_count = 2;
-		constexpr size_t read_only_shader_registers_count = 0;
+		constexpr size_t read_only_shader_registers_count = 1;
 		constexpr size_t rw_shader_registers_count = 0;
 		constexpr size_t resources_count = constant_shader_registers_count + read_only_shader_registers_count + rw_shader_registers_count;
 		constexpr size_t sampler_shaders_registers_count = 1;
@@ -137,13 +137,14 @@ void test_raster_textured_triangle_obj() {
 		buffers_memory_table = std::make_unique<RhiMemoryDescriptors>(device, memory_descriptor_type_buffer,
 			resources_count, slot_group_start_indices);
 		command_buffer.set_buffers_memory_descriptor(*buffers_memory_table);
+		command_buffer.set_sampler_memory_descriptor(get_samplers_memory_descriptors());
 
 		RhiSharedBuffer shared_vertex_buffer;
 		RhiSharedBuffer shared_index_buffer;
 
 		// setup shaders
 		const std::filesystem::path shaders_path = get_executable_folder("shaders");
-		const std::filesystem::path shader_file = shaders_path / "simple_triangle.hlsl";
+		const std::filesystem::path shader_file = shaders_path / "textured_triangle.hlsl";
 		const std::string vertex_shader_file = shader_file.string();
 		const std::string pixel_shader_file = shader_file.string();
 
