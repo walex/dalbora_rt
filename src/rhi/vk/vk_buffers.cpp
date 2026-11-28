@@ -30,6 +30,7 @@ static RHI_VIEW* create_view_from_buffer_view_vk(const RHI_VIEW_DESC* const desc
 	VK_VIEW* result = new VK_VIEW();
 	ASSERT_PTR(result);
     result->set_handle(buffer_view);
+	result->parent_device = static_cast<VK_DEVICE*>(desc->device);
 	result->buffer = *static_cast<const VK_BUFFER*>(desc->buffer);
 	result->type = desc->type;
 	result->format = desc->format;

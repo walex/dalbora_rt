@@ -5,6 +5,8 @@ void test_rt_triangle();
 void test_raster_triangle_obj();
 void test_raster_textured_triangle_obj();
 void test_rt_triangle_obj();
+void test_rt_mesh_obj();
+void test_rt_scene_obj();
 
 void test_api()
 {
@@ -42,15 +44,15 @@ void test_objects() {
 
 	// test_create_swap_chain_obj();
 
-	// test_raster_triangle_obj();
+	 test_raster_triangle_obj();
 
 	//test_raster_textured_triangle_obj();
 
-	test_rt_triangle_obj();
+	//test_rt_triangle_obj();
 	
-	//test_rt_mesh_obj();
+	// test_rt_mesh_obj();
 
-	//test_rt_scene_obj();
+	// test_rt_scene_obj();
 
 	// end rhi
 	rhi_end();

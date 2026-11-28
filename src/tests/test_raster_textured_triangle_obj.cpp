@@ -357,7 +357,7 @@ void test_raster_textured_triangle_obj() {
 
 	window_callbacks.on_end = [&](RHI_WINDOW* UNUSED_PARAM(hwindow)) {
 
-		};
+	};
 
 
 	window.create("test", 800, 600, false, window_callbacks);

@@ -18,11 +18,13 @@ class RhiCommandAllocatorPool
 	, ICreateRhiObject<const RhiDevice&, const size_t, const queue_type> {
 
 public:
+	virtual ~RhiCommandAllocatorPool() = default;
 	IMPLEMENT_MOVABLE_CLASS(RhiCommandAllocatorPool);
 	RhiCommandAllocator aquire();
 	void release(RhiCommandAllocator& allocator);
 	
 	static void Initialize(const RhiDevice& device, const size_t elements, const queue_type type);
+	static void Terminate(const queue_type type);
 	static RhiCommandAllocatorPool& get(queue_type type);
 private:
 	RhiCommandAllocatorPool();

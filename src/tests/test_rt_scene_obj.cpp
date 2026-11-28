@@ -1,11 +1,10 @@
-#include "test_api.hpp"
+#include "rhi.hpp"
+#include "test_api_helpers.hpp"
 
 #include "RayTracingRenderer.hpp"
 #include "RayTraceScene.hpp"
 #include "Camera.hpp"
 #include "ResourceManager.hpp"
-
-#define MAX_COMMAND_ALLOCATORS 8
 
 #define DEGREE_TO_RADIAN(x) ((x) * 3.14159265358979323846 / 180.0)
 
@@ -38,6 +37,21 @@ std::unique_ptr<BaseCamera> create_camera(ResourceManager& resource_manager, flo
 
 void test_rt_scene_obj() {
 	
+	RhiDevice device;
+	// create device
+	RHI_DEVICE_DESC device_desc;
+	device_desc.features |= device_features_raytracing;
+	device_desc.shader_model = hlsl_shader_model_6_8;
+	device_desc.app_instance = rhi_get_app_instance();
+	device_desc.graphics_queue_count = 1;
+	device_desc.compute_queue_count = 1;
+	device_desc.copy_queue_count = 1;
+	device.create(device_desc);
+	// create command allocator pools
+	constexpr size_t MAX_COMMAND_ALLOCATORS = 8;
+	RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_graphics);
+	RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_compute);
+	RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_copy);
 	{
 		// bindless table for buffers
 		constexpr size_t read_only_shader_count = 800;
@@ -47,7 +61,7 @@ void test_rt_scene_obj() {
 		RHI_VIEWPORT view_port;
 
 		RhiWindow window;
-		RhiDevice device;
+		
 		std::unique_ptr<ResourceManager> resources_manager;
 		std::unique_ptr<RayTracingRenderer> renderer;
 		RhiSwapChain swap_chain;
@@ -58,15 +72,7 @@ void test_rt_scene_obj() {
 		RHI_WINDOW_CALLBACKS window_callbacks;
 		window_callbacks.on_init = ([&](RHI_WINDOW* const wnd) {
 
-			// create device
-			RHI_DEVICE_DESC device_desc;
-			device_desc.features |= device_features_raytracing;
-			device_desc.shader_model = hlsl_shader_model_6_8;
-			device_desc.app_instance = rhi_get_app_instance();
-			device_desc.graphics_queue_count = 1;
-			device_desc.compute_queue_count = 1;
-			device_desc.copy_queue_count = 1;
-			device.create(device_desc);
+			
 
 			// create resource manager
 			resources_manager = std::make_unique<ResourceManager>(device);
@@ -74,10 +80,6 @@ void test_rt_scene_obj() {
 			resources_manager->create_descriptor_tables(constant_shader_count, read_only_shader_count,
 				rw_shader_count);
 
-			// create command allocator pools
-			RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_graphics);
-			RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_compute);
-			RhiCommandAllocatorPool::Initialize(device, MAX_COMMAND_ALLOCATORS, queue_type_copy);
 
 			// create renderer
 			resource_format surface_format = resource_format_R8G8B8A8_norm;
@@ -150,4 +152,7 @@ void test_rt_scene_obj() {
 		window.create("Ray Tracing Scene Test", 800, 600, false, window_callbacks);
 		window.mainLoop();
 	}
+	RhiCommandAllocatorPool::Terminate(queue_type_graphics);
+	RhiCommandAllocatorPool::Terminate(queue_type_compute);
+	RhiCommandAllocatorPool::Terminate(queue_type_copy);
 }

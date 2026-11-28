@@ -231,7 +231,14 @@ struct RHI_SBT_TABLE {
 };
 
 struct RHI_COMMAND_ALLOCATOR_POOL {
-	virtual ~RHI_COMMAND_ALLOCATOR_POOL() = default;
+	virtual ~RHI_COMMAND_ALLOCATOR_POOL() {
+		this->allocators.pop_all([](RHI_COMMAND_ALLOCATOR*& allocator) {
+			if (allocator) {
+				delete allocator;
+				allocator = nullptr;
+			}
+			});
+	}
 	stdext::Queue<RHI_COMMAND_ALLOCATOR*> allocators;
 };
 

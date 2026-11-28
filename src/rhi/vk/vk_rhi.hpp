@@ -190,6 +190,7 @@ struct VK_FENCE
 
 struct VK_AGNOSTIC_BUFFER_VIEW
 	: public RHI_VIEW {
+
 	VkDeviceSize offset;
 	VkDeviceSize range;
 };
@@ -208,9 +209,9 @@ struct VK_VIEW
 	: public RHI_VIEW
 	, public VK_NON_DISPATCHABLE_HANDLE<VkBufferView> {
 
-	~VK_VIEW() {
+	~VK_VIEW() {			
 		ASSERT_PTR(this->parent_device);
-		vkDestroyImageView(*this->parent_device, *this, nullptr);
+		vkDestroyBufferView(*this->parent_device, *this, nullptr);
 	}
 };
 

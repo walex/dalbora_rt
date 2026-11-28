@@ -48,6 +48,12 @@ void RhiCommandAllocatorPool::Initialize(const RhiDevice& device, const size_t e
 	s_command_allocator_pool[type]->create(device, elements, type);
 }
 
+void RhiCommandAllocatorPool::Terminate(const queue_type type) {
+
+	s_command_allocator_pool[type].reset();
+}
+
+
 RhiCommandAllocatorPool& RhiCommandAllocatorPool::get(queue_type type) {
 	if (!s_command_allocator_pool[type])
 		throw std::runtime_error("Command allocator pool is not initialized.");
